@@ -1753,8 +1753,15 @@ pub(crate) fn monogram_body(app: &mut VectorcraftApp, ui: &mut Ui) {
         let style = ["classic", "line", "stacked"].get(app.embroidery.monogram_style).copied().unwrap_or("classic");
         let border = vectorcraft_engine::cmd::embroidery_monogram::BORDERS.get(app.embroidery.monogram_border).copied().unwrap_or("none");
         let ornament = vectorcraft_engine::cmd::embroidery_monogram::ORNAMENTS.get(app.embroidery.monogram_ornament).copied().unwrap_or("none");
-        let params = json!({ "letters": letters, "font": font, "size": size, "style": style, "border": border,
+        let mut params = json!({ "letters": letters, "font": font, "size": size, "style": style, "border": border,
             "rings": app.embroidery.monogram_rings.clamp(1, 4), "ornament": ornament });
+        // a gallery template with a frame: its frame art and thread colours come too
+        if let Some(t) =
+            templates.iter().find(|t| t["name"] == app.embroidery.monogram_template.as_str() && t["frame"].as_str().is_some_and(|f| !f.is_empty()))
+        {
+            params["frame"] = t["frame"].clone();
+            params["colors"] = t["colors"].clone();
+        }
         match app.run("embroidery.monogram", params) {
             Ok(r) => {
                 if let Some(w) = r["warnings"].as_array().and_then(|w| w.first()).and_then(Value::as_str) {
