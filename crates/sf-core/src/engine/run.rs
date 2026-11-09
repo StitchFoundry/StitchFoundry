@@ -49,12 +49,20 @@ pub(crate) fn generate(path: &Contour, params: &RunParams, hint: Option<Point>, 
     if pts.len() == 1 {
         return super::out::as_stitches([pts[0]]);
     }
-    let step = params.stitch_length.max(0.3);
+    // A very long path gets longer stitches (and wider zigzag/blanket spacing) so the whole
+    // object, all passes together, stays within `MAX_RUN_STITCHES` (#79). Below the cap the
+    // floor is far under the smallest stitch, so nothing changes. Up to about four needle
+    // points are made per step (triple run, backstitch, blanket prongs).
+    let total = polyline::length(&pts);
+    let per_pass = MAX_RUN_STITCHES as f64 / (f64::from(passes) * 4.0);
+    let floor = if total.is_finite() { total / per_pass } else { 0.0 };
+    let step = params.stitch_length.max(0.3).max(floor);
+    let spacing = params.spacing.max(floor);
     let once = match params.kind {
         RunKind::Single => polyline::resample(&pts, step, CORNER_ANGLE),
         RunKind::Triple => triple(&polyline::resample(&pts, step, CORNER_ANGLE)),
-        RunKind::Blanket => blanket(&pts, step, params.width, params.spacing, params.flip),
-        RunKind::Zigzag => zigzag(&pts, params.width, params.spacing),
+        RunKind::Blanket => blanket(&pts, step, params.width, spacing, params.flip),
+        RunKind::Zigzag => zigzag(&pts, params.width, spacing),
         RunKind::Motif => {
             let shape = motif_points(params.motif, params.custom_motif.as_ref());
             motif(&pts, &shape, (params.width, params.width_end), params.spacing, step, params.flip)
@@ -74,15 +82,24 @@ pub(crate) fn generate(path: &Contour, params: &RunParams, hint: Option<Point>, 
     out.finish()
 }
 
+/// Most needle points one line stitch object makes, all passes together (#79): a 1 km
+/// single run at 1 mm is sewn whole; a longer one gets longer stitches.
+pub(crate) const MAX_RUN_STITCHES: usize = 1_000_000;
+
 /// The stitching sewn `passes` times, every other pass backwards over the same
-/// needle points (2 passes = a backtrack to the start).
+/// needle points (2 passes = a backtrack to the start), stopping at
+/// [`MAX_RUN_STITCHES`] points.
 fn repeat_passes(once: &[Point], passes: u32) -> Vec<Point> {
-    let mut out = once.to_vec();
+    let mut out: Vec<Point> = once.iter().take(MAX_RUN_STITCHES).copied().collect();
     for k in 1..passes {
+        let room = MAX_RUN_STITCHES.saturating_sub(out.len());
+        if room == 0 {
+            break;
+        }
         if k % 2 == 1 {
-            out.extend(once.iter().rev().skip(1));
+            out.extend(once.iter().rev().skip(1).take(room));
         } else {
-            out.extend(once.iter().skip(1));
+            out.extend(once.iter().skip(1).take(room));
         }
     }
     out
@@ -614,6 +631,27 @@ mod tests {
 
     fn line() -> Contour {
         Contour::from_points(&[Point::new(0.0, 0.0), Point::new(20.0, 0.0)], false)
+    }
+
+    /// #79: a 10 km line sewn as a triple run in nine passes, or as a fine zigzag, used to ask
+    /// for hundreds of millions of points and run the app out of memory. It now stops at the cap;
+    /// a short line is sewn exactly as before.
+    #[test]
+    fn a_very_long_run_stops_at_the_stitch_cap() {
+        let far = Contour::from_points(&[Point::new(0.0, 0.0), Point::new(1e7, 0.0)], false);
+        let kinds = [RunKind::Single, RunKind::Triple, RunKind::Back, RunKind::Stem, RunKind::Blanket, RunKind::Zigzag];
+        for kind in kinds {
+            let p = RunParams { kind, passes: MAX_PASSES, stitch_length: 0.3, spacing: 0.2, width: 2.0, ..Default::default() };
+            let started = std::time::Instant::now();
+            let out = generate(&far, &p, None, None);
+            assert!(out.len() <= MAX_RUN_STITCHES + 16, "{kind:?}: {}", out.len());
+            assert!(out.len() > 1000, "{kind:?}: {}", out.len());
+            assert!(out.iter().all(|s| s.x.is_finite() && s.y.is_finite()), "{kind:?}");
+            assert!(started.elapsed().as_secs() < 20, "{kind:?} took {:?}", started.elapsed());
+        }
+        // A short line: 20 mm at 2 mm is 11 points, as always.
+        let p = RunParams { kind: RunKind::Single, stitch_length: 2.0, ..Default::default() };
+        assert_eq!(generate(&line(), &p, None, None).len(), 11);
     }
 
     #[test]
