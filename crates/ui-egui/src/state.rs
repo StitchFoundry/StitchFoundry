@@ -497,9 +497,6 @@ pub struct UiState {
     /// View › Calibrate Life Size….
     #[serde(skip)]
     pub life_size: crate::dialogs::life_size::LifeSizeState,
-    /// Help › Learn….
-    #[serde(skip)]
-    pub learn: crate::learn::LearnState,
     /// Embroidery › My Machine….
     #[serde(skip)]
     pub my_machine: crate::dialogs::my_machine::MyMachineState,
@@ -937,7 +934,6 @@ impl Default for UiState {
             help: Default::default(),
             life_size: Default::default(),
             my_machine: Default::default(),
-            learn: Default::default(),
             memory_card: Default::default(),
             action_sets: crate::panels::actions::default_sets(),
             action_set: None,

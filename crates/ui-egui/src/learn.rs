@@ -110,9 +110,9 @@ pub struct LearnState {
 
 /// Starts reading the list in the background (desktop; the web has no `http_get`).
 fn fetch(app: &mut VectorcraftApp) {
-    app.ui.learn.asked = true;
+    app.learn.asked = true;
     let Some(get) = app.services.http_get.clone() else {
-        app.ui.learn.note = Some("Offline: showing the planned lessons.".into());
+        app.learn.note = Some("Offline: showing the planned lessons.".into());
         return;
     };
     let (tx, rx) = channel();
@@ -126,14 +126,14 @@ fn fetch(app: &mut VectorcraftApp) {
         let _ = tx.send(r);
     });
     if spawned.is_ok() {
-        app.ui.learn.rx = Some(rx);
+        app.learn.rx = Some(rx);
     }
 }
 
 /// `ui.learn`: opens the list (and asks the site for it, once a run).
 pub fn open(app: &mut VectorcraftApp) -> Result<Value, String> {
-    app.ui.learn.open = true;
-    if !app.ui.learn.asked {
+    app.learn.open = true;
+    if !app.learn.asked {
         fetch(app);
     }
     Ok(json!({ "open": true }))
@@ -146,12 +146,12 @@ pub fn current(app: &mut VectorcraftApp) -> Value {
     json!({
         "lessons": lessons.iter().map(|l| json!({ "title": l.title, "minutes": l.minutes, "thumbnail": l.thumbnail, "video": l.video, "docs": l.docs, "try": l.try_sample.as_ref().map(|s| format!("sample:{s}")) })).collect::<Vec<_>>(),
         "comingSoon": soon,
-        "note": app.ui.learn.note,
+        "note": app.learn.note,
     })
 }
 
 fn shown(app: &VectorcraftApp) -> Vec<Lesson> {
-    match &app.ui.learn.lessons {
+    match &app.learn.lessons {
         Some(l) if !l.is_empty() => l.clone(),
         _ => seed(),
     }
@@ -180,22 +180,22 @@ pub fn act(app: &mut VectorcraftApp, what: &str, p: &Value) -> Result<Value, Str
 
 /// Each frame: the list's answer when it comes.
 pub fn poll(app: &mut VectorcraftApp, ctx: &egui::Context) {
-    let Some(rx) = &app.ui.learn.rx else { return };
+    let Some(rx) = &app.learn.rx else { return };
     let Ok(r) = rx.try_recv() else {
         ctx.request_repaint_after(std::time::Duration::from_millis(500));
         return;
     };
-    app.ui.learn.rx = None;
+    app.learn.rx = None;
     match r {
-        Ok(l) => (app.ui.learn.lessons, app.ui.learn.note) = (Some(l), None),
-        Err(e) => app.ui.learn.note = Some(format!("{e} Showing the planned lessons.")),
+        Ok(l) => (app.learn.lessons, app.learn.note) = (Some(l), None),
+        Err(e) => app.learn.note = Some(format!("{e} Showing the planned lessons.")),
     }
 }
 
 /// The window, while open.
 pub(crate) fn show(app: &mut VectorcraftApp, ctx: &egui::Context) {
     poll(app, ctx);
-    if !app.ui.learn.open {
+    if !app.learn.open {
         return;
     }
     let mut open = true;
@@ -254,7 +254,7 @@ pub(crate) fn show(app: &mut VectorcraftApp, ctx: &egui::Context) {
             });
         });
     if !open || ctx.input(|i| i.key_pressed(egui::Key::Escape)) {
-        app.ui.learn.open = false;
+        app.learn.open = false;
     }
 }
 
@@ -268,7 +268,7 @@ mod tests {
             http_get: body.map(|b| {
                 std::sync::Arc::new(move |url: &str, _: u64| {
                     assert_eq!(url, LESSONS_URL);
-                    Ok((200, b.clone()))
+                    Ok((200u16, b.clone()))
                 }) as _
             }),
             ..Default::default()
@@ -280,7 +280,7 @@ mod tests {
         let ctx = egui::Context::default();
         for _ in 0..200 {
             poll(app, &ctx);
-            if app.ui.learn.rx.is_none() {
+            if app.learn.rx.is_none() {
                 break;
             }
             std::thread::sleep(std::time::Duration::from_millis(10));
