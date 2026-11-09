@@ -239,10 +239,11 @@ pub(crate) fn show(app: &mut VectorcraftApp, ctx: &egui::Context) {
                         if l["docs"].is_string() && ui.link(tl!("Read the guide page")).clicked() {
                             act(app, "docs", &p).ok();
                         }
-                        if l["try"].is_string() && ui.button(tl!("Try it")).clicked() {
-                            if let Err(e) = act(app, "try", &p) {
-                                app.status(e);
-                            }
+                        if l["try"].is_string()
+                            && ui.button(tl!("Try it")).clicked()
+                            && let Err(e) = act(app, "try", &p)
+                        {
+                            app.status(e);
                         }
                     });
                 }
