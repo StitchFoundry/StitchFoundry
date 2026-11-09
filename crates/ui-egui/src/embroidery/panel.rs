@@ -1474,7 +1474,8 @@ pub(crate) fn clipart_body(app: &mut VectorcraftApp, ui: &mut Ui) {
         params["set"] = json!(set);
     }
     let listed = app.run("embroidery.clipart.list", params).unwrap_or_default();
-    let names: Vec<String> = listed["clipart"].as_array().map(|a| a.iter().filter_map(|c| c["name"].as_str().map(str::to_string)).collect()).unwrap_or_default();
+    let names: Vec<String> =
+        listed["clipart"].as_array().map(|a| a.iter().filter_map(|c| c["name"].as_str().map(str::to_string)).collect()).unwrap_or_default();
     ui.horizontal_wrapped(|ui| {
         if ui.selectable_label(set.is_empty(), tl!("All")).clicked() {
             app.embroidery.clipart_set.clear();
