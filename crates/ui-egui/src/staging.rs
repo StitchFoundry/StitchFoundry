@@ -26,11 +26,18 @@ pub(crate) fn banner(app: &VectorcraftApp, ctx: &egui::Context) {
     if !app.staging {
         return;
     }
-    egui::Area::new(egui::Id::new("staging-banner")).order(egui::Order::Foreground).anchor(egui::Align2::CENTER_TOP, egui::vec2(0.0, 2.0)).interactable(false).show(ctx, |ui| {
-        egui::Frame::new().fill(egui::Color32::from_rgb(0xb0, 0x20, 0x20)).corner_radius(4.0).inner_margin(egui::Margin::symmetric(10, 2)).show(ui, |ui| {
-            ui.label(egui::RichText::new(BANNER).strong().size(12.0).color(egui::Color32::WHITE));
+    egui::Area::new(egui::Id::new("staging-banner"))
+        .order(egui::Order::Foreground)
+        .anchor(egui::Align2::CENTER_TOP, egui::vec2(0.0, 2.0))
+        .interactable(false)
+        .show(ctx, |ui| {
+            egui::Frame::new().fill(egui::Color32::from_rgb(0xb0, 0x20, 0x20)).corner_radius(4.0).inner_margin(egui::Margin::symmetric(10, 2)).show(
+                ui,
+                |ui| {
+                    ui.label(egui::RichText::new(BANNER).strong().size(12.0).color(egui::Color32::WHITE));
+                },
+            );
         });
-    });
 }
 
 #[cfg(test)]
@@ -41,7 +48,18 @@ mod tests {
     #[test]
     fn only_the_exact_value_asks_for_staging() {
         assert!(requested("?services=staging") && requested("?lang=es&services=staging&view") && requested("services=staging"));
-        for no in ["", "?", "?services=", "?services=production", "?services=Staging", "?services=staging2", "?services=https://evil.example", "?xservices=staging", "?services=staging&services=prod", "?services%3Dstaging"] {
+        for no in [
+            "",
+            "?",
+            "?services=",
+            "?services=production",
+            "?services=Staging",
+            "?services=staging2",
+            "?services=https://evil.example",
+            "?xservices=staging",
+            "?services=staging&services=prod",
+            "?services%3Dstaging",
+        ] {
             assert!(!requested(no), "{no}");
         }
     }
