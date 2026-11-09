@@ -70,6 +70,7 @@ mod tools_float;
 pub mod touch;
 mod ui_fonts;
 pub mod unsaved;
+pub mod staging;
 pub mod updates;
 pub mod updates_ui;
 pub mod widgets;
@@ -119,6 +120,8 @@ pub struct VectorcraftApp {
     pub ui: UiState,
     pub views: Vec<View>,
     pub services: Services,
+    /// The web page asked for the staging services (`?services=staging`, [`staging`]).
+    pub staging: bool,
     pub canvas: CanvasCache,
     /// Embroidery mode: stitch overlay settings, the stitch player and its mesh.
     pub embroidery: embroidery::EmbroideryUi,
