@@ -64,6 +64,7 @@ pub mod embroidery_machine_check;
 pub mod embroidery_machines;
 pub mod embroidery_merge;
 pub mod embroidery_monogram;
+pub mod embroidery_monogram_frames;
 pub mod embroidery_motifs;
 pub mod embroidery_mp4;
 pub mod embroidery_my_machine;
