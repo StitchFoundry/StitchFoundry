@@ -523,6 +523,7 @@ pub fn keeps(id: &str, _p: &Value) -> bool {
         "file.place",
         "ui.saveForMyMachine",
         "ui.saveForMemoryCard",
+        "ui.startDesign",
         "ui.myMachine",
         "edit.undo",
         "edit.redo",

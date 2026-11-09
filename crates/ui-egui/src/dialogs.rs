@@ -65,6 +65,7 @@ pub mod missing_fonts;
 pub mod missing_links;
 pub(crate) mod modal;
 pub mod my_machine;
+pub mod start_design;
 pub mod new_brush;
 pub mod new_color_group;
 mod new_document;
@@ -542,6 +543,7 @@ pub fn show(app: &mut VectorcraftApp, ctx: &egui::Context) {
     help::show(app, ctx);
     life_size::show(app, ctx);
     my_machine::show(app, ctx);
+    start_design::show(app, ctx);
     memory_card::show(app, ctx);
     orders::show(app, ctx);
     font_library::show(app, ctx);
