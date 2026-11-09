@@ -54,9 +54,7 @@ fn leaf(base: Point, angle: f64, len: f64, wid: f64) -> Vec<Point> {
 }
 
 fn star(c: Point, r: f64, points: u32) -> Vec<Point> {
-    (0..points * 2)
-        .map(|i| pt(c, if i % 2 == 0 { r } else { r * 0.45 }, f64::from(i) / f64::from(points * 2) * TAU - PI / 2.0))
-        .collect()
+    (0..points * 2).map(|i| pt(c, if i % 2 == 0 { r } else { r * 0.45 }, f64::from(i) / f64::from(points * 2) * TAU - PI / 2.0)).collect()
 }
 
 fn heart(c: Point, r: f64) -> Vec<Point> {
@@ -108,7 +106,13 @@ pub fn frame_parts(kind: &str, b: Rect, margin: f64) -> Vec<Part> {
             for i in 0..14 {
                 let a = f64::from(i) / 14.0 * TAU;
                 let out = if i % 2 == 0 { 0.5 } else { -0.5 };
-                v.push(part("Leaf", leaf(pt(c, r, a), a + PI / 2.0 + out + if i % 2 == 0 { 0.0 } else { PI }, unit * 2.6, unit * 1.2), true, How::Fill, 1));
+                v.push(part(
+                    "Leaf",
+                    leaf(pt(c, r, a), a + PI / 2.0 + out + if i % 2 == 0 { 0.0 } else { PI }, unit * 2.6, unit * 1.2),
+                    true,
+                    How::Fill,
+                    1,
+                ));
             }
         }
         "floralWreath" => {
@@ -182,7 +186,13 @@ pub fn frame_parts(kind: &str, b: Rect, margin: f64) -> Vec<Part> {
                 v.push(part("Dot", circle(pt(c, r, f64::from(i) / 12.0 * TAU), unit * 0.7, 16), true, How::Fill, 1));
             }
             for (k, dx) in [-1.8, 0.0, 1.8].iter().enumerate() {
-                v.push(part("Star", star(Point::new(c.x + dx * unit * 1.4, c.y - r - unit * (2.2 - 0.3 * (k % 2) as f64)), unit * 0.9, 5), true, How::Fill, 2));
+                v.push(part(
+                    "Star",
+                    star(Point::new(c.x + dx * unit * 1.4, c.y - r - unit * (2.2 - 0.3 * (k % 2) as f64)), unit * 0.9, 5),
+                    true,
+                    How::Fill,
+                    2,
+                ));
             }
         }
         "holly" => {
@@ -195,7 +205,13 @@ pub fn frame_parts(kind: &str, b: Rect, margin: f64) -> Vec<Part> {
                 }
                 for (j, off) in [(0.0, 0.0), (0.5, 0.0), (-0.25, 0.9)].iter().enumerate() {
                     let _ = j;
-                    v.push(part("Berry", circle(Point::new(p.x + off.0 * unit * 1.4, p.y + off.1 * unit * 1.4), unit * 0.65, 14), true, How::Fill, 0));
+                    v.push(part(
+                        "Berry",
+                        circle(Point::new(p.x + off.0 * unit * 1.4, p.y + off.1 * unit * 1.4), unit * 0.65, 14),
+                        true,
+                        How::Fill,
+                        0,
+                    ));
                 }
             }
         }

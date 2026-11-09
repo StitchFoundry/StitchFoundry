@@ -12,8 +12,8 @@ use vectorcraft_embroidery::PT_PER_MM;
 use vectorcraft_geom::Rect;
 use vectorcraft_geom::path::{PathData, SubPath};
 
-use super::embroidery_monogram_frames::{FRAMES, How, frame_parts};
 use super::embroidery_lettering::{ensure_fonts, glyphs, lettering_name, loaded, not_loaded, own_size, ranged, size_warnings};
+use super::embroidery_monogram_frames::{FRAMES, How, frame_parts};
 use super::{CommandSpec, Point, Result, Session, always, bad, cmd, has_doc, point_param, str_param};
 
 const CMD: &str = "embroidery.monogram";
@@ -311,7 +311,8 @@ fn save_template(s: &mut Session, p: &Value) -> Result<Value> {
         },
         ornament: pick("ornament", &ORNAMENTS, "none")?,
         size: ranged(p, "size", 1.0..=300.0, SAVE, "`size` is 1 to 300 mm")?,
-        frame: pick("frame", &[&["none"][..], &super::embroidery_monogram_frames::FRAMES[..]].concat(), "none").map(|f| if f == "none" { String::new() } else { f })?,
+        frame: pick("frame", &[&["none"][..], &super::embroidery_monogram_frames::FRAMES[..]].concat(), "none")
+            .map(|f| if f == "none" { String::new() } else { f })?,
         font: String::new(),
         colors: Vec::new(),
     };
