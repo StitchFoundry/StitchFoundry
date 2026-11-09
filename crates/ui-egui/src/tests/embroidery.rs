@@ -634,6 +634,24 @@ mod design_from_prompt {
         (app, sent, keys)
     }
 
+    /// An Anthropic key saved by an earlier version is deleted from the secret store when the app
+    /// starts, and the person is told once; the app never uses it.
+    #[test]
+    fn a_saved_anthropic_key_is_deleted_on_start_and_never_used() {
+        let keys = Keys::default();
+        keys.save(prompt::KEY_NAME, Some("sk-ant-old")).unwrap();
+        keys.save("stitchfoundry-pay-with-credits", Some("0")).unwrap();
+        let services = Services { secrets: Some(Box::new(keys.clone())), ..Default::default() };
+        let mut app = VectorcraftApp::new(Session::new(), services);
+        assert_eq!(keys.load(prompt::KEY_NAME), None, "deleted from the stored settings");
+        assert_eq!(app.ui.status, "AI now uses your Foundry Account. Sign in to continue.");
+        // signed out: no key goes to anyone
+        assert_eq!(crate::embroidery::account::key_to_send(&mut app), "");
+        // a start with nothing saved says nothing
+        let clean = VectorcraftApp::new(Session::new(), Services { secrets: Some(Box::new(Keys::default())), ..Default::default() });
+        assert!(clean.ui.status.is_empty(), "{}", clean.ui.status);
+    }
+
     #[test]
     fn cancel_stops_waiting_and_the_web_has_no_service() {
         let (mut app, sent, _) = app(200, reply(ART), Duration::from_millis(150));
@@ -1315,14 +1333,13 @@ mod ask_about_embroidery {
     #[test]
     fn a_sew_out_report_is_drafted_by_claude_and_sent_with_leave() {
         use crate::embroidery::sewout;
-        let (mut app, sent, keys) = app(vec![
+        let (mut app, sent, _) = app(vec![
             answer("The gap above the bumper is the knit pulling in: overlap the shapes 1 mm."),
             answer(
                 "Title: Gaps where shapes meet on knit\nThe shapes were digitized edge to edge. StitchFoundry could overlap touching shapes on stretchy fabrics.",
             ),
             (200, json!({"report": "report-1-1", "emailed": true, "refunded": 10}).to_string()),
         ]);
-        signed_out(&keys);
         rectangle(&mut app);
         assert!(!crate::menus::enabled(&app, "ui.reportSewout"), "a check first");
         assert!(app.run("ui.reportSewout", json!({})).is_err());
@@ -1343,7 +1360,9 @@ mod ask_about_embroidery {
         assert!(q.contains("people who make StitchFoundry"), "{q}");
         // not without leave, nor signed out
         assert!(app.run("ui.reportSewout", json!({"send": true})).is_err());
+        let session = std::mem::take(&mut app.embroidery.account.token);
         assert!(app.run("ui.reportSewout", json!({"consent": true, "send": true})).unwrap_err().contains("Sign in"));
+        app.embroidery.account.token = session;
         assert_eq!(sent.lock().unwrap().len(), 2, "nothing sent");
         app.embroidery.account.server = "https://cloud.example".into();
         app.embroidery.account.token = "sfs_0123456789abcdef".into();

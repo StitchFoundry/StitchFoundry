@@ -5662,16 +5662,12 @@ machine	Stop	Спиране
 	Generate	Генериране
 	Describe the design:	Опишете дизайна:
 	Size (longest side):	Размер (по-дългата страна):
-	Anthropic API key:	API ключ за Anthropic:
-	Remember the key on this computer	Запомняне на ключа на този компютър
-	Claude draws the artwork with your own Anthropic API key, billed to your Anthropic account; StitchFoundry then digitizes it. Check the stitches before you sew.	Claude рисува илюстрацията с вашия собствен API ключ за Anthropic, като разходите се начисляват по вашия акаунт в Anthropic; след това StitchFoundry я дигитализира. Проверете бодовете, преди да шиете.
 	Get a key	Вземете ключ
 	Drawing the design…	Рисуване на дизайна…
 	Describe a design and Claude draws artwork for it, then StitchFoundry digitizes it	Опишете дизайн и Claude ще нарисува илюстрация за него, след което StitchFoundry ще я дигитализира
 	Place Artwork as Embroidery	Поставяне на илюстрация като бродерия
 	Place Artwork	Поставяне на илюстрация
 @plural	Design placed: {n} stitched object|Design placed: {n} stitched objects	Дизайнът е поставен: {n} бродиран обект|Дизайнът е поставен: {n} бродирани обекта
-@msg	Enter your Anthropic API key first.	Първо въведете своя API ключ за Anthropic.
 @msg	The API key isn't valid: paste it again from the Anthropic Console.	API ключът не е валиден: поставете го отново от Anthropic Console.
 @msg	Describe the design first.	Първо опишете дизайна.
 @msg	The description is too long: keep it under 2,000 characters.	Описанието е твърде дълго: нека бъде под 2000 знака.
@@ -5694,7 +5690,6 @@ machine	Stop	Спиране
 	Redraw Image with Claude	Прерисуване на изображението с Claude
 	What to change (optional):	Какво да се промени (по избор):
 	Only redraw artwork you own or have permission to use.	Прерисувайте само илюстрации, които притежавате или имате разрешение да използвате.
-	Claude redraws the image as flat-colour art with your own Anthropic API key, billed to your Anthropic account; StitchFoundry then digitizes it. Check the stitches before you sew.	Claude прерисува изображението като илюстрация с плътни цветове с вашия собствен API ключ за Anthropic, като разходите се начисляват по вашия акаунт в Anthropic; след това StitchFoundry я дигитализира. Проверете бодовете, преди да шиете.
 	Redraw with Claude…	Прерисуване с Claude…
 	Claude redraws the image as clean flat-colour art, then StitchFoundry digitizes it	Claude прерисува изображението като изчистена илюстрация с плътни цветове, след което StitchFoundry я дигитализира
 @msg	select an image to redraw	изберете изображение за прерисуване
@@ -6589,8 +6584,6 @@ machine	Stop	Спиране
 	Ask	Питане
 	New Conversation	Нов разговор
 	Include my design	Включване на моя дизайн
-	Answers come from Claude with your own Anthropic API key, billed to your Anthropic account. They can be wrong: try a test sew before an important piece.	Отговорите идват от Claude с вашия собствен API ключ за Anthropic, като разходите се начисляват по вашия акаунт в Anthropic. Те може да са грешни: направете пробно ушиване преди важно изделие.
-	Change key	Смяна на ключа
 @msg	Type a question first.	Първо въведете въпрос.
 @msg	The question is too long: keep it under 2,000 characters.	Въпросът е твърде дълъг: нека бъде под 2000 знака.
 @msg	The AI declined to answer this: ask another way.	AI отказа да отговори на това: попитайте по друг начин.
@@ -6648,7 +6641,6 @@ machine	Stop	Спиране
 	Anything else? For example: a gap above the bumper	Нещо друго? Например: празнина над бронята
 	As the design has it	Както е в дизайна
 	Choose the photos in the browser's window…	Изберете снимките в прозореца на браузъра…
-	Claude looks at the photos with your own Anthropic API key, billed to your Anthropic account. It can be wrong: try a fix on a scrap of the same fabric first.	Claude разглежда снимките с вашия собствен API ключ на Anthropic, таксуван към вашия акаунт в Anthropic. Може да греши: първо пробвайте поправка върху парче от същия плат.
 	Include the design that was sewn (open now), so it can be fixed	Включване на бродирания дизайн (отворен сега), за да може да бъде поправен
 	My sew-out ({n} photos)	Моята бродерия ({n} снимки)
 	Needle	Игла
@@ -6677,8 +6669,6 @@ machine	Stop	Спиране
 	Leave it empty for StitchFoundry's own service.	Оставете празно за собствената услуга на StitchFoundry.
 	Paid with Foundry credits ({n} left).	Платено с кредити на Foundry (остават {n}).
 	Paid with Foundry credits.	Платено с кредити на Foundry.
-	Pay for the AI features with my Foundry credits	Плащане на функциите с ИИ с моите кредити на Foundry
-	Pay with Foundry credits instead	Плащане с кредити на Foundry вместо това
 	Payment is on Stripe's secure page, in your browser; your card never reaches StitchFoundry.	Плащането става на защитената страница на Stripe в браузъра ви; картата ви никога не стига до StitchFoundry.
 	Reading your credits…	Четене на кредитите…
 	Server	Сървър
@@ -6689,7 +6679,6 @@ machine	Stop	Спиране
 	Signed in as {email}	Влезли сте като {email}
 	Foundry Account	Акаунт в Foundry
 	Foundry Account…	Акаунт в Foundry…
-	Foundry accounts aren't open yet. Until then, the AI features work with your own Anthropic API key.	Акаунтите в Foundry още не са отворени. Дотогава функциите с ИИ работят със собствения ви API ключ на Anthropic.
 	This is the sew-out after the fix from my last check	Това е бродерията след поправката от последната ми проверка
 	{n} credits for {price}	{n} кредита за {price}
 	{n} credits	{n} кредита
@@ -6873,9 +6862,7 @@ machine	Stop	Спиране
 	Quick	Бързо
 	Thorough	Задълбочено
 	About {typical} credits a drawing, at most {most}.	Около {typical} кредита на рисунка, най-много {most}.
-	About {typical} a drawing on your Anthropic account, at most {most}.	Около {typical} на рисунка от вашия акаунт в Anthropic, най-много {most}.
 	{tokens} tokens	{tokens} токена
-	{tokens} tokens, about {cost}	{tokens} токена, около {cost}
 # AI research and check
 	Thorough looks up what it draws, thinks longest and checks its stitches once: it costs several times as much as Normal. Use it for real things, like a dog breed or a truck model, and for detailed designs.	„Задълбочено“ проучва какво рисува, мисли най-дълго и веднъж проверява бодовете си: струва няколко пъти повече от „Нормално“. Ползвайте го за реални неща, като порода куче или модел камион, и за дизайни с много детайли.
 	Checking the stitches…	Проверка на бодовете…
