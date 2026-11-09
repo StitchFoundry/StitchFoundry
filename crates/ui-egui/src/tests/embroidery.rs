@@ -1081,6 +1081,12 @@ mod ask_about_embroidery {
         assert!(web.run("ui.askAboutEmbroidery", json!({})).is_err());
     }
 
+    /// Forget the Foundry Account the harness signed in.
+    fn signed_out(keys: &Keys) {
+        keys.save(vectorcraft_embroidery::sf_core::ai::cloud::TOKEN_NAME, None).unwrap();
+        keys.save("stitchfoundry-server", None).unwrap();
+    }
+
     fn jpeg(w: u32, h: u32) -> Vec<u8> {
         let img = image::RgbImage::from_fn(w, h, |x, _| image::Rgb([(x % 255) as u8, 40, 40]));
         let mut out = Vec::new();
@@ -1170,13 +1176,14 @@ mod ask_about_embroidery {
         let token = "sfs_0123456789abcdef";
         let refused = "Confirm your email first: we sent a link to denise@example.com (send it again from your Foundry Account window).";
         let unconfirmed = json!({"email": "denise@example.com", "verified": false, "credits": 100, "freeChecks": 3, "packs": [], "payments": false});
-        let (mut app, sent, _) = app(vec![
+        let (mut app, sent, keys) = app(vec![
             (200, json!({"token": token, "account": unconfirmed}).to_string()),
             (200, unconfirmed.to_string()),
             (403, json!({"type": "error", "error": {"type": "permission_error", "message": refused}}).to_string()),
             (200, json!({"sent": true, "verified": false, "message": "A new link is on its way to denise@example.com."}).to_string()),
             (200, unconfirmed.to_string()),
         ]);
+        signed_out(&keys);
         app.embroidery.account.server = "https://cloud.example".into();
         app.run("ui.account", json!({"create": true})).unwrap();
         assert!(app.run("ui.account", json!({"resend": true})).is_err(), "signed out: no account to send it to");
@@ -1308,13 +1315,14 @@ mod ask_about_embroidery {
     #[test]
     fn a_sew_out_report_is_drafted_by_claude_and_sent_with_leave() {
         use crate::embroidery::sewout;
-        let (mut app, sent, _) = app(vec![
+        let (mut app, sent, keys) = app(vec![
             answer("The gap above the bumper is the knit pulling in: overlap the shapes 1 mm."),
             answer(
                 "Title: Gaps where shapes meet on knit\nThe shapes were digitized edge to edge. StitchFoundry could overlap touching shapes on stretchy fabrics.",
             ),
             (200, json!({"report": "report-1-1", "emailed": true, "refunded": 10}).to_string()),
         ]);
+        signed_out(&keys);
         rectangle(&mut app);
         assert!(!crate::menus::enabled(&app, "ui.reportSewout"), "a check first");
         assert!(app.run("ui.reportSewout", json!({})).is_err());
@@ -1374,6 +1382,7 @@ mod ask_about_embroidery {
             (413, String::new()),
             (201, json!({"id": 7, "url": "http://127.0.0.1:8080/designs/7", "kind": "embroidery", "format": "DST"}).to_string()),
         ]);
+        signed_out(&keys);
         let publish = |app: &mut VectorcraftApp, p: Value| {
             app.run(publish::COMMAND, p).unwrap();
             let ctx = egui::Context::default();
@@ -1512,6 +1521,7 @@ mod ask_about_embroidery {
             (403, "<Error><Code>SignatureDoesNotMatch</Code></Error>".into()),
             said(401, "The Foundry Account service doesn't know that token: sign in to StitchFoundry again."),
         ]);
+        signed_out(&keys);
         let wait = stitchshop_wait;
         // nothing stitched, or signed out: not now
         assert!(!crate::menus::enabled(&app, stitchshop::COMMAND));
