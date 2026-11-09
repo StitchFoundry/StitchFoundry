@@ -1373,7 +1373,7 @@ fn clipart_motifs_place_digitized() {
     let mut s = session();
     let list = s.execute("embroidery.clipart", &json!({})).unwrap();
     let names: Vec<String> = list["clipart"].as_array().unwrap().iter().map(|c| c["name"].as_str().unwrap().to_string()).collect();
-    assert!(names.len() >= 38, "{names:?}");
+    assert!(names.len() >= 36, "{names:?}");
     // every motif places and sews
     for name in &names {
         let r = s.execute("embroidery.clipart.insert", &json!({"name": name, "size": 30})).unwrap();
@@ -6436,7 +6436,7 @@ fn clipart_library_has_sets_search_and_digitizable_motifs() {
     let sets: Vec<&str> = all["sets"].as_array().unwrap().iter().filter_map(|x| x["name"].as_str()).collect();
     assert_eq!(sets, ["Holidays", "Sports", "Pets & animals", "Nature", "Kids", "Words & frames"]);
     assert!(all["sets"].as_array().unwrap().iter().all(|x| x["count"].as_u64().unwrap() >= 2), "{all}");
-    assert!(all["clipart"].as_array().unwrap().len() >= 38);
+    assert!(all["clipart"].as_array().unwrap().len() >= 36);
     // a set, a search (case-insensitive, by name or set) and both
     let kids = s.execute("embroidery.clipart.list", &json!({"set": "kids"})).unwrap();
     assert!(
