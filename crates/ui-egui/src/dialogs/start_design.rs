@@ -202,7 +202,8 @@ mod tests {
         let ctx = egui::Context::default();
         theme::install_fonts(&ctx);
         theme::apply(&ctx, Default::default());
-        let _ = ctx.run_ui(Default::default(), |ui| show(app, ui.ctx()));
+        let mut out = ctx.run_ui(Default::default(), |ui| show(app, ui.ctx()));
+        out.textures_delta.clear();
     }
 
     #[test]
