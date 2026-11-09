@@ -1373,7 +1373,7 @@ fn clipart_motifs_place_digitized() {
     let mut s = session();
     let list = s.execute("embroidery.clipart", &json!({})).unwrap();
     let names: Vec<String> = list["clipart"].as_array().unwrap().iter().map(|c| c["name"].as_str().unwrap().to_string()).collect();
-    assert!(names.len() >= 15, "{names:?}");
+    assert!(names.len() >= 38, "{names:?}");
     // every motif places and sews
     for name in &names {
         let r = s.execute("embroidery.clipart.insert", &json!({"name": name, "size": 30})).unwrap();
@@ -6427,4 +6427,57 @@ fn auto_digitized_details_are_sewn_colour_by_colour_and_take_a_border() {
     // the border and its edge, the disc, then each line colour once: not a change per line
     assert_eq!(colours.first(), Some(&"#ffffff"), "the border first: {colours:?}");
     assert!(colours.len() <= 5, "{colours:?}");
+}
+
+#[test]
+fn clipart_library_has_sets_search_and_digitizable_motifs() {
+    let mut s = session();
+    let all = s.execute("embroidery.clipart.list", &json!({})).unwrap();
+    let sets: Vec<&str> = all["sets"].as_array().unwrap().iter().filter_map(|x| x["name"].as_str()).collect();
+    assert_eq!(sets, ["Holidays", "Sports", "Pets & animals", "Nature", "Kids", "Words & frames"]);
+    assert!(all["sets"].as_array().unwrap().iter().all(|x| x["count"].as_u64().unwrap() >= 2), "{all}");
+    assert!(all["clipart"].as_array().unwrap().len() >= 38);
+    // a set, a search (case-insensitive, by name or set) and both
+    let kids = s.execute("embroidery.clipart.list", &json!({"set": "kids"})).unwrap();
+    assert!(
+        kids["clipart"].as_array().unwrap().iter().all(|c| c["set"] == "Kids")
+            && kids["clipart"].as_array().unwrap().iter().any(|c| c["name"] == "Rocket")
+    );
+    let q = s.execute("embroidery.clipart.list", &json!({"q": "PUMP"})).unwrap();
+    assert_eq!(q["clipart"].as_array().unwrap().len(), 1);
+    let none = s.execute("embroidery.clipart.list", &json!({"set": "Holidays", "q": "rocket"})).unwrap();
+    assert!(none["clipart"].as_array().unwrap().is_empty());
+    assert!(s.execute("embroidery.clipart.list", &json!({"set": "Pirates"})).is_err());
+    // every one of the twenty new motifs inserts, sews and passes the design checks
+    let new = [
+        "Pumpkin",
+        "Christmas tree",
+        "Easter egg",
+        "Ghost",
+        "Gift box",
+        "Firework",
+        "Football",
+        "Baseball",
+        "Trophy",
+        "Fish",
+        "Bone",
+        "Cat face",
+        "Butterfly",
+        "Pine tree",
+        "Raindrop",
+        "Balloon",
+        "Rocket",
+        "Ice cream",
+        "Banner",
+        "Round frame",
+    ];
+    for name in new {
+        let mut s = session();
+        let r = s.execute("embroidery.clipart.insert", &json!({"name": name, "size": 40})).unwrap_or_else(|e| panic!("{name}: {e:?}"));
+        assert!(r["objects"].as_u64().unwrap() >= 1, "{name}");
+        assert!(s.embroidery_plan().unwrap().pattern().stitch_count() > 200, "{name} sews");
+        let check = s.execute("embroidery.check", &json!({})).unwrap();
+        let errors: Vec<&Value> = check["findings"].as_array().map(|f| f.iter().filter(|x| x["severity"] == "error").collect()).unwrap_or_default();
+        assert!(errors.is_empty(), "{name}: {errors:?}");
+    }
 }

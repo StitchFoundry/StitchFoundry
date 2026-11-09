@@ -791,7 +791,7 @@ charted, and sews as X stitches that sit exactly in their squares.
 The Embroidery panel's **Clipart** section places simple motifs drawn for StitchFoundry (heart,
 star, sparkle, crown, paw, leaf, flower, sun, moon, lightning, shield, snowflake, music note,
 anchor, check mark, arrow) digitized in the design chart's threads, as Design from Prompt's art
-is (`embroidery.clipart.insert {name, size?, at?, color?}`; `color` puts every part in one
+is (`embroidery.clipart.insert {name, size?, at?, color?}`; the picker has **set tabs** (Holidays, Sports, Pets & animals, Nature, Kids, Words & frames) and a search box, `embroidery.clipart.list {set?, q?}`, and the library is growing toward about a hundred original motifs (38 now); `color` puts every part in one
 colour). Designs of your own come in from the Design Library.
 
 ## Design templates

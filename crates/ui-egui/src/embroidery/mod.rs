@@ -258,6 +258,9 @@ pub struct EmbroideryUi {
     pub monogram_ornament: usize,
     /// The monogram template picked or being named.
     pub monogram_template: String,
+    /// The Clipart section's set tab (empty: all) and search text.
+    pub clipart_set: String,
+    pub clipart_query: String,
     pub monogram_rings: usize,
     /// The Font Creator section: the font name as typed (and whether it is being typed), glyphs
     /// to add, a kerning pair to add, text to try the font with, and the type family and loaded
@@ -416,6 +419,8 @@ impl Default for EmbroideryUi {
             monogram_size: 0.0,
             monogram_ornament: 0,
             monogram_template: String::new(),
+            clipart_set: String::new(),
+            clipart_query: String::new(),
             monogram_rings: 1,
             font_name: String::new(),
             font_name_editing: false,
