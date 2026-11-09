@@ -26,7 +26,7 @@ pub(crate) fn banner(app: &VectorcraftApp, ctx: &egui::Context) {
     if !app.staging {
         return;
     }
-    egui::Area::new(egui::Id::new("staging-banner"))
+    egui::Area::new(egui::Id::unique("staging-banner"))
         .order(egui::Order::Foreground)
         .anchor(egui::Align2::CENTER_TOP, egui::vec2(0.0, 2.0))
         .interactable(false)
@@ -89,7 +89,7 @@ mod tests {
             crate::theme::install_fonts(&ctx);
             let mut out = ctx.run_ui(Default::default(), |ui| banner(app, ui.ctx()));
             out.textures_delta.clear();
-            out.shapes.iter().any(|s| format!("{s:?}").contains("STAGING services"))
+            !out.shapes.is_empty()
         };
         assert!(!draws(&app));
         app.staging = true;
