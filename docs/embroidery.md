@@ -39,6 +39,16 @@ the control channel, the CLI and the MCP server.
 
 ## Quick start
 
+**Learn** (a button on Home, and Help › Learn…; `ui.learn`) lists short video lessons: title, length
+and thumbnail, each with a **Watch** button (the YouTube video, channel @MakerFoundryApp, opened in
+your browser), a link to the matching page of this guide and, for some, **Try it**, which opens a
+sample design. The list is one small JSON file on stitchfoundry.app
+(`https://stitchfoundry.app/learn/lessons.json`: `{"lessons": [{"title", "minutes"?, "thumbnail"?,
+"video"?, "docs"?, "try"?}]}`), so lessons can be added without a release; only YouTube and
+stitchfoundry.app links are opened, `docs` must be a guide topic and `try` a `sample:<id>`. Offline,
+or before the first videos exist, the planned lessons show as "Lessons coming soon": your first design
+in Simple mode, lettering a name, photo to stitches, appliqué and saving to your machine.
+
 The **Home screen** (shown when no design is open, or with the Home button) starts a design the
 size of your hoop (4×4, 5×7, 6×10, 8×8 or 8×12; `embroidery.newDesign {hoop}`), opens a sample
 design to look at and sew, each shown as a picture of its stitches with what it shows when you

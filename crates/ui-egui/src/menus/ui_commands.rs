@@ -692,6 +692,20 @@ pub const UI_COMMANDS: &[(&str, &str, &str, &str)] = &[
         "{} opens Get Embroidery Fonts (desktop): the fonts of an embroidery font library (Ink/Stitch's, the project's own once published), each downloaded with a click into the Embroidery Fonts folder and loaded for lettering; not in the web demo → {open}",
     ),
     (
+        "ui.learn",
+        "Learn…",
+        "",
+        "{} opens Learn: short video lessons (title, length, thumbnail) listed in one small file on stitchfoundry.app, each with its YouTube video, its guide page and, for some, a Try it that opens a sample; offline or before the first videos exist the planned lessons show as coming soon → {open}",
+    ),
+    (
+        "ui.learn.watch",
+        "Learn: Watch a Lesson",
+        "",
+        "{index} open lesson `index`'s video in the browser (a YouTube or stitchfoundry.app link only) → {opened}",
+    ),
+    ("ui.learn.docs", "Learn: Read a Lesson's Guide Page", "", "{index} open the guide page of lesson `index`"),
+    ("ui.learn.try", "Learn: Try a Lesson", "", "{index} open lesson `index`'s sample design → as embroidery.sample"),
+    (
         "ui.myMachine",
         "My Machine…",
         "",

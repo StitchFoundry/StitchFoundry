@@ -40,6 +40,7 @@ pub(crate) mod ime;
 pub mod io;
 pub mod keymap;
 pub mod layout_migration;
+pub mod learn;
 pub mod menus;
 pub mod native_menu;
 pub mod opening;

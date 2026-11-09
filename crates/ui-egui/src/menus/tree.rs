@@ -739,6 +739,7 @@ pub fn menu_tree_named(english_names: bool) -> Vec<(&'static str, Vec<Item>)> {
                 c("Suggest a Feature…", "help.suggestFeature"),
                 Sep,
                 c("Search Commands…", "help.commandPalette"),
+                c("Learn…", "ui.learn"),
                 c("StitchFoundry Help…", "help.show"),
                 cp("Tips", "help.show", json!({ "tips": true })),
                 c("Ask About Embroidery…", "ui.askAboutEmbroidery"),

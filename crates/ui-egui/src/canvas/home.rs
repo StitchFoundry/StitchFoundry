@@ -43,6 +43,10 @@ fn home_body(app: &mut VectorcraftApp, ui: &mut Ui) {
         if widgets::secondary_button(ui, tl!("Open")).clicked() {
             app.run("file.open", json!({})).ok();
         }
+        ui.add_space(8.0);
+        if widgets::secondary_button(ui, tl!("Learn")).clicked() {
+            app.run("ui.learn", json!({})).ok();
+        }
     });
     ui.add_space(18.0);
     crate::updates::home_card(app, ui, &t);
