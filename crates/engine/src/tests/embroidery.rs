@@ -6450,7 +6450,8 @@ fn twenty_monogram_templates_pass_the_design_checks_at_three_sizes() {
                 .unwrap_or_else(|e| panic!("{name} at {inches}: {e:?}"));
             assert!(r["id"].as_u64().is_some());
             let check = s.execute("embroidery.check", &json!({})).unwrap();
-            let errors: Vec<&Value> = check["findings"].as_array().map(|f| f.iter().filter(|x| x["severity"] == "error").collect()).unwrap_or_default();
+            let errors: Vec<&Value> =
+                check["findings"].as_array().map(|f| f.iter().filter(|x| x["severity"] == "error").collect()).unwrap_or_default();
             assert!(errors.is_empty(), "{name} at {inches}\": {errors:?}");
             let info = s.execute("embroidery.info", &json!({})).unwrap();
             assert!(info["stitches"].as_u64().unwrap_or(0) > 100, "{name} at {inches}\" sews something");
