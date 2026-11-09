@@ -52,7 +52,6 @@ fn body(app: &mut VectorcraftApp, ui: &mut egui::Ui, d: &mut Dialog) -> bool {
     let now = ui.input(|i| i.time);
     app.embroidery.prompt.now = now;
     crate::embroidery::account::load(app);
-    let credits = crate::embroidery::account::paying_with_credits(app);
     let drawing = app.embroidery.prompt.drawing_for(now);
     let redraw = redraw(d);
     label(ui, if redraw { tl!("What to change (optional):") } else { tl!("Describe the design:") });
@@ -108,14 +107,6 @@ fn body(app: &mut VectorcraftApp, ui: &mut egui::Ui, d: &mut Dialog) -> bool {
                 ui.end_row();
             }
         }
-        if !credits {
-            label(ui, tl!("Anthropic API key:"));
-            ui.add(egui::TextEdit::singleline(&mut app.embroidery.prompt.key).password(true).desired_width(260.0).hint_text("sk-ant-…"));
-            ui.end_row();
-            ui.label("");
-            form::check(ui, d, "remember", tl!("Remember the key on this computer"));
-            ui.end_row();
-        }
     });
     ui.add_space(6.0);
     // what it should cost, before anything is sent
@@ -146,20 +137,14 @@ fn body(app: &mut VectorcraftApp, ui: &mut egui::Ui, d: &mut Dialog) -> bool {
                 .color(t.text_dim),
         );
     }
-    // paid with Foundry credits, or with the user's own key
-    if !crate::embroidery::account::paid_line(app, ui, &t) {
-        ui.horizontal_wrapped(|ui| {
-        let about = if redraw {
-            tl!("Claude redraws the image as flat-colour art with your own Anthropic API key, billed to your Anthropic account; StitchFoundry then digitizes it. Check the stitches before you sew.")
-        } else {
-            tl!("Claude draws the artwork with your own Anthropic API key, billed to your Anthropic account; StitchFoundry then digitizes it. Check the stitches before you sew.")
-        };
-        ui.label(egui::RichText::new(about).size(11.0).color(t.text_dim));
-        if ui.link(egui::RichText::new(tl!("Get a key")).size(11.0)).clicked() {
-            app.open_url(prompt::KEY_URL);
-        }
-    });
-    }
+    // how it is paid for: Foundry credits, with a sign-in when signed out
+    crate::embroidery::account::paid_line(app, ui, &t);
+    let about = if redraw {
+        tl!("Claude redraws the image as flat-colour art through your Foundry Account; StitchFoundry then digitizes it. Check the stitches before you sew.")
+    } else {
+        tl!("Claude draws the artwork through your Foundry Account; StitchFoundry then digitizes it. Check the stitches before you sew.")
+    };
+    ui.label(egui::RichText::new(about).size(11.0).color(t.text_dim));
     ui.add_space(8.0);
     if let Some(secs) = drawing {
         ui.horizontal(|ui| {

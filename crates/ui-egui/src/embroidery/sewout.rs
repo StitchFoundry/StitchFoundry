@@ -388,7 +388,7 @@ pub fn window(app: &mut VectorcraftApp, ctx: &egui::Context) {
             let paid_by_credits = super::account::paid_line(app, ui, &t);
             if !paid_by_credits {
                 ui.label(
-                    RichText::new(tl!("Claude looks at the photos with your own Anthropic API key, billed to your Anthropic account. It can be wrong: try a fix on a scrap of the same fabric first."))
+                    RichText::new(tl!("Claude looks at the photos through your Foundry Account. It can be wrong: try a fix on a scrap of the same fabric first."))
                         .size(11.0)
                         .color(t.text_dim),
                 );
