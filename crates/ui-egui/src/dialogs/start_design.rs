@@ -107,7 +107,11 @@ pub(crate) fn show(app: &mut VectorcraftApp, ctx: &egui::Context) {
 fn machine_step(app: &mut VectorcraftApp, ui: &mut Ui, t: &Tokens) {
     ui.label(RichText::new(tl!("Step 1 of 3: your machine")).font(theme::semibold(13.0)).color(t.accent));
     ui.label(RichText::new(tl!("Which embroidery machine do you have?")).font(theme::semibold(18.0)).color(t.text));
-    ui.label(RichText::new(tl!("We ask once and remember it. It sets the hoops you can choose and the file your machine reads.")).size(13.0).color(t.text_dim));
+    ui.label(
+        RichText::new(tl!("We ask once and remember it. It sets the hoops you can choose and the file your machine reads."))
+            .size(13.0)
+            .color(t.text_dim),
+    );
     let m = mine(app);
     let mut chosen = None;
     for machine in m["machines"].as_array().map(Vec::as_slice).unwrap_or_default() {
