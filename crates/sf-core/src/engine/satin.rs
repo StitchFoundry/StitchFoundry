@@ -6,24 +6,30 @@ use crate::geom::{Column, FLATTEN_TOLERANCE, Point, Rung, polyline};
 use crate::model::{JaggedSides, SatinParams, TATAMI_LENGTH};
 use crate::pattern::Stitch;
 
+/// Most rail pairs one sampling of a column makes (#79): a column about 25 m long at the
+/// finest sampling (50 m at the usual one). A longer column is sampled more coarsely.
+const MAX_SATIN_PAIRS: usize = 1_000_000;
+
 /// Fine samples along the column: pairs of corresponding rail points spaced
-/// `half_step(width)` apart along the longer rail.
+/// `half_step(width)` apart along the longer rail, at most about [`MAX_SATIN_PAIRS`].
 fn sample_pairs(col: &Column, half_step: impl Fn(f64) -> f64) -> Vec<(Point, Point)> {
     let sections = col.sections(FLATTEN_TOLERANCE);
     let mut out = Vec::new();
     let last = sections.len().saturating_sub(1);
+    // The column's length along its longer rails: no step is shorter than its share of the cap.
+    let total: f64 = sections.iter().map(|(a, b)| polyline::length(a).max(polyline::length(b))).sum();
+    let floor = if total.is_finite() { total / MAX_SATIN_PAIRS as f64 } else { 0.0 };
     for (si, (a, b)) in sections.iter().enumerate() {
         let la = polyline::length(a);
         let lb = polyline::length(b);
         let w0 = a.first().zip(b.first()).map(|(p, q)| p.distance(*q)).unwrap_or(0.0);
         let w1 = a.last().zip(b.last()).map(|(p, q)| p.distance(*q)).unwrap_or(0.0);
-        let hs = half_step((w0 + w1) * 0.5).max(0.05);
-        let n = ((la.max(lb) / hs).ceil() as usize).max(1);
+        let hs = half_step((w0 + w1) * 0.5).max(0.05).max(floor);
+        let n = ((la.max(lb) / hs).ceil() as usize).clamp(1, MAX_SATIN_PAIRS);
         let end = if si == last { n } else { n - 1 };
-        for m in 0..=end {
-            let t = m as f64 / n as f64;
-            out.push((polyline::point_at(a, t * la), polyline::point_at(b, t * lb)));
-        }
+        let on_a = polyline::points_at(a, (0..=end).map(|m| m as f64 / n as f64 * la));
+        let on_b = polyline::points_at(b, (0..=end).map(|m| m as f64 / n as f64 * lb));
+        out.extend(on_a.into_iter().zip(on_b));
     }
     out
 }
@@ -520,13 +526,10 @@ fn resample_pairs(pairs: &[(Point, Point)], step: f64) -> Vec<(Point, Point)> {
     let b: Vec<Point> = pairs.iter().map(|p| p.1).collect();
     let la = polyline::length(&a);
     let lb = polyline::length(&b);
-    let n = ((la.max(lb) / step.max(0.05)).ceil() as usize).max(1);
-    (0..=n)
-        .map(|m| {
-            let t = m as f64 / n as f64;
-            (polyline::point_at(&a, t * la), polyline::point_at(&b, t * lb))
-        })
-        .collect()
+    let n = ((la.max(lb) / step.max(0.05)).ceil() as usize).clamp(1, MAX_SATIN_PAIRS);
+    let on_a = polyline::points_at(&a, (0..=n).map(|m| m as f64 / n as f64 * la));
+    let on_b = polyline::points_at(&b, (0..=n).map(|m| m as f64 / n as f64 * lb));
+    on_a.into_iter().zip(on_b).collect()
 }
 
 /// Satin border of `width` centred on a path (used for appliqué cover stitches
@@ -564,6 +567,27 @@ mod tests {
     use crate::geom::{Node, NodeKind};
     use crate::model::SatinUnderlay;
     use crate::pattern::Cmd;
+
+    /// #79: a satin column 10 km long used to be sampled every 0.1 mm or finer (hundreds of
+    /// millions of rail pairs). Sampling now stops at `MAX_SATIN_PAIRS`.
+    #[test]
+    fn a_very_long_satin_column_stays_bounded() {
+        let col = Column::new(vec![
+            Rung::new(Point::new(0.0, -1.0), Point::new(0.0, 1.0), NodeKind::Corner),
+            Rung::new(Point::new(1e7, -1.0), Point::new(1e7, 1.0), NodeKind::Corner),
+        ]);
+        assert!(sample_pairs(&col, |_| 0.025).len() <= MAX_SATIN_PAIRS + 2);
+        let started = std::time::Instant::now();
+        let out = generate(&col, &SatinParams::default(), None, None, 12.0);
+        assert!(!out.is_empty() && out.len() <= 8 * MAX_SATIN_PAIRS, "{}", out.len());
+        assert!(started.elapsed().as_secs() < 30, "took {:?}", started.elapsed());
+        // A short column keeps its usual sampling.
+        let short = Column::new(vec![
+            Rung::new(Point::new(0.0, -1.0), Point::new(0.0, 1.0), NodeKind::Corner),
+            Rung::new(Point::new(10.0, -1.0), Point::new(10.0, 1.0), NodeKind::Corner),
+        ]);
+        assert_eq!(sample_pairs(&short, |_| 0.2).len(), 51);
+    }
 
     /// Sew-out on a T-shirt: serif tips narrower than the shortest stitch were dropped and
     /// came out ragged. No satin stitch is narrower than `MIN_WIDTH`.
