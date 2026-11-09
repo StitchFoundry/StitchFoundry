@@ -140,7 +140,9 @@ fn body(app: &mut VectorcraftApp, ui: &mut egui::Ui, d: &mut Dialog) -> bool {
     // how it is paid for: Foundry credits, with a sign-in when signed out
     crate::embroidery::account::paid_line(app, ui, &t);
     let about = if redraw {
-        tl!("Claude redraws the image as flat-colour art through your Foundry Account; StitchFoundry then digitizes it. Check the stitches before you sew.")
+        tl!(
+            "Claude redraws the image as flat-colour art through your Foundry Account; StitchFoundry then digitizes it. Check the stitches before you sew."
+        )
     } else {
         tl!("Claude draws the artwork through your Foundry Account; StitchFoundry then digitizes it. Check the stitches before you sew.")
     };
