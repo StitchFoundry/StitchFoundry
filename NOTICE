@@ -55,7 +55,7 @@ WebAssembly plug-ins run in the wasmi interpreter (MIT OR Apache-2.0); its wasmp
 under the Apache License 2.0 with the LLVM exception.
 
 Builds made with the StitchFoundry fonts (the STITCHFOUNDRY_FONTS_DIR build option; all official
-releases) embed the Foundry embroidery fonts of https://github.com/Stitchwright/stitchfoundry-fonts
+releases) embed the Foundry embroidery fonts of https://github.com/StitchFoundry/stitchfoundry-fonts
 (Foundry Block, Varsity, Script, Slab and Sans, digitized from Anton, Graduate, Pacifico, Alfa Slab
 One and Open Sans), under the SIL Open Font License 1.1; their license texts ship with the release
 packages as OFL-<folder>.txt and are shown in the app's font list.

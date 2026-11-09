@@ -1974,7 +1974,7 @@ for the hub's owner).
 
 A design page on MakerFoundry can open its embroidery file straight in StitchFoundry's web app:
 the link is the web app's address with `?open=` and the file's address on MakerFoundry, for example
-`https://stitchwright.github.io/StitchFoundry/?open=https%3A%2F%2Fmakerfoundry.app%2Fapi%2Fv1%2Fdesigns%2F42%2Ffile%2Frose.pes`.
+`https://stitchfoundry.github.io/StitchFoundry/?open=https%3A%2F%2Fmakerfoundry.app%2Fapi%2Fv1%2Fdesigns%2F42%2Ffile%2Frose.pes`.
 The design opens as a new document, as if the file had been dropped on the window; the status bar
 says so while it loads, and says why when it can't. When MakerFoundry refuses the file, its own
 sentence is shown as it is ("That design isn't on MakerFoundry.", "This design is for sale: buy it
@@ -1987,7 +1987,7 @@ cookies, up to 32 MB (the download stops as soon as it passes that, even when th
 say how big the file is); any other address is refused before anything is fetched. The file's name
 comes from the end of its address (or the `Content-Disposition` header when the site shares it),
 and its extension says how it's read, so the address should end in the file's name (`…/rose.pes`).
-MakerFoundry has to allow the web app's site (`https://stitchwright.github.io`) to fetch the file.
+MakerFoundry has to allow the web app's site (`https://stitchfoundry.github.io`) to fetch the file.
 
 ## Design settings: hoop, fabric, threads
 
@@ -2381,7 +2381,7 @@ and https://docs.wilcom.com/embroiderystudio/28/en/OnlineHelp/Lettering/letterin
 only, `ui.fontLibrary`) lists the fonts of an embroidery font library and downloads one with a
 click: Ink/Stitch's font library (github.com/inkstitch/embroidery-fonts, about 140 fonts, each
 under its own licence, kept in its folder), and StitchFoundry's own once it is published
-(github.com/Stitchwright/stitchfoundry-fonts; until then the window says it isn't). Search the
+(github.com/StitchFoundry/stitchfoundry-fonts; until then the window says it isn't). Search the
 list by name, open a font's *Preview* in the browser, and *Download*: its files go into the
 **Embroidery Fonts** folder next to the settings (a font downloaded again replaces its copy) and
 it is loaded and chosen for lettering, remembered like any font folder. **Download All** fetches every font not downloaded yet

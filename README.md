@@ -15,7 +15,7 @@
 </p>
 
 <p align="center">
-  <a href="https://github.com/Stitchwright/StitchFoundry/actions/workflows/ci.yml"><img alt="CI" src="https://github.com/Stitchwright/StitchFoundry/actions/workflows/ci.yml/badge.svg"></a>
+  <a href="https://github.com/StitchFoundry/StitchFoundry/actions/workflows/ci.yml"><img alt="CI" src="https://github.com/StitchFoundry/StitchFoundry/actions/workflows/ci.yml/badge.svg"></a>
   <img alt="Status: pre-release" src="https://img.shields.io/badge/status-pre--release-f2546b">
   <img alt="Written in pure Rust" src="https://img.shields.io/badge/pure-Rust-b83a24?logo=rust&logoColor=white">
   <img alt="Runs on macOS, Windows, Linux, FreeBSD and the web" src="https://img.shields.io/badge/runs%20on-macOS%20%C2%B7%20Windows%20%C2%B7%20Linux%20%C2%B7%20FreeBSD%20%C2%B7%20Web-555555">
@@ -31,9 +31,9 @@
 ## Download
 
 <p align="center">
-  <a href="https://github.com/Stitchwright/StitchFoundry/releases/tag/v0.14.0-rc.1"><b>⬇ Download StitchFoundry 0.14.0 (release candidate 1)</b></a>
+  <a href="https://github.com/StitchFoundry/StitchFoundry/releases/tag/v0.14.0-rc.1"><b>⬇ Download StitchFoundry 0.14.0 (release candidate 1)</b></a>
   (Windows, macOS, Linux; signed) ·
-  <a href="https://stitchwright.github.io/StitchFoundry/"><b>Try it in your browser</b></a>
+  <a href="https://stitchfoundry.github.io/StitchFoundry/"><b>Try it in your browser</b></a>
 </p>
 
 | System | File to download |
@@ -46,7 +46,7 @@
 The Windows installers and programs are signed, and the Mac app is signed and notarized by
 Apple, so they open without a warning. The browser version is a demo: it can't download
 embroidery fonts. Builds of every change since the release, unsigned, are on the
-[latest build](https://github.com/Stitchwright/StitchFoundry/releases/tag/latest-build) page
+[latest build](https://github.com/StitchFoundry/StitchFoundry/releases/tag/latest-build) page
 (Windows may warn: **More info › Run anyway**, and Smart App Control blocks them: use the signed
 release above; on macOS right-click › **Open** the first time).
 
@@ -199,7 +199,7 @@ commercial embroidery software.
 
 In the app, **Help → Report a Bug…** opens StitchHub's report page, filled in with the version and your system. **Help → Suggest a Feature…** opens the same page for an idea, which is emailed to us.
 Describe what happened and send it: it becomes an issue in this repository (a public one, so leave out anything
-private). You can also [open an issue](https://github.com/Stitchwright/StitchFoundry/issues) yourself. A maintainer can
+private). You can also [open an issue](https://github.com/StitchFoundry/StitchFoundry/issues) yourself. A maintainer can
 have Claude work on an issue by labelling it `claude-fix`; Claude opens a pull request for review, and never merges.
 
 ## License and credits
@@ -224,7 +224,7 @@ The GitHub repositories StitchFoundry takes code, data or fonts from:
 | [storytold/craft-fonts](https://github.com/storytold/craft-fonts) | the Japanese fonts | optional build input (release builds), never copied here; OFL |
 | [adobe-fonts/source-sans](https://github.com/adobe-fonts/source-sans), [rsms/inter](https://github.com/rsms/inter), [JetBrains/JetBrainsMono](https://github.com/JetBrains/JetBrainsMono) | the interface fonts | copies in `assets/fonts` (from VectorCraft); OFL, listed in [ASSETS.md](ASSETS.md) |
 | [EmbroidePy/pyembroidery](https://github.com/EmbroidePy/pyembroidery) | the Brother PEC and Janome JEF thread colour tables | copied once (version 1.5.1); MIT, notice in [NOTICE](NOTICE) |
-| [Stitchwright/stitchfoundry-fonts](https://github.com/Stitchwright/stitchfoundry-fonts) | embroidery fonts | downloaded in the app (Embroidery › Embroidery Fonts › Get Embroidery Fonts…), not in this repository |
+| [StitchFoundry/stitchfoundry-fonts](https://github.com/StitchFoundry/stitchfoundry-fonts) | embroidery fonts | downloaded in the app (Embroidery › Embroidery Fonts › Get Embroidery Fonts…), not in this repository |
 | [inkstitch/embroidery-fonts](https://github.com/inkstitch/embroidery-fonts) | embroidery fonts in Ink/Stitch's format | downloaded in the app, not in this repository; each font keeps its own licence |
 
 Ink/Stitch itself is only a reference from its public documentation: none of its (GPL) code is used.

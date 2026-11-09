@@ -7,7 +7,7 @@ use serde_json::{Value, json};
 use super::{CommandSpec, Result, Session, always, bad, cmd, str_param};
 
 /// This app's source repository.
-pub const GITHUB_URL: &str = "https://github.com/Stitchwright/StitchFoundry";
+pub const GITHUB_URL: &str = "https://github.com/StitchFoundry/StitchFoundry";
 
 /// Where bug reports and feature requests go: StitchHub's report page. A bug report becomes an issue on this app's
 /// GitHub repository; both are emailed to the people who make StitchFoundry.

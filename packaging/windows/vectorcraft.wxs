@@ -33,9 +33,9 @@
 
     <Icon Id="VectorcraftIcon.ico" SourceFile="$(var.IconPath)" />
     <Property Id="ARPPRODUCTICON" Value="VectorcraftIcon.ico" />
-    <Property Id="ARPURLINFOABOUT" Value="https://github.com/Stitchwright/StitchFoundry" />
-    <Property Id="ARPURLUPDATEINFO" Value="https://github.com/Stitchwright/StitchFoundry/releases" />
-    <Property Id="ARPHELPLINK" Value="https://github.com/Stitchwright/StitchFoundry/issues" />
+    <Property Id="ARPURLINFOABOUT" Value="https://github.com/StitchFoundry/StitchFoundry" />
+    <Property Id="ARPURLUPDATEINFO" Value="https://github.com/StitchFoundry/StitchFoundry/releases" />
+    <Property Id="ARPHELPLINK" Value="https://github.com/StitchFoundry/StitchFoundry/issues" />
 
     <StandardDirectory Id="ProgramFiles6432Folder">
       <Directory Id="INSTALLFOLDER" Name="StitchFoundry" />
