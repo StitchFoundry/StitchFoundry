@@ -16,3 +16,4 @@
 - Fix #66: decoration stitches (cord, sequins, beads, boring) stop at `decor::MAX_STITCHES` (200,000) per object, and a cord segment with a non-finite length is skipped.
 - 2026-11-09 nightly sweep: no reports to triage; cargo audit finds no vulnerabilities (7 unmaintained/yanked notices). Filed #84 (satin split length has no lower bound).
 - Fix #79: run, zigzag, blanket, backstitch and stem lines stop at `run::MAX_RUN_STITCHES` (1,000,000 points per object, all passes), and satin sampling at `MAX_SATIN_PAIRS`. `polyline::points_at` walks a polyline once instead of once per point, so a long column is no longer quadratic.
+- Part of #91 (Send to my phone): cloud service side. `POST /v1/phone` keeps a design file for 24 hours under a private link, `GET /v1/phone/<link>` downloads it, `GET /v1/phone/list` shows the last ten; tests for expiry, privacy and bad names. Still to do: the app button, the QR code, the web list.
