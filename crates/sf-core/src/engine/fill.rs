@@ -857,8 +857,11 @@ fn row_points(xa: f64, xb: f64, (row, y): (usize, f64), cfg: &ScanConfig, splits
     let len = hi - lo;
     let (step, offset) = if cfg.stitch_length.is_finite() {
         (cfg.stitch_length.max(0.3), cfg.offset)
-    } else if cfg.split_length > 0.0 && len > cfg.split_length {
-        (cfg.split_length * 0.75, 0.37)
+    } else if let split = crate::model::effective_split_length(cfg.split_length)
+        && split > 0.0
+        && len > split
+    {
+        (split * 0.75, 0.37)
     } else {
         out.push(xa);
         out.push(xb);
@@ -1466,6 +1469,17 @@ mod tests {
         let cfg = ScanConfig { stitch_length: f64::INFINITY, split_length: 7.0, ..Default::default() };
         let pts = scan_fill(&poly, &cfg, None, None);
         assert!(max_stitch(&pts) <= 7.0 + 1e-6, "{}", max_stitch(&pts));
+    }
+
+    #[test]
+    fn satin_split_length_has_a_minimum() {
+        // #84: a tiny split length is raised to MIN_SPLIT_LENGTH instead of making millions of stitches.
+        let poly = Polygon::from_ring(rect(0.0, 0.0, 20.0, 10.0));
+        let tiny = ScanConfig { stitch_length: f64::INFINITY, split_length: 1e-6, ..Default::default() };
+        let at_min = ScanConfig { split_length: crate::model::MIN_SPLIT_LENGTH, ..tiny.clone() };
+        let pts = scan_fill(&poly, &tiny, None, None);
+        assert_eq!(pts.len(), scan_fill(&poly, &at_min, None, None).len());
+        assert!(pts.len() < 50_000, "{}", pts.len());
     }
 
     #[test]

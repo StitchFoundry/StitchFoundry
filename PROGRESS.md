@@ -16,3 +16,5 @@
 - Fix #66: decoration stitches (cord, sequins, beads, boring) stop at `decor::MAX_STITCHES` (200,000) per object, and a cord segment with a non-finite length is skipped.
 - 2026-11-09 nightly sweep: no reports to triage; cargo audit finds no vulnerabilities (7 unmaintained/yanked notices). Filed #84 (satin split length has no lower bound).
 - Fix #79: run, zigzag, blanket, backstitch and stem lines stop at `run::MAX_RUN_STITCHES` (1,000,000 points per object, all passes), and satin sampling at `MAX_SATIN_PAIRS`. `polyline::points_at` walks a polyline once instead of once per point, so a long column is no longer quadratic.
+- 2026-11-10 nightly sweep: no reports to triage; cargo audit finds no vulnerabilities (7 unmaintained/yanked notices); no new findings filed (the radial fill's split length, same bug as #84, is fixed with it).
+- Fix #84: auto split and tatami pieces are at least `MIN_SPLIT_LENGTH` (0.5 mm) in satin columns, satin fills and radial fills, and one stitch is cut into at most 10,000 pieces.
