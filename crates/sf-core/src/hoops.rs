@@ -295,10 +295,10 @@ impl Hoop {
         if matches!(self.shape, HoopShape::Round | HoopShape::Square) && (self.width - self.height).abs() > 1e-9 {
             return Err(format!("{n}: a round or square field must have width = height"));
         }
-        if let Some(id) = &self.template {
-            if self.template_in(templates).is_none() {
-                return Err(format!("{n}: unknown template `{id}`"));
-            }
+        if let Some(id) = &self.template
+            && self.template_in(templates).is_none()
+        {
+            return Err(format!("{n}: unknown template `{id}`"));
         }
         let [ow, oh] = self.outer_size_in(templates);
         if !ok(ow) || !ok(oh) || ow + 1e-9 < self.width || oh + 1e-9 < self.height {
