@@ -55,7 +55,7 @@ pub fn specs() -> Vec<CommandSpec> {
             "Embroidery Font Preview",
             [],
             None,
-            "{font, text?: up to 200 letters, lines split by a newline (default: the font's name), size?: mm (the capitals' height; 10), lineSizes?: [mm, …], leading?: × the font's line height (1), align?: left|centre|right (centre)} what text looks like in an embroidery font, for the font pickers: the outline of its digitized art, nothing is added to the design → {font, lines: [[[x, y], …], …] (polylines, mm), x, y, width, height (their bounds, mm)}",
+            "{font, text?: up to 200 letters (a newline starts a line; default: the font's name), size?: mm (the capitals' height; 10), lineSizes?: [mm, …], leading?: × the font's line height (1), align?: left|centre|right (centre)} what text looks like in an embroidery font, for the font pickers: the outline of its digitized art, nothing is added to the design → {font, lines: [[[x, y], …], …] (polylines, mm), x, y, width, height (their bounds, mm)}",
             always,
             font_preview
         ),
