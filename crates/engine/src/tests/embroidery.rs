@@ -5357,6 +5357,110 @@ fn lettering_aligns_and_follows_arcs() {
 }
 
 #[test]
+fn the_kiosk_justifies_spaces_and_sizes_its_lines() {
+    let mut s = session();
+    s.execute("embroidery.font.load", &json!({"json": TEST_FONT_JSON, "svg": TEST_FONT_SVG})).unwrap();
+    let lettering = |s: &Session, id: u64| match s.doc().unwrap().doc.node(NodeId(id)).unwrap().embroidery.as_deref().map(|e| e.stitch.clone()) {
+        Some(sf_core::attr::StitchType::Lettering(l)) => *l,
+        other => panic!("not lettering: {other:?}"),
+    };
+    // centre unless asked otherwise
+    let r = s.execute("embroidery.kiosk.order", &json!({"text": "A\nAAA", "font": "Test Script", "template": "name tape 100 × 30"})).unwrap();
+    let l = lettering(&s, r["id"].as_u64().unwrap());
+    assert_eq!(l.align, sf_core::attr::LetterAlign::Centre);
+    let r = s
+        .execute(
+            "embroidery.kiosk.order",
+            &json!({"text": "A\nAAA", "font": "Test Script", "template": "name tape 100 × 30", "align": "right", "leading": 1.5, "lineSizes": [8, 4], "size": 8}),
+        )
+        .unwrap();
+    let l = lettering(&s, r["id"].as_u64().unwrap());
+    assert_eq!((l.align, l.leading, l.line_sizes.clone()), (sf_core::attr::LetterAlign::Right, 1.5, vec![8.0, 4.0]));
+    assert!(s.execute("embroidery.kiosk.order", &json!({"text": "A", "font": "Test Script", "align": "middle"})).is_err());
+}
+
+#[test]
+fn font_preview_draws_text_without_touching_the_design() {
+    let mut s = session();
+    s.execute("embroidery.font.load", &json!({"json": TEST_FONT_JSON, "svg": TEST_FONT_SVG})).unwrap();
+    let two = TEST_FONT_JSON.replace("Test Script", "Test Two");
+    s.execute("embroidery.font.load", &json!({"json": two, "svg": TEST_FONT_SVG})).unwrap();
+    let before = s.doc().unwrap().doc.clone();
+    let one = s.execute("embroidery.font.preview", &json!({"font": "Test Script", "text": "AA", "size": 10})).unwrap();
+    let lines = one["lines"].as_array().unwrap();
+    assert!(!lines.is_empty() && one["width"].as_f64().unwrap() > 0.0, "{one}");
+    // another line: taller; another text: wider; another font: named as asked
+    let multi = s.execute("embroidery.font.preview", &json!({"font": "Test Script", "text": "AA\nAA", "size": 10})).unwrap();
+    assert!(multi["height"].as_f64().unwrap() > one["height"].as_f64().unwrap() + 1.0, "{multi}");
+    let wide = s.execute("embroidery.font.preview", &json!({"font": "Test Script", "text": "AAAA", "size": 10})).unwrap();
+    assert!(wide["width"].as_f64().unwrap() > one["width"].as_f64().unwrap() + 1.0);
+    let other = s.execute("embroidery.font.preview", &json!({"font": "Test Two", "text": "AA", "size": 10})).unwrap();
+    assert_eq!(other["font"], "Test Two");
+    // with no text, the font's name; bad calls are errors
+    assert!(s.execute("embroidery.font.preview", &json!({"font": "Test Script"})).is_ok());
+    assert!(s.execute("embroidery.font.preview", &json!({"font": "Nope"})).is_err());
+    assert!(s.execute("embroidery.font.preview", &json!({"font": "Test Script", "text": "AA", "size": 0})).is_err());
+    assert!(s.execute("embroidery.font.preview", &json!({})).is_err());
+    assert_eq!(s.doc().unwrap().doc.node_count(), before.node_count());
+}
+
+#[test]
+fn add_words_sets_lines_in_an_embroidery_font() {
+    let mut s = session();
+    s.execute("embroidery.font.load", &json!({"json": TEST_FONT_JSON, "svg": TEST_FONT_SVG})).unwrap();
+    let one = s.execute("embroidery.addWords", &json!({"text": "AA", "font": "Test Script", "height": 10})).unwrap();
+    let two = s.execute("embroidery.addWords", &json!({"text": "AA\nAA", "font": "Test Script", "height": 10, "align": "left"})).unwrap();
+    assert!(two["heightMm"].as_f64().unwrap() > one["heightMm"].as_f64().unwrap() + 1.0, "{one} {two}");
+    let id = NodeId(two["id"].as_u64().unwrap());
+    let st = s.doc().unwrap();
+    // remembered as lettering, so it can be edited with its lines
+    assert!(matches!(
+        st.doc.node(id).unwrap().embroidery.as_deref().map(|e| &e.stitch),
+        Some(sf_core::attr::StitchType::Lettering(l)) if l.text == "AA\nAA"
+    ));
+    assert!(s.execute("embroidery.addWords", &json!({"text": "A", "font": "Nope"})).is_err());
+    assert!(s.execute("embroidery.addWords", &json!({"text": "A", "font": "Test Script", "shape": "circle"})).is_err());
+}
+
+#[test]
+fn lettering_lines_have_their_own_sizes() {
+    let mut s = session();
+    s.execute("embroidery.font.load", &json!({"json": TEST_FONT_JSON, "svg": TEST_FONT_SVG})).unwrap();
+    let bounds = |s: &Session, id: NodeId| -> Vec<vectorcraft_geom::Rect> {
+        s.doc().unwrap().doc.node(id).unwrap().children().unwrap().iter().map(|g| g.geometric_bounds().unwrap()).collect()
+    };
+    let mk = |s: &mut Session, extra: serde_json::Value| {
+        let mut p = json!({"text": "A\nA", "font": "Test Script", "size": 10, "at": [300, 300], "align": "centre"});
+        p.as_object_mut().unwrap().extend(extra.as_object().unwrap().clone());
+        NodeId(s.execute("embroidery.lettering", &p).unwrap()["id"].as_u64().unwrap())
+    };
+    let plain = mk(&mut s, json!({}));
+    let p = bounds(&s, plain);
+    assert_eq!(p.len(), 2);
+    let (h, gap) = (p[0].height(), p[1].y0 - p[0].y0);
+    // the second line twice as big: twice the height, and the lines further apart
+    let big = mk(&mut s, json!({"lineSizes": [10, 20]}));
+    let b = bounds(&s, big);
+    assert!((b[0].height() - h).abs() < 0.01 && (b[1].height() - 2.0 * h).abs() < 0.01, "{b:?}");
+    assert!(b[1].y0 - b[0].y0 > gap, "{b:?} {gap}");
+    // 0 and missing lines follow the block's size; bad lists are errors
+    let same = mk(&mut s, json!({"lineSizes": [0]}));
+    let q = bounds(&s, same);
+    assert!((q[1].height() - h).abs() < 0.01);
+    assert!(s.execute("embroidery.lettering", &json!({"text": "A", "font": "Test Script", "lineSizes": [-3]})).is_err());
+    assert!(s.execute("embroidery.lettering", &json!({"text": "A", "font": "Test Script", "lineSizes": "x"})).is_err());
+    // set again, and cleared
+    s.execute("embroidery.lettering.edit", &json!({"lineSizes": [20, 10]})).unwrap();
+    let id = s.doc().unwrap().selection.objects[0];
+    let e = bounds(&s, id);
+    assert!((e[0].height() - 2.0 * e[1].height()).abs() < 0.01, "{e:?}");
+    s.execute("embroidery.lettering.edit", &json!({"lineSizes": null})).unwrap();
+    let id = s.doc().unwrap().selection.objects[0];
+    let e = bounds(&s, id);
+    assert!((e[0].height() - e[1].height()).abs() < 0.01);
+}
+
+#[test]
 fn lettering_is_set_again_where_it_is_now() {
     let mut s = session();
     s.execute("embroidery.font.load", &json!({"json": TEST_FONT_JSON, "svg": TEST_FONT_SVG})).unwrap();

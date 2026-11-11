@@ -253,6 +253,50 @@ fn the_panel_sets_lettering_in_a_loaded_font() {
 }
 
 #[test]
+fn the_font_picker_previews_the_text_and_follows_the_font() {
+    let mut app = app();
+    let glyph = |name: &str, d: &str| {
+        let json = format!(r#"{{"name": "{name}", "size": 10, "min_scale": 0.5, "max_scale": 2, "leading": 60, "horiz_adv_x": {{"A": 40}}}}"#);
+        let svg = format!(
+            r##"<svg xmlns="http://www.w3.org/2000/svg" xmlns:inkscape="http://www.inkscape.org/namespaces/inkscape" width="100mm" height="100mm" viewBox="0 0 100 100"><g inkscape:groupmode="layer" inkscape:label="GlyphLayer-A" id="l"><path d="{d}" fill="none" stroke="#000" stroke-dasharray="1 1"/></g></svg>"##
+        );
+        (json, svg)
+    };
+    let (j, s) = glyph("Straight Font", "M2 100 L20 80");
+    app.run("embroidery.font.load", json!({"json": j, "svg": s})).unwrap();
+    let (j, s) = glyph("Tall Font", "M2 100 L10 40 L20 100");
+    app.run("embroidery.font.load", json!({"json": j, "svg": s})).unwrap();
+    app.embroidery.lettering_font = "Straight Font".into();
+    app.embroidery.lettering_text = "A\nA".into();
+    let texts = painted_text_in(&mut app, crate::embroidery::panel::lettering_body, 900.0);
+    // the controls for lines: justification, spacing and a size for each line; the font named
+    for want in ["Justify", "Centre", "Line spacing", "Size of line 1", "Size of line 2", "Straight Font"] {
+        assert!(texts.iter().any(|t| t == want), "{want} missing from {texts:?}");
+    }
+    // the live preview of the user's text in the chosen font was drawn
+    let straight: Vec<_> = app.embroidery.font_previews.iter().filter(|(k, _)| k.contains("Straight Font")).collect();
+    let p1 = straight.iter().find_map(|(_, p)| (*p).clone()).expect("a preview of the text in Straight Font");
+    assert!(!p1.lines.is_empty() && p1.w > 0.0);
+    // another font: another drawing of the same text
+    app.embroidery.lettering_font = "Tall Font".into();
+    painted_text_in(&mut app, crate::embroidery::panel::lettering_body, 900.0);
+    let p2 = app
+        .embroidery
+        .font_previews
+        .iter()
+        .filter(|(k, _)| k.contains("Tall Font"))
+        .find_map(|(_, p)| p.clone())
+        .expect("a preview of the text in Tall Font");
+    assert_ne!(p1, p2);
+    assert!(p2.h > p1.h, "{p1:?} {p2:?}");
+    // the text typed: the preview follows it
+    let before = app.embroidery.font_previews.len();
+    app.embroidery.lettering_text = "AAA".into();
+    painted_text_in(&mut app, crate::embroidery::panel::lettering_body, 900.0);
+    assert!(app.embroidery.font_previews.len() > before);
+}
+
+#[test]
 fn the_font_creator_section_makes_and_edits_fonts() {
     let mut app = app();
     // no font document: ways to start one
