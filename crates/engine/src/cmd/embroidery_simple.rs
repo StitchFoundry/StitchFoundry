@@ -16,7 +16,7 @@ pub fn specs() -> Vec<CommandSpec> {
             "Add Words",
             [],
             None,
-            "{text, height?: mm the capital letters are tall (20; 5–150), color?: \"#rrggbb\" (dark blue), path?: id (a line the words follow, centred along it: a path, open or closed; words longer than the line are made smaller to fit), shape?: straight (default) | arcUp (a rainbow) | arcDown (a smile, read the right way up) | circle (round the middle, reading along the top; instead of a path)} words that sew: text in a clean built-in font, the given height, in the middle of the design or along the line, sewn as satin → {id, widthMm, heightMm}",
+            "{text (lines split by a newline), font?: an embroidery font (as Embroidery Fonts lists them): the words are set as lettering in it, straight, instead of in the built-in font, align?: left|centre|right (centre), leading?: × the font's line height (1), lineSizes?: [mm, …] (each line's capitals' height; with `font`), height?: mm the capital letters are tall (20; 5–150), color?: \"#rrggbb\" (dark blue), path?: id (a line the words follow, centred along it: a path, open or closed; words longer than the line are made smaller to fit), shape?: straight (default) | arcUp (a rainbow) | arcDown (a smile, read the right way up) | circle (round the middle, reading along the top; instead of a path)} words that sew: text in a clean built-in font, the given height, in the middle of the design or along the line, sewn as satin → {id, widthMm, heightMm}",
             has_doc,
             add_words
         ),
@@ -95,6 +95,37 @@ fn make_words(s: &mut Session, p: &Value) -> Result<Value> {
     };
     let color = str_param(p, "color").unwrap_or("#1a3e8c");
     sf_core::Rgb::from_hex(color).ok_or_else(|| bad(CMD, "`color` is \"#rrggbb\""))?;
+    // in an embroidery font: set as lettering (lines, justification, sizes), centred on the page
+    if let Some(font) = str_param(p, "font").map(str::trim).filter(|f| !f.is_empty()) {
+        if p.get("path").is_some_and(|v| !v.is_null()) || str_param(p, "shape").is_some_and(|s| s != "straight") {
+            return Err(bad(CMD, "words in an embroidery font are set straight: leave out `path` and `shape`"));
+        }
+        let r = page(s)?;
+        let mut params = json!({ "text": text, "font": font, "size": height, "at": [r.center().x, r.center().y], "align": "centre" });
+        for key in ["align", "leading", "lineSizes"] {
+            if let Some(v) = p.get(key).filter(|v| !v.is_null()) {
+                params[key] = v.clone();
+            }
+        }
+        let made = s.execute("embroidery.lettering", &params)?;
+        let id = made["id"].as_u64().ok_or_else(|| bad(CMD, "the words weren't made"))?;
+        // the block's middle on the page's middle
+        let node = vectorcraft_doc::NodeId(id);
+        if let Some(b) = s.doc()?.doc.node(node).and_then(|n| n.geometric_bounds()) {
+            let (dx, dy) = (r.center().x - b.center().x, r.center().y - b.center().y);
+            if dx.is_finite() && dy.is_finite() && (dx.abs() > 0.01 || dy.abs() > 0.01) {
+                s.execute("select.set", &json!({ "ids": [id] }))?;
+                s.execute("object.move", &json!({ "dx": dx, "dy": dy }))?;
+            }
+        }
+        s.execute("select.set", &json!({ "ids": [id] }))?;
+        s.execute("embroidery.setThread", &json!({ "color": color, "name": "Words", "ids": [id] }))?;
+        let round = |v: f64| (v * 10.0).round() / 10.0;
+        // (lettering's stitches belong to its glyphs: its size is its art's)
+        let (w, h) =
+            s.doc()?.doc.node(node).and_then(|n| n.geometric_bounds()).map_or((0.0, 0.0), |b| (b.width() / PT_PER_MM, b.height() / PT_PER_MM));
+        return Ok(json!({ "id": id, "widthMm": round(w), "heightMm": round(h), "warnings": made["warnings"] }));
+    }
     // capital letters are about seven tenths of the type size
     let size = height * PT_PER_MM / 0.7;
     // a shape asked for: the line made for the words, about the page's middle
