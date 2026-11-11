@@ -415,14 +415,15 @@ impl Basting {
                 if !(hw > 1.0 && hh > 1.0) {
                     return None;
                 }
-                match h.shape {
-                    crate::hoops::HoopShape::Rect => corners(c, hw, hh),
-                    crate::hoops::HoopShape::Oval => (0..=48)
+                if h.is_elliptical() {
+                    (0..=48)
                         .map(|k| {
                             let a = std::f64::consts::TAU * f64::from(k) / 48.0;
                             Point::new(c.x + hw * a.cos(), c.y + hh * a.sin())
                         })
-                        .collect(),
+                        .collect()
+                } else {
+                    corners(c, hw, hh)
                 }
             }
             None => corners(c, bbox.width() / 2.0 + self.margin.max(0.0), bbox.height() / 2.0 + self.margin.max(0.0)),
