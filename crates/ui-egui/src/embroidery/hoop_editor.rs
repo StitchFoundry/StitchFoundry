@@ -165,10 +165,10 @@ pub fn show(app: &mut VectorcraftApp, ui: &mut Ui, select: bool) {
             if ui.small_button(tl!("Edit")).clicked() {
                 app.embroidery.hoop_form = HoopDraft::edit(h);
             }
-            if ui.small_button(tl!("Delete")).clicked() {
-                if let Err(e) = app.run("embroidery.hoop.deleteCustom", json!({ "name": name })) {
-                    app.status(e);
-                }
+            if ui.small_button(tl!("Delete")).clicked()
+                && let Err(e) = app.run("embroidery.hoop.deleteCustom", json!({ "name": name }))
+            {
+                app.status(e);
             }
             if ui.small_button(tl!("Export…")).clicked() {
                 export(app, name);
@@ -181,7 +181,7 @@ pub fn show(app: &mut VectorcraftApp, ui: &mut Ui, select: bool) {
             let mut d = std::mem::take(&mut app.embroidery.hoop_form);
             ui.horizontal(|ui| {
                 let cur = machines.get(d.machine).cloned().unwrap_or_default();
-                egui::ComboBox::from_id_salt(("hoop-machine", name)).selected_text(cur).width(150.0).show_ui(ui, |ui| {
+                craft_ui::ComboBox::from_id_salt(("hoop-machine", name)).selected_text(cur).width(150.0).show_ui(ui, |ui| {
                     for (i, m) in machines.iter().enumerate() {
                         ui.selectable_value(&mut d.machine, i, m);
                     }
