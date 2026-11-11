@@ -79,6 +79,10 @@ fn home_body(app: &mut VectorcraftApp, ui: &mut Ui) {
             }
         }
     });
+    ui.add_space(8.0);
+    egui::CollapsingHeader::new(tl!("My own hoops")).id_salt("home-own-hoops").show(ui, |ui| {
+        crate::embroidery::hoop_editor::show(app, ui, false);
+    });
     ui.add_space(24.0);
     ui.label(egui::RichText::new(tl!("Your first design")).font(theme::semibold(14.0)).color(t.text));
     ui.add_space(8.0);

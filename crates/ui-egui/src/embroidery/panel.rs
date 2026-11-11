@@ -816,29 +816,7 @@ fn hoop_position_row(app: &mut VectorcraftApp, ui: &mut Ui, info: &Value) {
 /// A hoop of one's own: its name and field, kept with the standard ones.
 fn hoop_custom_row(app: &mut VectorcraftApp, ui: &mut Ui) {
     egui::CollapsingHeader::new(tl!("Custom Hoops")).id_salt("emb-custom-hoops").show(ui, |ui| {
-        let d = &mut app.embroidery.hoop_draft;
-        ui.horizontal(|ui| {
-            ui.add(egui::TextEdit::singleline(&mut d.0).desired_width(110.0).hint_text(tl!("Hoop name")));
-            ui.add(egui::DragValue::new(&mut d.1).range(20.0..=2000.0).suffix(" mm"));
-            ui.label("×");
-            ui.add(egui::DragValue::new(&mut d.2).range(20.0..=2000.0).suffix(" mm"));
-        });
-        let (name, w, h) = (d.0.trim().to_string(), d.1, d.2);
-        ui.horizontal(|ui| {
-            if !name.is_empty() && button(ui, tl!("Save Hoop")).clicked() {
-                match app.run("embroidery.hoop.saveCustom", json!({ "name": name, "width": w, "height": h })) {
-                    Ok(_) => {
-                        app.run("embroidery.settings", json!({ "hoop": name })).ok();
-                    }
-                    Err(e) => app.status(e),
-                }
-            }
-            if app.session.prefs.embroidery_custom_hoops.iter().any(|c| c.name.eq_ignore_ascii_case(&name))
-                && button(ui, tl!("Delete Hoop")).clicked()
-            {
-                app.run("embroidery.hoop.deleteCustom", json!({ "name": name })).ok();
-            }
-        });
+        super::hoop_editor::show(app, ui, true);
     });
 }
 

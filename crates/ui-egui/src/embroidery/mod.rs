@@ -4,6 +4,7 @@
 pub mod account;
 pub mod ask;
 pub mod family;
+pub mod hoop_editor;
 pub mod kiosk;
 pub mod overlay;
 pub mod panel;
@@ -233,8 +234,8 @@ pub struct EmbroideryUi {
     pub output: OutputView,
     /// The Patches section's choices.
     pub patches: PatchForm,
-    /// A hoop of one's own as typed: name, width and height (mm).
-    pub hoop_draft: (String, f64, f64),
+    /// The hoop-of-one's-own form (Embroidery panel and Make a Design).
+    pub hoop_form: hoop_editor::HoopDraft,
     /// Recolour: the scheme (an index), the hue turn (degrees) and the one colour.
     pub recolor_scheme: usize,
     pub recolor_degrees: f64,
@@ -401,7 +402,7 @@ impl Default for EmbroideryUi {
             library: LibraryView::default(),
             output: OutputView::default(),
             patches: PatchForm::default(),
-            hoop_draft: (String::new(), 150.0, 150.0),
+            hoop_form: hoop_editor::HoopDraft::default(),
             recolor_scheme: 0,
             recolor_degrees: 60.0,
             recolor_amount: 20.0,
