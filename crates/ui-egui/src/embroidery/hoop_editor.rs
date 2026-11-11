@@ -302,6 +302,39 @@ mod tests {
     }
 
     #[test]
+    fn a_hoop_is_made_attached_exported_and_imported_from_the_form() {
+        let dir = std::env::temp_dir().join(format!("sf-hoop-ui-{}", std::process::id()));
+        std::fs::create_dir_all(&dir).unwrap();
+        let path = dir.join("Hat.json").to_string_lossy().to_string();
+        let mut app = VectorcraftApp::new(vectorcraft_engine::Session::new(), Default::default());
+        app.run("file.new", json!({"width": 400, "height": 300})).unwrap();
+        let d = HoopDraft { name: "Hat".into(), width: 8.0, height: 4.0, inches: true, corner_radius: 0.5, ..Default::default() };
+        app.run("embroidery.hoop.saveCustom", d.params()).unwrap();
+        let mine = app.run("embroidery.myMachine", json!({})).unwrap();
+        let machine = mine["machines"][0]["name"].as_str().unwrap().to_string();
+        app.run("embroidery.hoop.attach", json!({"name": "Hat", "machine": machine})).unwrap();
+        // the editor draws the list with Edit, Delete and Export, and the form when open
+        app.embroidery.hoop_form = HoopDraft::edit(&app.run("embroidery.myMachine", json!({})).unwrap()["own"][0]);
+        assert!((app.embroidery.hoop_form.corner_radius - 12.7).abs() < 1e-6, "Edit keeps the corner radius");
+        let ctx = egui::Context::default();
+        let raw = egui::RawInput { screen_rect: Some(egui::Rect::from_min_size(egui::Pos2::ZERO, egui::vec2(420.0, 800.0))), ..Default::default() };
+        let _ = ctx.run_ui(raw, |ui| show(&mut app, ui, false));
+        // Export, delete, Import
+        let picked = path.clone();
+        app.services.pick_save = Some(Box::new(move |_: &crate::FilePick| Some(picked.clone())));
+        export(&mut app, "Hat");
+        assert!(std::path::Path::new(&path).exists());
+        app.run("embroidery.hoop.deleteCustom", json!({"name": "Hat"})).unwrap();
+        let picked = path.clone();
+        app.services.pick_open = Some(Box::new(move |_: &crate::FilePick| Some(picked.clone())));
+        import(&mut app);
+        let own = app.run("embroidery.myMachine", json!({})).unwrap()["own"].clone();
+        assert_eq!(own[0]["name"], "Hat");
+        assert!((own[0]["width"].as_f64().unwrap() - 203.2).abs() < 1e-6);
+        std::fs::remove_dir_all(&dir).ok();
+    }
+
+    #[test]
     fn changing_the_unit_converts_the_sizes() {
         let mut d = HoopDraft { width: 254.0, ..Default::default() };
         d.set_inches(true);
