@@ -124,7 +124,7 @@ fn turn(h: &Hoop) -> Hoop {
 
 fn set_hoop(s: &mut Session, h: &Hoop) -> Result<()> {
     // the hoop as it is (turned, one's own), set whole
-    let shape = if h.shape == HoopShape::Oval { "oval" } else { "rect" };
+    let shape = if h.is_elliptical() { "oval" } else { "rect" };
     let hoop = json!({ "name": h.name, "width": h.width, "height": h.height, "shape": shape, "cornerRadius": h.corner_radius, "frame": h.frame });
     s.execute("embroidery.settings", &json!({ "hoop": hoop }))?;
     Ok(())
@@ -144,7 +144,7 @@ fn list(s: &mut Session, _: &Value) -> Result<Value> {
                 "name": h.name,
                 "width": h.width,
                 "height": h.height,
-                "shape": if h.shape == HoopShape::Oval { "oval" } else { "rect" },
+                "shape": if h.is_elliptical() { "oval" } else { "rect" },
                 "custom": custom.iter().any(|c| c.name == h.name),
                 "cornerRadius": h.corner_radius,
                 "frame": h.frame,
@@ -357,7 +357,7 @@ fn import(s: &mut Session, p: &Value) -> Result<Value> {
     let h = v.get("hoop").ok_or_else(|| bad(CMD, "the file holds no hoop"))?;
     let mut hoop: Hoop = serde_json::from_value(h.clone()).map_err(|e| bad(CMD, format!("the hoop is damaged: {e}")))?;
     // the same checks as making one by hand (an oval or round field is told by its shape)
-    let shape = if hoop.shape == HoopShape::Oval { "oval" } else { "rect" };
+    let shape = if hoop.is_elliptical() { "oval" } else { "rect" };
     let mut q = json!({ "name": hoop.name, "width": hoop.width, "height": hoop.height, "shape": shape });
     if hoop.corner_radius != 0.0 {
         q["cornerRadius"] = json!(hoop.corner_radius);

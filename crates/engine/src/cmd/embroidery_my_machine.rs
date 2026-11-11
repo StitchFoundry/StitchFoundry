@@ -50,7 +50,7 @@ fn get(s: &mut Session, _: &Value) -> Result<Value> {
         .embroidery_custom_hoops
         .iter()
         .map(|h| {
-            let shape = if h.shape == sf_core::hoops::HoopShape::Oval { "oval" } else { "rect" };
+            let shape = if h.is_elliptical() { "oval" } else { "rect" };
             json!({ "name": h.name, "width": h.width, "height": h.height, "shape": shape, "machines": h.machines })
         })
         .collect();
