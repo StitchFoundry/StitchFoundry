@@ -709,8 +709,8 @@ fn words_font_rows(app: &mut VectorcraftApp, ui: &mut Ui, text: &str, height: f6
 
 /// The `addWords` parameters for an embroidery font: set straight as lettering, with its lines.
 fn add_font_params(app: &VectorcraftApp, p: &mut Value, along: Option<(u64, bool)>) {
-    let in_font = !app.simple.words_font.is_empty()
-        && app.session.embroidery_fonts.iter().any(|f| f.info.name.eq_ignore_ascii_case(&app.simple.words_font));
+    let in_font =
+        !app.simple.words_font.is_empty() && app.session.embroidery_fonts.iter().any(|f| f.info.name.eq_ignore_ascii_case(&app.simple.words_font));
     if !in_font || matches!(along, Some((_, true))) || app.simple.words_shape != "straight" {
         return;
     }
