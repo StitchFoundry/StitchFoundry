@@ -51,6 +51,15 @@ pub fn specs() -> Vec<CommandSpec> {
             list_fonts
         ),
         cmd!(
+            "embroidery.font.preview",
+            "Embroidery Font Preview",
+            [],
+            None,
+            "{font, text?: up to 200 letters, lines split by a newline (default: the font's name), size?: mm (the capitals' height; 10), lineSizes?: [mm, …], leading?: × the font's line height (1), align?: left|centre|right (centre)} what text looks like in an embroidery font, for the font pickers: the outline of its digitized art, nothing is added to the design → {font, lines: [[[x, y], …], …] (polylines, mm), x, y, width, height (their bounds, mm)}",
+            always,
+            font_preview
+        ),
+        cmd!(
             "embroidery.teamNames.export",
             "Export Team Names",
             [],
@@ -367,6 +376,89 @@ fn list_fonts(s: &mut Session, _: &Value) -> Result<Value> {
         })
         .collect();
     Ok(json!({ "fonts": fonts, "warnings": warnings }))
+}
+
+/// Collects `n`'s paths (and its children's), flattened, as polylines in mm.
+fn preview_lines(n: &Node, out: &mut Vec<Vec<[f64; 2]>>, points: &mut usize) {
+    const MAX_POINTS: usize = 60_000;
+    if let NodeKind::Path { path, .. } = &n.kind {
+        for sub in &path.subpaths {
+            if *points >= MAX_POINTS {
+                return;
+            }
+            let bez = vectorcraft_geom::path::PathData::new(vec![sub.clone()]).to_bezpath();
+            let mut line: Vec<[f64; 2]> = Vec::new();
+            kurbo::flatten(bez.iter(), 0.3, |el| {
+                if let kurbo::PathEl::MoveTo(q) | kurbo::PathEl::LineTo(q) = el
+                    && q.x.is_finite()
+                    && q.y.is_finite()
+                {
+                    line.push([q.x / vectorcraft_embroidery::PT_PER_MM, q.y / vectorcraft_embroidery::PT_PER_MM]);
+                }
+            });
+            if sub.closed
+                && let Some(&first) = line.first()
+            {
+                line.push(first);
+            }
+            *points += line.len();
+            if line.len() >= 2 {
+                out.push(line);
+            }
+        }
+    }
+    if let Some(children) = n.children() {
+        for c in children {
+            preview_lines(c, out, points);
+        }
+    }
+}
+
+fn font_preview(s: &mut Session, p: &Value) -> Result<Value> {
+    const CMD: &str = "embroidery.font.preview";
+    let name = str_param(p, "font").ok_or_else(|| bad(CMD, "missing `font`"))?;
+    let _ = ensure_fonts(s);
+    let font = loaded(s, name).ok_or_else(|| not_loaded(CMD, name))?;
+    let text = match p.get("text") {
+        None | Some(Value::Null) => font.info.name.clone(),
+        Some(v) => v.as_str().filter(|t| t.chars().count() <= 200).ok_or_else(|| bad(CMD, "`text` is up to 200 letters"))?.to_string(),
+    };
+    let size = ranged(p, "size", 1.0..=500.0, CMD, "`size` is 1 to 500 mm")?.unwrap_or(10.0);
+    let leading = ranged(p, "leading", 0.2..=5.0, CMD, "`leading` is 0.2 to 5")?.unwrap_or(1.0);
+    let spec = Lettering {
+        text,
+        font: font.info.name.clone(),
+        size,
+        line_sizes: line_sizes_param(p, CMD)?.unwrap_or_default(),
+        leading,
+        arc: 0.0,
+        spiral: 0.0,
+        align: align_param(p, CMD)?.unwrap_or(LetterAlign::Centre),
+        sew: LetterSewing::default(),
+        letters: Vec::new(),
+        puff: None,
+        applique: None,
+        stitch: LetterStitch::Font,
+        small: SmallText::Off,
+        vertical: false,
+        path: Vec::new(),
+        frame: sf_core::Affine::IDENTITY,
+    };
+    // laid out on a scratch page, which is dropped: the design isn't touched
+    let mut scratch = Document::new(10.0, 10.0);
+    let set = glyphs(&mut scratch, &font, &spec);
+    let (mut lines, mut points) = (Vec::new(), 0);
+    for g in &set {
+        preview_lines(g, &mut lines, &mut points);
+    }
+    let (mut x0, mut y0, mut x1, mut y1) = (f64::MAX, f64::MAX, f64::MIN, f64::MIN);
+    for q in lines.iter().flatten() {
+        (x0, y0, x1, y1) = (x0.min(q[0]), y0.min(q[1]), x1.max(q[0]), y1.max(q[1]));
+    }
+    if lines.is_empty() {
+        return Err(bad(CMD, format!("{} has none of these characters", font.info.name)));
+    }
+    Ok(json!({ "font": font.info.name, "lines": lines, "x": x0, "y": y0, "width": x1 - x0, "height": y1 - y0 }))
 }
 
 fn forget_font(s: &mut Session, p: &Value) -> Result<Value> {
