@@ -5357,6 +5357,44 @@ fn lettering_aligns_and_follows_arcs() {
 }
 
 #[test]
+fn lettering_lines_have_their_own_sizes() {
+    let mut s = session();
+    s.execute("embroidery.font.load", &json!({"json": TEST_FONT_JSON, "svg": TEST_FONT_SVG})).unwrap();
+    let bounds = |s: &Session, id: NodeId| -> Vec<vectorcraft_geom::Rect> {
+        s.doc().unwrap().doc.node(id).unwrap().children().unwrap().iter().map(|g| g.geometric_bounds().unwrap()).collect()
+    };
+    let mk = |s: &mut Session, extra: serde_json::Value| {
+        let mut p = json!({"text": "A\nA", "font": "Test Script", "size": 10, "at": [300, 300], "align": "centre"});
+        p.as_object_mut().unwrap().extend(extra.as_object().unwrap().clone());
+        NodeId(s.execute("embroidery.lettering", &p).unwrap()["id"].as_u64().unwrap())
+    };
+    let plain = mk(&mut s, json!({}));
+    let p = bounds(&s, plain);
+    assert_eq!(p.len(), 2);
+    let (h, gap) = (p[0].height(), p[1].y0 - p[0].y0);
+    // the second line twice as big: twice the height, and the lines further apart
+    let big = mk(&mut s, json!({"lineSizes": [10, 20]}));
+    let b = bounds(&s, big);
+    assert!((b[0].height() - h).abs() < 0.01 && (b[1].height() - 2.0 * h).abs() < 0.01, "{b:?}");
+    assert!(b[1].y0 - b[0].y0 > gap, "{b:?} {gap}");
+    // 0 and missing lines follow the block's size; bad lists are errors
+    let same = mk(&mut s, json!({"lineSizes": [0]}));
+    let q = bounds(&s, same);
+    assert!((q[1].height() - h).abs() < 0.01);
+    assert!(s.execute("embroidery.lettering", &json!({"text": "A", "font": "Test Script", "lineSizes": [-3]})).is_err());
+    assert!(s.execute("embroidery.lettering", &json!({"text": "A", "font": "Test Script", "lineSizes": "x"})).is_err());
+    // set again, and cleared
+    s.execute("embroidery.lettering.edit", &json!({"lineSizes": [20, 10]})).unwrap();
+    let id = s.doc().unwrap().selection.objects[0];
+    let e = bounds(&s, id);
+    assert!((e[0].height() - 2.0 * e[1].height()).abs() < 0.01, "{e:?}");
+    s.execute("embroidery.lettering.edit", &json!({"lineSizes": null})).unwrap();
+    let id = s.doc().unwrap().selection.objects[0];
+    let e = bounds(&s, id);
+    assert!((e[0].height() - e[1].height()).abs() < 0.01);
+}
+
+#[test]
 fn lettering_is_set_again_where_it_is_now() {
     let mut s = session();
     s.execute("embroidery.font.load", &json!({"json": TEST_FONT_JSON, "svg": TEST_FONT_SVG})).unwrap();
