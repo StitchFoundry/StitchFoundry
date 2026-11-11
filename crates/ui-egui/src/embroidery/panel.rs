@@ -357,6 +357,9 @@ fn fill_from_lettering(app: &mut VectorcraftApp, selected: Option<&(u64, Letteri
             app.embroidery.lettering_text = l.text.clone();
             app.embroidery.lettering_font = l.font.clone();
             app.embroidery.lettering_size = l.size;
+            app.embroidery.lettering_align = l.align;
+            app.embroidery.lettering_leading = l.leading;
+            app.embroidery.lettering_line_sizes = l.line_sizes.clone();
             app.embroidery.lettering_arc = l.arc;
             app.embroidery.lettering_spiral = l.spiral;
             app.embroidery.lettering_sew = l.sew;
@@ -457,9 +460,18 @@ pub(crate) fn lettering_body(app: &mut VectorcraftApp, ui: &mut Ui) {
     {
         ui.label(format!("{} {}", tl!("Load this lettering's font to change it:"), l.font));
     }
-    let names: Vec<&str> = fonts.iter().map(|f| f.0.as_str()).collect();
+    let names: Vec<String> = fonts.iter().map(|f| f.0.clone()).collect();
     let cur = names.iter().position(|n| n.eq_ignore_ascii_case(&app.embroidery.lettering_font)).unwrap_or(0);
-    if let Some(i) = pick_names(ui, tl!("Font"), "let-font", cur, &names)
+    // the one font picker: each font drawn in itself, and the text as it will sew
+    let (text, line_sizes) = (app.embroidery.lettering_text.clone(), app.embroidery.lettering_line_sizes.clone());
+    let sample = super::font_picker::Sample {
+        text: &text,
+        align: app.embroidery.lettering_align,
+        leading: app.embroidery.lettering_leading,
+        size: if app.embroidery.lettering_size > 0.0 { app.embroidery.lettering_size } else { 10.0 },
+        line_sizes: &line_sizes,
+    };
+    if let Some(i) = super::font_picker::font_picker(app, ui, "let-font", tl!("Font"), &names, cur, &sample)
         && let Some(name) = names.get(i)
     {
         app.embroidery.lettering_font = name.to_string();
@@ -473,6 +485,40 @@ pub(crate) fn lettering_body(app: &mut VectorcraftApp, ui: &mut Ui) {
     let size = if app.embroidery.lettering_size > 0.0 { app.embroidery.lettering_size } else { own.max(1.0) };
     if let Some(v) = num(ui, tl!("Size"), "let-size", size, " mm", 1) {
         app.embroidery.lettering_size = v.clamp(1.0, 500.0);
+    }
+    // justification across the lines (centre unless set otherwise), the gap between them, and
+    // each line's own size
+    {
+        use vectorcraft_embroidery::sf_core::attr::LetterAlign;
+        let aligns = [LetterAlign::Left, LetterAlign::Centre, LetterAlign::Right];
+        let cur = aligns.iter().position(|a| *a == app.embroidery.lettering_align).unwrap_or(1);
+        if let Some(i) = pick(ui, tl!("Justify"), "let-align", cur, &[tl!("Left"), tl!("Centre"), tl!("Right")])
+            && let Some(a) = aligns.get(i)
+        {
+            app.embroidery.lettering_align = *a;
+        }
+        // (a percentage of the font's own line height)
+        if let Some(v) = num(ui, tl!("Line spacing"), "let-leading", app.embroidery.lettering_leading * 100.0, " %", 0) {
+            app.embroidery.lettering_leading = (v / 100.0).clamp(0.2, 5.0);
+        }
+        let lines = app.embroidery.lettering_text.lines().count().clamp(1, 12);
+        if lines > 1 {
+            let block = app.embroidery.lettering_size;
+            let sizes = &mut app.embroidery.lettering_line_sizes;
+            // (a line not sized yet has the block's size: 0)
+            sizes.resize(lines, 0.0);
+            for n in 0..lines {
+                let own = sizes.get(n).copied().filter(|s| *s > 0.0).unwrap_or(if block > 0.0 { block } else { size });
+                let label = format!("{} {}", tl!("Size of line"), n + 1);
+                if let Some(v) = num(ui, &label, &format!("let-line-{n}"), own, " mm", 1)
+                    && let Some(slot) = sizes.get_mut(n)
+                {
+                    *slot = v.clamp(1.0, 500.0);
+                }
+            }
+        } else {
+            app.embroidery.lettering_line_sizes.clear();
+        }
     }
     // the sizes the font sews well at: a warning as soon as the size is outside them
     if let (Some(lo), Some(hi)) = (lo, hi) {
@@ -555,7 +601,15 @@ pub(crate) fn lettering_body(app: &mut VectorcraftApp, ui: &mut Ui) {
     let sew = serde_json::to_value(app.embroidery.lettering_sew).unwrap_or_default();
     let arc = app.embroidery.lettering_arc;
     let text = app.embroidery.lettering_text.clone();
+    let line_sizes =
+        if app.embroidery.lettering_line_sizes.iter().any(|s| *s > 0.0) { json!(app.embroidery.lettering_line_sizes) } else { Value::Null };
+    let align = match app.embroidery.lettering_align {
+        vectorcraft_embroidery::sf_core::attr::LetterAlign::Left => "left",
+        vectorcraft_embroidery::sf_core::attr::LetterAlign::Centre => "centre",
+        vectorcraft_embroidery::sf_core::attr::LetterAlign::Right => "right",
+    };
     let mut params = json!({ "text": text, "font": name, "size": size, "arc": arc, "spiral": spiral,
+        "align": align, "leading": app.embroidery.lettering_leading, "lineSizes": line_sizes,
         "order": sew["order"], "lines": if sew["up"].as_bool() == Some(true) { "up" } else { "down" },
         "join": sew["join"], "trim": sew["trim"], "puff": app.embroidery.lettering_puff, "applique": applique,
         "stitch": serde_json::to_value(app.embroidery.lettering_stitch).unwrap_or_default(),
@@ -567,10 +621,7 @@ pub(crate) fn lettering_body(app: &mut VectorcraftApp, ui: &mut Ui) {
             (tl!("Update Lettering"), "embroidery.lettering.edit")
         }
         // new lettering is centred on the artboard
-        None => {
-            params["align"] = json!("centre");
-            (tl!("Place Lettering"), "embroidery.lettering")
-        }
+        None => (tl!("Place Lettering"), "embroidery.lettering"),
     };
     if selected.is_none()
         && !text.trim().is_empty()
