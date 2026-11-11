@@ -29,7 +29,7 @@ pub fn specs() -> Vec<CommandSpec> {
             "Kiosk Lettering",
             [],
             None,
-            "{text: up to 4 lines, template?: a design template (the kiosk's first), font?: an embroidery font (the kiosk's first, else the first loaded), color?: \"#rrggbb\" (the kiosk's first thread), size?: mm (the capitals' height; as large as fits)} a new design from the template with the text set in the font, centred in the template's area and made to fit it, in the thread → {id, title, template, font, color, size, widthMm, heightMm}",
+            "{text: up to 4 lines, template?: a design template (the kiosk's first), font?: an embroidery font (the kiosk's first, else the first loaded), color?: \"#rrggbb\" (the kiosk's first thread), size?: mm (the capitals' height; as large as fits), align?: left|centre|right (centre), leading?: × the font's line height (1), lineSizes?: [mm, …] (each line's own capitals' height)} a new design from the template with the text set in the font, centred in the template's area and made to fit it, in the thread → {id, title, template, font, color, size, widthMm, heightMm}",
             always,
             order
         ),
@@ -199,13 +199,27 @@ fn order(s: &mut Session, p: &Value) -> Result<Value> {
         None | Some(Value::Null) => None,
         Some(v) => Some(v.as_f64().filter(|v| (3.0..=200.0).contains(v)).ok_or_else(|| bad(CMD, "`size` is 3 to 200 mm"))?),
     };
-    lettered(s, &text, template, font, color, asked)
+    // how the lines sit: justification (centre), spacing, and each line's own size (mm; in the
+    // size as asked, or the one that fits)
+    let mut layout = json!({});
+    for key in ["align", "leading", "lineSizes"] {
+        if let Some(v) = p.get(key).filter(|v| !v.is_null()) {
+            layout[key] = v.clone();
+        }
+    }
+    lettered_with(s, &text, template, font, color, asked, &layout)
 }
 
 /// A new design from `template` with `text` (up to four lines) in `font` and thread `color`,
 /// centred in the template's area and made to fit it unless `asked` gives the size (mm): Kiosk
 /// Lettering's design, and an online order's ([`super::embroidery_orders`]).
 pub(crate) fn lettered(s: &mut Session, text: &str, template: String, font: String, color: String, asked: Option<f64>) -> Result<Value> {
+    lettered_with(s, text, template, font, color, asked, &json!({}))
+}
+
+/// [`lettered`] with `layout`'s `align` (default centre), `leading` and `lineSizes` (as
+/// `embroidery.lettering` takes them).
+fn lettered_with(s: &mut Session, text: &str, template: String, font: String, color: String, asked: Option<f64>, layout: &Value) -> Result<Value> {
     const CMD: &str = "embroidery.kiosk.order";
     let lines = text.lines().count().max(1);
     // as the template spells its name
@@ -222,7 +236,13 @@ pub(crate) fn lettered(s: &mut Session, text: &str, template: String, font: Stri
     };
     let size = asked.unwrap_or_else(|| (gh * 0.6 / lines as f64).clamp(3.0, 60.0));
     let (cx, cy) = ((gx + gw / 2.0) * PT_PER_MM, (gy + gh / 2.0) * PT_PER_MM);
-    let r = s.execute("embroidery.lettering", &json!({ "text": text, "font": font, "size": size, "at": [cx, cy], "align": "centre" }))?;
+    let mut set = json!({ "text": text, "font": font, "size": size, "at": [cx, cy], "align": "centre" });
+    for key in ["align", "leading", "lineSizes"] {
+        if let Some(v) = layout.get(key) {
+            set[key] = v.clone();
+        }
+    }
+    let r = s.execute("embroidery.lettering", &set)?;
     let id = r["id"].as_u64().ok_or_else(|| bad(CMD, "the lettering wasn't made"))?;
     s.execute("select.set", &json!({ "ids": [id] }))?;
     let bounds = |s: &Session| -> Result<kurbo::Rect> {
@@ -236,8 +256,15 @@ pub(crate) fn lettered(s: &mut Session, text: &str, template: String, font: Stri
     let b = bounds(s)?;
     let k_fit = ((gw * PT_PER_MM) / b.width().max(1e-6)).min((gh * PT_PER_MM) / b.height().max(1e-6));
     if asked.is_none() && k_fit.is_finite() && k_fit < 1.0 {
-        size = (size * k_fit * 0.97).max(1.0);
-        s.execute("embroidery.lettering.edit", &json!({ "id": id, "size": size }))?;
+        let k = k_fit * 0.97;
+        size = (size * k).max(1.0);
+        let mut edit = json!({ "id": id, "size": size });
+        // (the lines with a size of their own shrink with the rest)
+        if let Some(sizes) = layout.get("lineSizes").and_then(Value::as_array) {
+            edit["lineSizes"] =
+                json!(sizes.iter().map(|v| v.as_f64().map_or(0.0, |v| if v > 0.0 { (v * k).max(1.0) } else { 0.0 })).collect::<Vec<_>>());
+        }
+        s.execute("embroidery.lettering.edit", &edit)?;
     }
     // its middle in the area's
     let b = bounds(s)?;

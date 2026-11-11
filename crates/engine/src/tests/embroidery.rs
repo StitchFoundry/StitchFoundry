@@ -5357,6 +5357,29 @@ fn lettering_aligns_and_follows_arcs() {
 }
 
 #[test]
+fn the_kiosk_justifies_spaces_and_sizes_its_lines() {
+    let mut s = session();
+    s.execute("embroidery.font.load", &json!({"json": TEST_FONT_JSON, "svg": TEST_FONT_SVG})).unwrap();
+    let lettering = |s: &Session, id: u64| match s.doc().unwrap().doc.node(NodeId(id)).unwrap().embroidery.as_deref().map(|e| e.stitch.clone()) {
+        Some(sf_core::attr::StitchType::Lettering(l)) => *l,
+        other => panic!("not lettering: {other:?}"),
+    };
+    // centre unless asked otherwise
+    let r = s.execute("embroidery.kiosk.order", &json!({"text": "A\nAAA", "font": "Test Script", "template": "name tape 100 × 30"})).unwrap();
+    let l = lettering(&s, r["id"].as_u64().unwrap());
+    assert_eq!(l.align, sf_core::attr::LetterAlign::Centre);
+    let r = s
+        .execute(
+            "embroidery.kiosk.order",
+            &json!({"text": "A\nAAA", "font": "Test Script", "template": "name tape 100 × 30", "align": "right", "leading": 1.5, "lineSizes": [8, 4], "size": 8}),
+        )
+        .unwrap();
+    let l = lettering(&s, r["id"].as_u64().unwrap());
+    assert_eq!((l.align, l.leading, l.line_sizes.clone()), (sf_core::attr::LetterAlign::Right, 1.5, vec![8.0, 4.0]));
+    assert!(s.execute("embroidery.kiosk.order", &json!({"text": "A", "font": "Test Script", "align": "middle"})).is_err());
+}
+
+#[test]
 fn font_preview_draws_text_without_touching_the_design() {
     let mut s = session();
     s.execute("embroidery.font.load", &json!({"json": TEST_FONT_JSON, "svg": TEST_FONT_SVG})).unwrap();
