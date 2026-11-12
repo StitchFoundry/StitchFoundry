@@ -5437,8 +5437,6 @@ swatch	Bright Violet	Violet cerah
 	An in-the-hoop project	Proyek in-the-hoop
 	Another fabric, or not sure: leave it as it is	Kain lain, atau tidak yakin: biarkan seperti apa adanya
 	Another machine (DST)	Mesin lain (DST)
-	Answers come from Claude with your own Anthropic API key, billed to your Anthropic account. They can be wrong: try a test sew before an important piece.	Jawaban berasal dari Claude dengan kunci API Anthropic Anda sendiri, ditagihkan ke akun Anthropic Anda. Jawaban bisa salah: coba jahit uji sebelum mengerjakan karya penting.
-	Anthropic API key:	Kunci API Anthropic:
 	Anything else? For example: a gap above the bumper	Ada yang lain? Misalnya: celah di atas bemper
 	Applies the next time StitchFoundry starts.	Berlaku saat StitchFoundry dijalankan lagi.
 	Appliqué	Aplikasi
@@ -5543,7 +5541,6 @@ swatch	Bright Violet	Violet cerah
 	Centred	Di tengah
 	Chain	Rantai
 	Change It Anyway	Tetap ubah
-	Change key	Ganti kunci
 	Change the Size?	Ubah ukuran?
 	Changed:	Diubah:
 	Check	Kotak-kotak
@@ -5572,10 +5569,7 @@ swatch	Bright Violet	Violet cerah
 	Choose the photos in the browser's window…	Pilih foto di jendela peramban…
 	Chord length	Panjang tali busur
 	Circles	Lingkaran
-	Claude draws the artwork with your own Anthropic API key, billed to your Anthropic account; StitchFoundry then digitizes it. Check the stitches before you sew.	Claude menggambar karya seni dengan kunci API Anthropic Anda sendiri, ditagihkan ke akun Anthropic Anda; lalu StitchFoundry mendigitasinya. Periksa jahitannya sebelum Anda menjahit.
-	Claude looks at the photos with your own Anthropic API key, billed to your Anthropic account. It can be wrong: try a fix on a scrap of the same fabric first.	Claude melihat foto-foto dengan kunci API Anthropic Anda sendiri, ditagihkan ke akun Anthropic Anda. Hasilnya bisa salah: coba perbaikannya dulu pada sisa kain yang sama.
 	Claude redraws the image as clean flat-colour art, then StitchFoundry digitizes it	Claude menggambar ulang gambar menjadi karya warna datar yang bersih, lalu StitchFoundry mendigitasinya
-	Claude redraws the image as flat-colour art with your own Anthropic API key, billed to your Anthropic account; StitchFoundry then digitizes it. Check the stitches before you sew.	Claude menggambar ulang gambar menjadi karya warna datar dengan kunci API Anthropic Anda sendiri, ditagihkan ke akun Anthropic Anda; lalu StitchFoundry mendigitasinya. Periksa jahitannya sebelum Anda menjahit.
 	Claude wants to change your design:	Claude ingin mengubah desain Anda:
 	Clear Default	Hapus default
 	Clear Export History	Hapus riwayat ekspor
@@ -6120,8 +6114,6 @@ swatch	Bright Violet	Violet cerah
 	Pause	Jeda
 	Paw	Tapak
 	Paw Print	Jejak tapak
-	Pay for the AI features with my Foundry credits	Bayar fitur AI dengan kredit Foundry saya
-	Pay with Foundry credits instead	Bayar dengan kredit Foundry saja
 	Payment is on Stripe's secure page, in your browser; your card never reaches StitchFoundry.	Pembayaran dilakukan di halaman aman Stripe, di peramban Anda; kartu Anda tidak pernah sampai ke StitchFoundry.
 	Pebbles	Kerikil
 	Per 1000 stitches	Per 1000 jahitan
@@ -6197,7 +6189,6 @@ swatch	Bright Violet	Violet cerah
 	Redraw with Claude…	Gambar ulang dengan Claude…
 	Redwork	Redwork
 	Regenerate Stitches	Buat ulang jahitan
-	Remember the key on this computer	Ingat kunci di komputer ini
 	Remove Blend	Hapus campuran
 	Remove Holes	Hapus lubang
 	Remove background	Hapus latar belakang
@@ -6417,7 +6408,6 @@ swatch	Bright Violet	Violet cerah
 	Foundry Account…	Akun Foundry…
 	StitchFoundry Help	Bantuan StitchFoundry
 	StitchFoundry Help…	Bantuan StitchFoundry…
-	Foundry accounts aren't open yet. Until then, the AI features work with your own Anthropic API key.	Akun Foundry belum dibuka. Sampai saat itu, fitur AI bekerja dengan kunci API Anthropic Anda sendiri.
 	StitchFoundry copies the fonts to {folder}.	StitchFoundry menyalin font ke {folder}.
 	StitchFoundry didn't quit normally last time. These documents had unsaved changes:	StitchFoundry tidak ditutup dengan normal terakhir kali. Dokumen-dokumen ini memiliki perubahan yang belum disimpan:
 	StitchFoundry on GitHub	StitchFoundry di GitHub
@@ -6804,9 +6794,7 @@ swatch	Bright Violet	Violet cerah
 	Quick	Cepat
 	Thorough	Teliti
 	About {typical} credits a drawing, at most {most}.	Sekitar {typical} kredit per gambar, paling banyak {most}.
-	About {typical} a drawing on your Anthropic account, at most {most}.	Sekitar {typical} per gambar di akun Anthropic Anda, paling banyak {most}.
 	{tokens} tokens	{tokens} token
-	{tokens} tokens, about {cost}	{tokens} token, sekitar {cost}
 # AI research and check
 	Thorough looks up what it draws, thinks longest and checks its stitches once: it costs several times as much as Normal. Use it for real things, like a dog breed or a truck model, and for detailed designs.	Teliti mencari tahu apa yang digambarnya, berpikir paling lama, dan memeriksa jahitannya sekali: biayanya beberapa kali Normal. Gunakan untuk benda nyata, seperti ras anjing atau model truk, dan untuk desain yang detail.
 	Checking the stitches…	Memeriksa jahitan…

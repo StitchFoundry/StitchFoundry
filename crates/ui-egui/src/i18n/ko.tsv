@@ -5304,16 +5304,12 @@ machine	Stop	정지
 	Generate	생성
 	Describe the design:	디자인 설명:
 	Size (longest side):	크기(긴 변):
-	Anthropic API key:	Anthropic API 키:
-	Remember the key on this computer	이 컴퓨터에 키 기억
-	Claude draws the artwork with your own Anthropic API key, billed to your Anthropic account; StitchFoundry then digitizes it. Check the stitches before you sew.	Claude가 사용자의 Anthropic API 키로 아트워크를 그리며 비용은 사용자의 Anthropic 계정에 청구됩니다. 그런 다음 StitchFoundry가 디지타이징합니다. 바느질하기 전에 스티치를 확인하세요.
 	Get a key	키 받기
 	Drawing the design…	디자인 그리는 중…
 	Describe a design and Claude draws artwork for it, then StitchFoundry digitizes it	디자인을 설명하면 Claude가 아트워크를 그리고 StitchFoundry가 디지타이징합니다
 	Place Artwork as Embroidery	아트워크를 자수로 가져오기
 	Place Artwork	아트워크 가져오기
 @plural	Design placed: {n} stitched object|Design placed: {n} stitched objects	디자인 배치됨: 바느질 개체 {n}개|디자인 배치됨: 바느질 개체 {n}개
-@msg	Enter your Anthropic API key first.	먼저 Anthropic API 키를 입력하세요.
 @msg	The API key isn't valid: paste it again from the Anthropic Console.	API 키가 올바르지 않습니다: Anthropic Console에서 다시 붙여넣으세요.
 @msg	Describe the design first.	먼저 디자인을 설명하세요.
 @msg	The description is too long: keep it under 2,000 characters.	설명이 너무 깁니다: 2,000자 이내로 줄이세요.
@@ -5336,7 +5332,6 @@ machine	Stop	정지
 	Redraw Image with Claude	Claude로 이미지 다시 그리기
 	What to change (optional):	변경할 내용(선택 사항):
 	Only redraw artwork you own or have permission to use.	소유하고 있거나 사용 권한이 있는 아트워크만 다시 그리세요.
-	Claude redraws the image as flat-colour art with your own Anthropic API key, billed to your Anthropic account; StitchFoundry then digitizes it. Check the stitches before you sew.	Claude가 사용자의 Anthropic API 키로 이미지를 단색 평면 아트로 다시 그리며 비용은 사용자의 Anthropic 계정에 청구됩니다. 그런 다음 StitchFoundry가 디지타이징합니다. 바느질하기 전에 스티치를 확인하세요.
 	Redraw with Claude…	Claude로 다시 그리기…
 	Claude redraws the image as clean flat-colour art, then StitchFoundry digitizes it	Claude가 이미지를 깔끔한 단색 평면 아트로 다시 그리고 StitchFoundry가 디지타이징합니다
 @msg	select an image to redraw	다시 그릴 이미지를 선택하세요
@@ -6235,8 +6230,6 @@ machine	Stop	정지
 	Ask	질문
 	New Conversation	새 대화
 	Include my design	내 디자인 포함
-	Answers come from Claude with your own Anthropic API key, billed to your Anthropic account. They can be wrong: try a test sew before an important piece.	답변은 사용자의 Anthropic API 키로 Claude가 제공하며 비용은 사용자의 Anthropic 계정에 청구됩니다. 답변이 틀릴 수 있으니 중요한 작업 전에는 시험 바느질을 해 보세요.
-	Change key	키 변경
 @msg	Type a question first.	먼저 질문을 입력하세요.
 @msg	The question is too long: keep it under 2,000 characters.	질문이 너무 깁니다: 2,000자 이내로 줄이세요.
 @msg	The AI declined to answer this: ask another way.	AI가 이 질문에 답하기를 거절했습니다: 다르게 질문해 보세요.
@@ -6292,7 +6285,6 @@ machine	Stop	정지
 	Anything else? For example: a gap above the bumper	더 있나요? 예: 범퍼 위에 틈이 있음
 	As the design has it	디자인 설정대로
 	Choose the photos in the browser's window…	브라우저 창에서 사진을 고르세요…
-	Claude looks at the photos with your own Anthropic API key, billed to your Anthropic account. It can be wrong: try a fix on a scrap of the same fabric first.	Claude가 사용자의 Anthropic API 키로 사진을 봅니다. 요금은 사용자의 Anthropic 계정에 청구됩니다. 틀릴 수 있으니 같은 원단 자투리에 먼저 고쳐 보세요.
 	Include the design that was sewn (open now), so it can be fixed	자수한 디자인(지금 열려 있음)을 함께 보내 고칠 수 있게 하기
 	My sew-out ({n} photos)	내 자수 결과(사진 {n}장)
 	Needle	바늘
@@ -6321,8 +6313,6 @@ machine	Stop	정지
 	Leave it empty for StitchFoundry's own service.	StitchFoundry 자체 서비스를 쓰려면 비워 두세요.
 	Paid with Foundry credits ({n} left).	Foundry 크레딧으로 결제(남은 크레딧 {n}).
 	Paid with Foundry credits.	Foundry 크레딧으로 결제.
-	Pay for the AI features with my Foundry credits	AI 기능을 내 Foundry 크레딧으로 결제
-	Pay with Foundry credits instead	대신 Foundry 크레딧으로 결제
 	Payment is on Stripe's secure page, in your browser; your card never reaches StitchFoundry.	결제는 브라우저의 Stripe 보안 페이지에서 이루어지며, 카드 정보는 StitchFoundry에 전달되지 않습니다.
 	Reading your credits…	크레딧을 읽는 중…
 	Server	서버
@@ -6333,7 +6323,6 @@ machine	Stop	정지
 	Signed in as {email}	{email}(으)로 로그인됨
 	Foundry Account	Foundry 계정
 	Foundry Account…	Foundry 계정…
-	Foundry accounts aren't open yet. Until then, the AI features work with your own Anthropic API key.	Foundry 계정은 아직 열리지 않았습니다. 그때까지 AI 기능은 사용자의 Anthropic API 키로 작동합니다.
 	This is the sew-out after the fix from my last check	지난번 확인의 수정 사항을 적용해 수놓은 결과입니다
 	{n} credits for {price}	{n} 크레딧, {price}
 	{n} credits	{n} 크레딧
@@ -6537,9 +6526,7 @@ machine	Stop	정지
 	Quick	빠르게
 	Thorough	꼼꼼하게
 	About {typical} credits a drawing, at most {most}.	그림 한 번에 약 {typical}크레딧, 최대 {most}.
-	About {typical} a drawing on your Anthropic account, at most {most}.	그림 한 번에 Anthropic 계정으로 약 {typical}, 최대 {most}.
 	{tokens} tokens	토큰 {tokens}개
-	{tokens} tokens, about {cost}	토큰 {tokens}개, 약 {cost}
 # AI research and check
 	Thorough looks up what it draws, thinks longest and checks its stitches once: it costs several times as much as Normal. Use it for real things, like a dog breed or a truck model, and for detailed designs.	꼼꼼하게는 그릴 대상을 찾아보고, 가장 오래 생각하며, 땀을 한 번 확인합니다. 비용은 보통의 몇 배입니다. 개 품종이나 트럭 모델 같은 실제 대상과 세부가 많은 디자인에 사용하세요.
 	Checking the stitches…	땀을 확인하는 중…
