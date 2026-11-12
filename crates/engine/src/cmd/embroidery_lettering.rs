@@ -232,7 +232,7 @@ pub(super) const GLYPHS_FILE: &str = "glyphs.stitchfoundry";
 /// The font's files in folder `dir`: font.json and its art (glyphs.stitchfoundry; ltr.svg, →.svg
 /// or rtl.svg; else the SVGs in an ltr folder).
 #[cfg(not(target_arch = "wasm32"))]
-fn read_folder(dir: &str) -> Result<(String, Vec<Art>)> {
+pub(super) fn read_folder(dir: &str) -> Result<(String, Vec<Art>)> {
     let at = |name: &str| std::path::Path::new(dir).join(name).to_string_lossy().to_string();
     let json = read_text(&at("font.json"), MAX_JSON, "font.json")?;
     let mut svgs = Vec::new();
@@ -262,12 +262,12 @@ fn read_folder(dir: &str) -> Result<(String, Vec<Art>)> {
 }
 
 #[cfg(target_arch = "wasm32")]
-fn read_folder(dir: &str) -> Result<(String, Vec<Art>)> {
+pub(super) fn read_folder(dir: &str) -> Result<(String, Vec<Art>)> {
     Err(bad(LOAD, format!("{dir}: no file system here (pass json and svg)")))
 }
 
 /// A font from its files.
-fn font_from(json: &str, arts: &[Art]) -> Result<EmbFont> {
+pub(super) fn font_from(json: &str, arts: &[Art]) -> Result<EmbFont> {
     let art = arts
         .iter()
         .map(|a| match a {

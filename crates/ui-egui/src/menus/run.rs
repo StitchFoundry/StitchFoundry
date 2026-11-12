@@ -650,6 +650,8 @@ fn run_ui_part7(app: &mut VectorcraftApp, id: &str, p: &Value) -> Option<Result<
         "ui.checkForUpdates" => crate::updates::run(app, p),
         "ui.calibrateLifeSize" => crate::dialogs::life_size::run(app, p),
         "ui.myMachine" => crate::dialogs::my_machine::open(app),
+        "ui.startDesign" => crate::dialogs::start_design::open(app),
+        "ui.startDesign.create" => crate::dialogs::start_design::create(app, p),
         "ui.saveForMemoryCard" => crate::dialogs::memory_card::run(app, p),
         "ui.onlineOrders" => crate::dialogs::orders::run(app, p),
         "ui.fontLibrary" => crate::dialogs::font_library::open(app),

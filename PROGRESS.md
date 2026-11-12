@@ -18,3 +18,4 @@
 - Fix #74: a fill piece stops at `fill::MAX_FILL_STITCHES` (1,000,000), and evenly or changing spaced fills have at most 200,000 rows (spread wider on a taller shape).
 - 2026-11-09 nightly sweep: no reports to triage; cargo audit finds no vulnerabilities (7 unmaintained/yanked notices). Filed #84 (satin split length has no lower bound).
 - Fix #79: run, zigzag, blanket, backstitch and stem lines stop at `run::MAX_RUN_STITCHES` (1,000,000 points per object, all passes), and satin sampling at `MAX_SATIN_PAIRS`. `polyline::points_at` walks a polyline once instead of once per point, so a long column is no longer quadratic.
+- Issue 83 (part): `embroidery.newDesign` with no hoop named takes the last hoop picked by name (pref `last_hoop`, kept across restarts; ignored if My Machine lacks it; samples and custom sizes don't change it). Still to do: Ctrl/Cmd+N opening Start a design, on-screen out-of-field warning at creation, screenshots.

@@ -21,7 +21,7 @@ mod cursor;
 mod drag;
 mod fill;
 mod grid;
-mod home;
+pub(crate) mod home;
 mod input;
 mod outline;
 mod overlays;

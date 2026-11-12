@@ -5689,16 +5689,12 @@ machine	Stop	Megállás
 	Generate	Létrehozás
 	Describe the design:	Írd le a mintát:
 	Size (longest side):	Méret (hosszabbik oldal):
-	Anthropic API key:	Anthropic API-kulcs:
-	Remember the key on this computer	A kulcs megjegyzése ezen a számítógépen
-	Claude draws the artwork with your own Anthropic API key, billed to your Anthropic account; StitchFoundry then digitizes it. Check the stitches before you sew.	Claude a saját Anthropic API-kulcsoddal rajzolja meg a grafikát, a díjat az Anthropic-fiókod terheli; ezután a StitchFoundry digitalizálja. Varrás előtt ellenőrizd az öltéseket.
 	Get a key	Kulcs igénylése
 	Drawing the design…	A minta rajzolása…
 	Describe a design and Claude draws artwork for it, then StitchFoundry digitizes it	Írj le egy mintát, Claude megrajzolja hozzá a grafikát, majd a StitchFoundry digitalizálja
 	Place Artwork as Embroidery	Grafika elhelyezése hímzésként
 	Place Artwork	Grafika elhelyezése
 @plural	Design placed: {n} stitched object|Design placed: {n} stitched objects	Minta elhelyezve; kivarrt objektumok: {n}
-@msg	Enter your Anthropic API key first.	Előbb add meg az Anthropic API-kulcsodat.
 @msg	The API key isn't valid: paste it again from the Anthropic Console.	Az API-kulcs érvénytelen: másold be újra az Anthropic Console-ból.
 @msg	Describe the design first.	Előbb írd le a mintát.
 @msg	The description is too long: keep it under 2,000 characters.	A leírás túl hosszú: legyen 2000 karakternél rövidebb.
@@ -5721,7 +5717,6 @@ machine	Stop	Megállás
 	Redraw Image with Claude	Kép újrarajzolása Claude-dal
 	What to change (optional):	Mit változtasson (nem kötelező):
 	Only redraw artwork you own or have permission to use.	Csak olyan grafikát rajzoltass újra, amely a tiéd, vagy amelynek használatára engedélyed van.
-	Claude redraws the image as flat-colour art with your own Anthropic API key, billed to your Anthropic account; StitchFoundry then digitizes it. Check the stitches before you sew.	Claude a saját Anthropic API-kulcsoddal egyszínű foltokból álló grafikává rajzolja újra a képet, a díjat az Anthropic-fiókod terheli; ezután a StitchFoundry digitalizálja. Varrás előtt ellenőrizd az öltéseket.
 	Redraw with Claude…	Újrarajzolás Claude-dal…
 	Claude redraws the image as clean flat-colour art, then StitchFoundry digitizes it	Claude tiszta, egyszínű foltokból álló grafikává rajzolja újra a képet, majd a StitchFoundry digitalizálja
 @msg	select an image to redraw	jelölj ki egy újrarajzolandó képet
@@ -6616,8 +6611,6 @@ machine	Stop	Megállás
 	Ask	Kérdezés
 	New Conversation	Új beszélgetés
 	Include my design	A mintám csatolása
-	Answers come from Claude with your own Anthropic API key, billed to your Anthropic account. They can be wrong: try a test sew before an important piece.	A válaszokat Claude adja a saját Anthropic API-kulcsoddal, a díjat az Anthropic-fiókod terheli. Tévedhetnek: fontos darab előtt varrj próbát.
-	Change key	Kulcs módosítása
 @msg	Type a question first.	Előbb írj be egy kérdést.
 @msg	The question is too long: keep it under 2,000 characters.	A kérdés túl hosszú: legyen 2000 karakternél rövidebb.
 @msg	The AI declined to answer this: ask another way.	Az MI nem vállalta a válaszadást: kérdezz másképp.
@@ -6673,7 +6666,6 @@ machine	Stop	Megállás
 	Anything else? For example: a gap above the bumper	Valami más? Például: rés a lökhárító fölött
 	As the design has it	Ahogy a mintában van
 	Choose the photos in the browser's window…	Válassza ki a fotókat a böngésző ablakában…
-	Claude looks at the photos with your own Anthropic API key, billed to your Anthropic account. It can be wrong: try a fix on a scrap of the same fabric first.	Claude a saját Anthropic API-kulcsával nézi meg a fotókat, az Anthropic-fiókja terhére. Tévedhet: a javítást előbb ugyanannak az anyagnak egy maradékán próbálja ki.
 	Include the design that was sewn (open now), so it can be fixed	A kihímzett minta (most nyitva) csatolása, hogy javítani lehessen
 	My sew-out ({n} photos)	A hímzésem ({n} fotó)
 	Needle	Tű
@@ -6702,8 +6694,6 @@ machine	Stop	Megállás
 	Leave it empty for StitchFoundry's own service.	Hagyja üresen a StitchFoundry saját szolgáltatásához.
 	Paid with Foundry credits ({n} left).	Foundry-kredittel fizetve ({n} maradt).
 	Paid with Foundry credits.	Foundry-kredittel fizetve.
-	Pay for the AI features with my Foundry credits	Az MI-funkciók fizetése a Foundry-kreditjeimmel
-	Pay with Foundry credits instead	Fizetés inkább Foundry-kredittel
 	Payment is on Stripe's secure page, in your browser; your card never reaches StitchFoundry.	A fizetés a Stripe biztonságos oldalán történik a böngészőjében; a kártyája sosem jut el a StitchFoundryhez.
 	Reading your credits…	Kreditek beolvasása…
 	Server	Kiszolgáló
@@ -6714,7 +6704,6 @@ machine	Stop	Megállás
 	Signed in as {email}	Bejelentkezve: {email}
 	Foundry Account	Foundry-fiók
 	Foundry Account…	Foundry-fiók…
-	Foundry accounts aren't open yet. Until then, the AI features work with your own Anthropic API key.	A Foundry-fiókok még nem nyíltak meg. Addig az MI-funkciók a saját Anthropic API-kulcsával működnek.
 	This is the sew-out after the fix from my last check	Ez a hímzés a legutóbbi ellenőrzésem javítása után
 	{n} credits for {price}	{n} kredit {price} áron
 	{n} credits	{n} kredit
@@ -6917,9 +6906,7 @@ machine	Stop	Megállás
 	Quick	Gyors
 	Thorough	Alapos
 	About {typical} credits a drawing, at most {most}.	Rajzonként kb. {typical} kredit, legfeljebb {most}.
-	About {typical} a drawing on your Anthropic account, at most {most}.	Rajzonként kb. {typical} az Anthropic-fiókjában, legfeljebb {most}.
 	{tokens} tokens	{tokens} token
-	{tokens} tokens, about {cost}	{tokens} token, kb. {cost}
 # AI research and check
 	Thorough looks up what it draws, thinks longest and checks its stitches once: it costs several times as much as Normal. Use it for real things, like a dog breed or a truck model, and for detailed designs.	Az Alapos utánanéz, mit rajzol, a legtovább gondolkodik, és egyszer ellenőrzi az öltéseit: többszörösébe kerül, mint a Normál. Valódi dolgokhoz használja, például kutyafajtához vagy teherautó-típushoz, és részletes mintákhoz.
 	Checking the stitches…	Az öltések ellenőrzése…
