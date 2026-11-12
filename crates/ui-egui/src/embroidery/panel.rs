@@ -1557,11 +1557,27 @@ pub(crate) fn patches_body(app: &mut VectorcraftApp, ui: &mut Ui) {
 /// one, and the catalogue prints them all.
 /// Clipart: a motif placed digitized with a click.
 pub(crate) fn clipart_body(app: &mut VectorcraftApp, ui: &mut Ui) {
-    let names: Vec<String> = app
-        .run("embroidery.clipart", json!({}))
-        .ok()
-        .and_then(|r| r["clipart"].as_array().map(|a| a.iter().filter_map(|c| c["name"].as_str().map(str::to_string)).collect()))
-        .unwrap_or_default();
+    // set tabs and a search box: `embroidery.clipart.list {set?, q?}`
+    let (set, q) = (app.embroidery.clipart_set.clone(), app.embroidery.clipart_query.clone());
+    let mut params = json!({ "q": q });
+    if !set.is_empty() {
+        params["set"] = json!(set);
+    }
+    let listed = app.run("embroidery.clipart.list", params).unwrap_or_default();
+    let names: Vec<String> =
+        listed["clipart"].as_array().map(|a| a.iter().filter_map(|c| c["name"].as_str().map(str::to_string)).collect()).unwrap_or_default();
+    ui.horizontal_wrapped(|ui| {
+        if ui.selectable_label(set.is_empty(), tl!("All")).clicked() {
+            app.embroidery.clipart_set.clear();
+        }
+        for s in listed["sets"].as_array().map(Vec::as_slice).unwrap_or_default() {
+            let Some(name) = s["name"].as_str() else { continue };
+            if ui.selectable_label(set == name, format!("{name} ({})", s["count"].as_u64().unwrap_or(0))).clicked() {
+                app.embroidery.clipart_set = name.to_string();
+            }
+        }
+    });
+    ui.add(egui::TextEdit::singleline(&mut app.embroidery.clipart_query).hint_text(tl!("Search motifs")));
     ui.label(egui::RichText::new(tl!("Click a motif to place it, digitized, in the middle of the page.")).small());
     let mut pick = None;
     ui.horizontal_wrapped(|ui| {
