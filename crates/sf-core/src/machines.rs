@@ -291,7 +291,10 @@ mod tests {
 #[derive(Clone, Copy, Debug, PartialEq)]
 pub struct HomeMachine {
     pub name: &'static str,
+    /// The machine's own format, the default for saving.
     pub format: &'static str,
+    /// Every format the machine reads, the native one first.
+    pub reads: &'static [&'static str],
     pub hoops: &'static [&'static str],
 }
 
@@ -367,14 +370,15 @@ const COMMERCIAL_HOOPS: &[&str] = &[
 
 /// The machines My Machine offers.
 pub const HOME_MACHINES: &[HomeMachine] = &[
-    HomeMachine { name: "Husqvarna Viking Designer Diamond deLuxe", format: "vp3", hoops: DIAMOND_HOOPS },
-    HomeMachine { name: "Husqvarna Viking (other models)", format: "vp3", hoops: HUSQVARNA_HOOPS },
-    HomeMachine { name: "Pfaff creative", format: "vp3", hoops: PFAFF_HOOPS },
-    HomeMachine { name: "Brother or Baby Lock", format: "pes", hoops: BROTHER_HOOPS },
-    HomeMachine { name: "Brother or Baby Lock multi-needle", format: "pes", hoops: BROTHER_MULTI_HOOPS },
+    HomeMachine { name: "Husqvarna Viking Designer Diamond deLuxe", format: "vp3", reads: &["vp3", "dst"], hoops: DIAMOND_HOOPS },
+    HomeMachine { name: "Husqvarna Viking (other models)", format: "vp3", reads: &["vp3", "dst"], hoops: HUSQVARNA_HOOPS },
+    HomeMachine { name: "Pfaff creative", format: "vp3", reads: &["vp3", "dst"], hoops: PFAFF_HOOPS },
+    HomeMachine { name: "Brother or Baby Lock", format: "pes", reads: &["pes", "dst"], hoops: BROTHER_HOOPS },
+    HomeMachine { name: "Brother or Baby Lock multi-needle", format: "pes", reads: &["pes", "dst"], hoops: BROTHER_MULTI_HOOPS },
     HomeMachine {
         name: "Janome or Elna",
         format: "jef",
+        reads: &["jef", "dst"],
         hoops: &[
             "Janome RE20b 140 × 200",
             "Janome SQ14 140 × 140",
@@ -388,6 +392,7 @@ pub const HOME_MACHINES: &[HomeMachine] = &[
     HomeMachine {
         name: "Bernina",
         format: "exp",
+        reads: &["exp", "dst"],
         hoops: &[
             "Bernina Medium 130 × 100",
             "Bernina Large Oval 145 × 255",
@@ -397,11 +402,12 @@ pub const HOME_MACHINES: &[HomeMachine] = &[
             "Bernina Mega 150 × 400",
         ],
     },
-    HomeMachine { name: "Singer", format: "xxx", hoops: BROTHER_HOOPS },
-    HomeMachine { name: "Commercial multi-needle (DST)", format: "dst", hoops: COMMERCIAL_HOOPS },
+    HomeMachine { name: "Singer", format: "xxx", reads: &["xxx", "dst"], hoops: BROTHER_HOOPS },
+    HomeMachine { name: "Commercial multi-needle (DST)", format: "dst", reads: &["dst"], hoops: COMMERCIAL_HOOPS },
     HomeMachine {
         name: "Another machine (DST)",
         format: "dst",
+        reads: &["dst"],
         hoops: &["Magnetic frame 130 × 180", "Magnetic frame 100 × 100", "Magnetic frame 200 × 200", "Magnetic frame 200 × 300"],
     },
 ];
@@ -426,6 +432,10 @@ mod home_machine_tests {
                 assert!(hoops.iter().any(|x| x.name == *h), "{}: {h}", m.name);
             }
             assert!(formats.iter().any(|f| f == m.format), "{}: {}", m.name, m.format);
+        }
+        for m in HOME_MACHINES {
+            assert_eq!(m.reads.first(), Some(&m.format), "{}: native first", m.name);
+            assert!(m.reads.iter().all(|f| formats.iter().any(|x| x == f)), "{}", m.name);
         }
         assert_eq!(home_machine("husqvarna viking designer diamond deluxe").map(|m| m.format), Some("vp3"));
     }

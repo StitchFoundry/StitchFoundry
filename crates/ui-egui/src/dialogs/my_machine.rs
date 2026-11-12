@@ -423,6 +423,30 @@ pub(crate) fn show(app: &mut VectorcraftApp, ctx: &egui::Context) {
                         app.run("embroidery.myMachine.set", json!({ "machine": name })).ok();
                     }
                 }
+                if let Some(summary) = mine["summary"].as_str() {
+                    ui.add_space(4.0);
+                    ui.label(egui::RichText::new(summary).size(12.0).color(t.text_dim));
+                    let reads: Vec<String> = mine["reads"].as_array().map(|a| a.iter().filter_map(|f| f.as_str().map(str::to_string)).collect()).unwrap_or_default();
+                    let chosen = mine["format"].as_str().unwrap_or_default().to_string();
+                    let native = mine["nativeFormat"].as_str().unwrap_or_default().to_string();
+                    let label_of = |f: &str| {
+                        let up = f.to_ascii_uppercase();
+                        if f == native { format!("{up} ({})", tl!("recommended")) } else { up }
+                    };
+                    ui.horizontal(|ui| {
+                        ui.label(egui::RichText::new(tl!("Save files as")).size(14.0));
+                        craft_ui::ComboBox::from_id_salt("my_machine_format").selected_text(label_of(&chosen)).show_ui(ui, |ui| {
+                            for f in &reads {
+                                if ui.selectable_label(*f == chosen, label_of(f)).clicked() {
+                                    app.run("embroidery.myMachine.setFormat", json!({ "format": f })).ok();
+                                }
+                            }
+                        });
+                        if chosen != native && ui.button(tl!("Reset to recommended")).clicked() {
+                            app.run("embroidery.myMachine.setFormat", json!({ "format": null })).ok();
+                        }
+                    });
+                }
                 ui.add_space(10.0);
                 ui.horizontal(|ui| {
                     ui.label(egui::RichText::new(tl!("Measure in")).size(14.0));

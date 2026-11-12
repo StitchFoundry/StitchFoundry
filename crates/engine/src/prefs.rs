@@ -300,6 +300,10 @@ pub struct Prefs {
     /// hoop and Save for My Machine its format.
     #[serde(default, skip_serializing_if = "String::is_empty")]
     pub my_machine: String,
+    /// The file format someone saves for each machine, by machine name, when not its native one
+    /// (`embroidery.myMachine.setFormat`). Always one the machine reads.
+    #[serde(default, skip_serializing_if = "std::collections::BTreeMap::is_empty")]
+    pub my_machine_formats: std::collections::BTreeMap<String, String>,
     /// Where Keep Safe saves a beginner's new designs (`file.keepSafe`; empty: Documents/StitchFoundry Designs).
     #[serde(default, skip_serializing_if = "String::is_empty")]
     pub my_designs_folder: String,
@@ -526,6 +530,7 @@ impl Default for Prefs {
             embroidery_ai_effort: String::new(),
             embroidery_send_dirs: vec![],
             my_machine: String::new(),
+            my_machine_formats: Default::default(),
             my_designs_folder: String::new(),
             screen_export_presets: vec![],
             templates_folder: String::new(),
