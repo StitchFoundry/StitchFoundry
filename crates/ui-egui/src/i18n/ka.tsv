@@ -5419,8 +5419,6 @@ imageTrace	Outline	კონტური
 	An in-the-hoop project	ჩარჩოში შესრულებული პროექტი
 	Another fabric, or not sure: leave it as it is	სხვა ქსოვილი, ან არ ვიცი: დარჩეს როგორც არის
 	Another machine (DST)	სხვა მანქანა (DST)
-	Answers come from Claude with your own Anthropic API key, billed to your Anthropic account. They can be wrong: try a test sew before an important piece.	პასუხებს Claude იძლევა თქვენი საკუთარი Anthropic API გასაღებით, ღირებულება თქვენს Anthropic ანგარიშს ერიცხება. პასუხი შეიძლება მცდარი იყოს: მნიშვნელოვანი ნაკეთობის წინ საცდელად დაქარგეთ.
-	Anthropic API key:	Anthropic API გასაღები:
 	Anything else? For example: a gap above the bumper	კიდევ რამე? მაგალითად: ღრიჭო ბამპერის ზემოთ
 	Applies the next time StitchFoundry starts.	ძალაში შევა StitchFoundry-ის შემდეგი გაშვებისას.
 	Appliqué	აპლიკაცია
@@ -5525,7 +5523,6 @@ imageTrace	Outline	კონტური
 	Centred	ცენტრში
 	Chain	ჯაჭვი
 	Change It Anyway	მაინც შეცვლა
-	Change key	გასაღების შეცვლა
 	Change the Size?	შეიცვალოს ზომა?
 	Changed:	შეიცვალა:
 	Check	უჯრა
@@ -5554,10 +5551,7 @@ imageTrace	Outline	კონტური
 	Choose the photos in the browser's window…	აირჩიეთ ფოტოები ბრაუზერის ფანჯარაში…
 	Chord length	ქორდის სიგრძე
 	Circles	წრეები
-	Claude draws the artwork with your own Anthropic API key, billed to your Anthropic account; StitchFoundry then digitizes it. Check the stitches before you sew.	ნახატს Claude ხატავს თქვენი საკუთარი Anthropic API გასაღებით, ღირებულება თქვენს Anthropic ანგარიშს ერიცხება; შემდეგ StitchFoundry მას დიჯიტალიზაციას უკეთებს. ქარგვამდე შეამოწმეთ ნაკერები.
-	Claude looks at the photos with your own Anthropic API key, billed to your Anthropic account. It can be wrong: try a fix on a scrap of the same fabric first.	Claude ფოტოებს თქვენი საკუთარი Anthropic API გასაღებით ათვალიერებს, ღირებულება თქვენს Anthropic ანგარიშს ერიცხება. შეიძლება შეცდეს: გამოსწორება ჯერ იმავე ქსოვილის ნაჭერზე სცადეთ.
 	Claude redraws the image as clean flat-colour art, then StitchFoundry digitizes it	Claude გამოსახულებას სუფთა, ერთფეროვანი შევსებების ნახატად გადახატავს, შემდეგ StitchFoundry მას დიჯიტალიზაციას უკეთებს
-	Claude redraws the image as flat-colour art with your own Anthropic API key, billed to your Anthropic account; StitchFoundry then digitizes it. Check the stitches before you sew.	Claude გამოსახულებას ერთფეროვანი შევსებების ნახატად გადახატავს თქვენი საკუთარი Anthropic API გასაღებით, ღირებულება თქვენს Anthropic ანგარიშს ერიცხება; შემდეგ StitchFoundry მას დიჯიტალიზაციას უკეთებს. ქარგვამდე შეამოწმეთ ნაკერები.
 	Claude wants to change your design:	Claude-ს სურს თქვენი დიზაინის შეცვლა:
 	Clear Default	ნაგულისხმევის გასუფთავება
 	Clear Export History	ექსპორტის ისტორიის გასუფთავება
@@ -6100,8 +6094,6 @@ imageTrace	Outline	კონტური
 	Pause	პაუზა
 	Paw	თათი
 	Paw Print	თათის ნაკვალევი
-	Pay for the AI features with my Foundry credits	AI ფუნქციების გადახდა ჩემი Foundry-ის კრედიტებით
-	Pay with Foundry credits instead	ამის ნაცვლად Foundry-ის კრედიტებით გადახდა
 	Payment is on Stripe's secure page, in your browser; your card never reaches StitchFoundry.	გადახდა ხდება Stripe-ის დაცულ გვერდზე, თქვენს ბრაუზერში; თქვენი ბარათი StitchFoundry-მდე არასოდეს აღწევს.
 	Pebbles	კენჭები
 	Per 1000 stitches	1000 ნაკერზე
@@ -6177,7 +6169,6 @@ imageTrace	Outline	კონტური
 	Redraw with Claude…	გადახატვა Claude-ით…
 	Redwork	რედვორკი
 	Regenerate Stitches	ნაკერების ხელახლა გენერირება
-	Remember the key on this computer	გასაღების დამახსოვრება ამ კომპიუტერზე
 	Remove Blend	გადასვლის მოცილება
 	Remove Holes	ხვრელების მოცილება
 	Remove background	ფონის მოცილება
@@ -6396,7 +6387,6 @@ imageTrace	Outline	კონტური
 	Foundry Account…	Foundry-ის ანგარიში…
 	StitchFoundry Help	StitchFoundry-ის დახმარება
 	StitchFoundry Help…	StitchFoundry-ის დახმარება…
-	Foundry accounts aren't open yet. Until then, the AI features work with your own Anthropic API key.	Foundry-ის ანგარიშები ჯერ არ გახსნილა. მანამდე AI ფუნქციები თქვენი საკუთარი Anthropic API გასაღებით მუშაობს.
 	StitchFoundry copies the fonts to {folder}.	StitchFoundry შრიფტებს აკოპირებს აქ: {folder}.
 	StitchFoundry didn't quit normally last time. These documents had unsaved changes:	წინა ჯერზე StitchFoundry ნორმალურად არ დახურულა. ამ დოკუმენტებში შეუნახავი ცვლილებები იყო:
 	StitchFoundry on GitHub	StitchFoundry GitHub-ზე
@@ -6763,9 +6753,7 @@ file-filter	StitchFoundry Template	StitchFoundry-ის შაბლონი
 	Quick	სწრაფი
 	Thorough	საფუძვლიანი
 	About {typical} credits a drawing, at most {most}.	დაახლოებით {typical} კრედიტი ერთ ნახატზე, მაქსიმუმ {most}.
-	About {typical} a drawing on your Anthropic account, at most {most}.	დაახლოებით {typical} ერთ ნახატზე თქვენს Anthropic-ის ანგარიშზე, მაქსიმუმ {most}.
 	{tokens} tokens	{tokens} ტოკენი
-	{tokens} tokens, about {cost}	{tokens} ტოკენი, დაახლოებით {cost}
 # AI research and check
 	Thorough looks up what it draws, thinks longest and checks its stitches once: it costs several times as much as Normal. Use it for real things, like a dog breed or a truck model, and for detailed designs.	„საფუძვლიანი“ იკვლევს, რას ხატავს, ყველაზე დიდხანს ფიქრობს და ერთხელ ამოწმებს ნაკერებს: რამდენჯერმე ძვირია „ჩვეულებრივზე“. გამოიყენეთ რეალური საგნებისთვის, როგორიცაა ძაღლის ჯიში ან სატვირთოს მოდელი, და დეტალური დიზაინისთვის.
 	Checking the stitches…	ნაკერების შემოწმება…
