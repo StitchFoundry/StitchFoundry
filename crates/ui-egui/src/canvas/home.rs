@@ -31,12 +31,16 @@ fn home_body(app: &mut VectorcraftApp, ui: &mut Ui) {
     ui.label(egui::RichText::new(tl!("Turn your words, shapes and pictures into designs for your embroidery machine.")).size(14.0).color(t.text_dim));
     ui.add_space(22.0);
     ui.horizontal(|ui| {
-        // the step-by-step guide first: the easiest way in
-        if widgets::primary_button(ui, tl!("Make a Design, Step by Step")).clicked() {
+        // start in the hoop (machine, hoop, fabric), not on a page
+        if widgets::primary_button(ui, tl!("Start a design")).clicked() {
+            app.run("ui.startDesign", json!({})).ok();
+        }
+        ui.add_space(8.0);
+        if widgets::secondary_button(ui, tl!("Make a Design, Step by Step")).clicked() {
             app.run("ui.makeDesign", json!({})).ok();
         }
         ui.add_space(8.0);
-        if widgets::secondary_button(ui, tl!("New file")).clicked() {
+        if widgets::secondary_button(ui, tl!("Blank canvas (page size)")).clicked() {
             app.run("file.newDialog", json!({})).ok();
         }
         ui.add_space(8.0);

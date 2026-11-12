@@ -4,6 +4,7 @@
 pub mod account;
 pub mod ask;
 pub mod family;
+pub mod font_picker;
 pub mod kiosk;
 pub mod overlay;
 pub mod panel;
@@ -214,6 +215,15 @@ pub struct EmbroideryUi {
     pub lettering_font: String,
     pub lettering_text: String,
     pub lettering_size: f64,
+    /// How the lettering's lines sit on each other (centre unless the lettering says otherwise).
+    pub lettering_align: vectorcraft_embroidery::sf_core::attr::LetterAlign,
+    /// Lines apart, × the font's own line height.
+    pub lettering_leading: f64,
+    /// Each line's own capitals' height (mm); 0 or missing: `lettering_size`.
+    pub lettering_line_sizes: Vec<f64>,
+    /// The font pickers' drawings of text in each font (`embroidery.font.preview`), by font and
+    /// text.
+    pub font_previews: std::collections::HashMap<String, Option<font_picker::Preview>>,
     /// The selected lettering whose text, font and size fill the section (to change it).
     pub lettering_for: Option<u64>,
     /// The lettering's baseline round a circle of this radius (mm; positive arched, negative
@@ -395,6 +405,10 @@ impl Default for EmbroideryUi {
             lettering_font: String::new(),
             lettering_text: String::new(),
             lettering_size: 0.0,
+            lettering_align: vectorcraft_embroidery::sf_core::attr::LetterAlign::Centre,
+            lettering_leading: 1.0,
+            lettering_line_sizes: Vec::new(),
+            font_previews: std::collections::HashMap::new(),
             lettering_for: None,
             lettering_arc: 0.0,
             lettering_spiral: 0.0,
