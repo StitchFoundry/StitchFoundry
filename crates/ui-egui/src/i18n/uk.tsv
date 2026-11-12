@@ -5074,16 +5074,12 @@ machine	Stop	Зупинка
 	Generate	Створити
 	Describe the design:	Опишіть дизайн:
 	Size (longest side):	Розмір (за довшою стороною):
-	Anthropic API key:	Ключ API Anthropic:
-	Remember the key on this computer	Запам’ятати ключ на цьому комп’ютері
-	Claude draws the artwork with your own Anthropic API key, billed to your Anthropic account; StitchFoundry then digitizes it. Check the stitches before you sew.	Claude створює малюнок за допомогою вашого власного ключа API Anthropic, оплата стягується з вашого облікового запису Anthropic; потім StitchFoundry його оцифровує. Перевірте стібки перед вишиванням.
 	Get a key	Отримати ключ
 	Drawing the design…	Малювання дизайну…
 	Describe a design and Claude draws artwork for it, then StitchFoundry digitizes it	Опишіть дизайн — Claude створить для нього малюнок, а StitchFoundry його оцифрує
 	Place Artwork as Embroidery	Помістити малюнок як вишивку
 	Place Artwork	Помістити малюнок
 @plural	Design placed: {n} stitched object|Design placed: {n} stitched objects	Дизайн поміщено: {n} вишиваний об’єкт|Дизайн поміщено: {n} вишивані об’єкти|Дизайн поміщено: {n} вишиваних об’єктів
-@msg	Enter your Anthropic API key first.	Спочатку введіть свій ключ API Anthropic.
 @msg	The API key isn't valid: paste it again from the Anthropic Console.	Ключ API недійсний: вставте його знову з Anthropic Console.
 @msg	Describe the design first.	Спочатку опишіть дизайн.
 @msg	The description is too long: keep it under 2,000 characters.	Опис занадто довгий: він має бути коротшим за 2000 символів.
@@ -5108,7 +5104,6 @@ machine	Stop	Зупинка
 	Redraw Image with Claude	Перемалювати зображення за допомогою Claude
 	What to change (optional):	Що змінити (необов’язково):
 	Only redraw artwork you own or have permission to use.	Перемальовуйте лише малюнки, які належать вам або які ви маєте право використовувати.
-	Claude redraws the image as flat-colour art with your own Anthropic API key, billed to your Anthropic account; StitchFoundry then digitizes it. Check the stitches before you sew.	Claude перемальовує зображення у вигляді малюнка з однотонних заливок за допомогою вашого власного ключа API Anthropic, оплата стягується з вашого облікового запису Anthropic; потім StitchFoundry його оцифровує. Перевірте стібки перед вишиванням.
 	Redraw with Claude…	Перемалювати за допомогою Claude…
 	Claude redraws the image as clean flat-colour art, then StitchFoundry digitizes it	Claude перемалює зображення у вигляді чистого малюнка з однотонних заливок, а StitchFoundry його оцифрує
 @msg	select an image to redraw	виділіть зображення для перемальовування
@@ -6232,8 +6227,6 @@ machine	Stop	Зупинка
 	Ask	Запитати
 	New Conversation	Нова розмова
 	Include my design	Додати мій дизайн
-	Answers come from Claude with your own Anthropic API key, billed to your Anthropic account. They can be wrong: try a test sew before an important piece.	Відповіді надає Claude з вашим власним ключем API Anthropic, оплата з вашого облікового запису Anthropic. Вони можуть бути помилковими: перед важливим виробом зробіть пробну вишивку.
-	Change key	Змінити ключ
 @msg	Type a question first.	Спочатку введіть запитання.
 @msg	The question is too long: keep it under 2,000 characters.	Запитання задовге: не більше 2000 символів.
 @msg	The AI declined to answer this: ask another way.	ШІ відмовився відповідати: запитайте інакше.
@@ -6290,7 +6283,6 @@ machine	Stop	Зупинка
 	Anything else? For example: a gap above the bumper	Ще щось? Наприклад: проміжок над бампером
 	As the design has it	Як у дизайні
 	Choose the photos in the browser's window…	Виберіть фото у вікні браузера…
-	Claude looks at the photos with your own Anthropic API key, billed to your Anthropic account. It can be wrong: try a fix on a scrap of the same fabric first.	Claude дивиться фото з вашим власним ключем API Anthropic, оплата з вашого облікового запису Anthropic. Він може помилятися: спершу спробуйте виправлення на клаптику тієї ж тканини.
 	Include the design that was sewn (open now), so it can be fixed	Додати вишитий дизайн (відкритий зараз), щоб його можна було виправити
 	My sew-out ({n} photos)	Моя вишивка (фото: {n})
 	Needle	Голка
@@ -6325,8 +6317,6 @@ machine	Stop	Зупинка
 	Leave it empty for StitchFoundry's own service.	Залиште порожнім для власного сервісу StitchFoundry.
 	Paid with Foundry credits ({n} left).	Оплачено кредитами Foundry (лишилося {n}).
 	Paid with Foundry credits.	Оплачено кредитами Foundry.
-	Pay for the AI features with my Foundry credits	Оплачувати функції ШІ моїми кредитами Foundry
-	Pay with Foundry credits instead	Платити кредитами Foundry
 	Payment is on Stripe's secure page, in your browser; your card never reaches StitchFoundry.	Оплата відбувається на захищеній сторінці Stripe у вашому браузері; ваша картка ніколи не потрапляє до StitchFoundry.
 	Reading your credits…	Читаємо ваші кредити…
 	Server	Сервер
@@ -6337,7 +6327,6 @@ machine	Stop	Зупинка
 	Signed in as {email}	Увійшли як {email}
 	Foundry Account	Обліковий запис Foundry
 	Foundry Account…	Обліковий запис Foundry…
-	Foundry accounts aren't open yet. Until then, the AI features work with your own Anthropic API key.	Облікові записи Foundry ще не відкриті. Доти функції ШІ працюють з вашим власним ключем API Anthropic.
 	This is the sew-out after the fix from my last check	Це вишивка після виправлення з моєї минулої перевірки
 	{n} credits for {price}	{n} кредитів за {price}
 	{n} credits	Кредитів: {n}
@@ -6563,9 +6552,7 @@ machine	Stop	Зупинка
 	Quick	Швидко
 	Thorough	Ретельно
 	About {typical} credits a drawing, at most {most}.	Близько {typical} кредитів за малюнок, не більше {most}.
-	About {typical} a drawing on your Anthropic account, at most {most}.	Близько {typical} за малюнок з вашого облікового запису Anthropic, не більше {most}.
 	{tokens} tokens	{tokens} токенів
-	{tokens} tokens, about {cost}	{tokens} токенів, близько {cost}
 # AI research and check
 	Thorough looks up what it draws, thinks longest and checks its stitches once: it costs several times as much as Normal. Use it for real things, like a dog breed or a truck model, and for detailed designs.	«Ретельно» з’ясовує, що малює, думає найдовше й один раз перевіряє свої стібки: коштує в кілька разів дорожче за «Звичайне». Використовуйте для справжніх речей, як-от породи собаки чи моделі вантажівки, і для детальних дизайнів.
 	Checking the stitches…	Перевірка стібків…
