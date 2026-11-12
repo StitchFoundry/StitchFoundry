@@ -4737,6 +4737,35 @@ fn embroidery_fonts_open_to_edit_and_merge() {
 }
 
 #[test]
+fn embroidery_font_doc_opens_a_folder_and_removes_glyphs() {
+    let mut s = session();
+    s.execute("embroidery.font.load", &json!({"json": TEST_FONT_JSON, "svg": TEST_FONT_SVG})).unwrap();
+    // open by name -> save to a folder -> open that folder: the same glyphs
+    s.execute("embroidery.fontDoc.open", &json!({"font": "Test Script"})).unwrap();
+    let first = s.execute("embroidery.fontDoc.info", &json!({})).unwrap();
+    let dir = std::env::temp_dir().join(format!("sf-font-open-{}", std::process::id()));
+    let path = dir.to_string_lossy().to_string();
+    s.execute("embroidery.fontDoc.save", &json!({"folder": path})).unwrap();
+    let r = s.execute("embroidery.fontDoc.open", &json!({"folder": path})).unwrap();
+    assert_eq!(r["glyphs"].as_u64(), Some(3), "{r}");
+    let again = s.execute("embroidery.fontDoc.info", &json!({})).unwrap();
+    let names = |v: &Value| v["glyphs"].as_array().unwrap().iter().map(|g| g["name"].clone()).collect::<Vec<_>>();
+    assert_eq!(names(&first), names(&again));
+    assert_eq!(again["missing"].as_u64(), Some(0), "{again}");
+    // remove a glyph; the last one can't go
+    let r = s.execute("embroidery.fontDoc.removeGlyphs", &json!({"chars": "B"})).unwrap();
+    assert_eq!(r["removed"].as_u64(), Some(1));
+    let info = s.execute("embroidery.fontDoc.info", &json!({})).unwrap();
+    assert_eq!(names(&info), ["?", "A"]);
+    assert!(s.execute("embroidery.fontDoc.removeGlyphs", &json!({"chars": "B"})).is_err());
+    assert!(s.execute("embroidery.fontDoc.removeGlyphs", &json!({"chars": "?A"})).is_err());
+    assert!(s.execute("embroidery.fontDoc.open", &json!({})).is_err());
+    assert!(s.execute("embroidery.fontDoc.open", &json!({"font": "Nope"})).is_err());
+    assert!(s.execute("embroidery.fontDoc.open", &json!({"folder": "/nonexistent/sf-font"})).is_err());
+    std::fs::remove_dir_all(&dir).ok();
+}
+
+#[test]
 fn embroidery_fonts_start_from_type() {
     const PT: f64 = vectorcraft_embroidery::PT_PER_MM;
     let mut s = session();
