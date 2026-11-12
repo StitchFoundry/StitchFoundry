@@ -237,6 +237,49 @@ fn home_starts_embroidery_designs_by_hoop_with_samples_steps_and_a_tip() {
     assert!(app.ui.help.open && app.ui.help.topic == "machine-files");
 }
 
+/// The texts the embroidery overlay paints over the active document (an empty design included).
+fn overlay_texts(app: &mut VectorcraftApp) -> Vec<String> {
+    fn collect(s: &egui::Shape, out: &mut Vec<String>) {
+        match s {
+            egui::Shape::Text(t) => out.push(t.galley.text().to_string()),
+            egui::Shape::Vec(v) => v.iter().for_each(|x| collect(x, out)),
+            _ => {}
+        }
+    }
+    let ctx = egui::Context::default();
+    crate::theme::install_fonts(&ctx);
+    let rect = egui::Rect::from_min_size(egui::Pos2::ZERO, egui::vec2(800.0, 600.0));
+    let raw = egui::RawInput { screen_rect: Some(rect), ..Default::default() };
+    let mut out = ctx.run_ui(raw, |ui| {
+        let xf = canvas::Xf { rect, zoom: 1.0, center: vectorcraft_geom::Point::new(150.0, 150.0), rot: 0.0 };
+        let painter = ui.painter().clone();
+        crate::embroidery::overlay::paint(app, &painter, &xf);
+    });
+    out.textures_delta.clear();
+    let mut texts = Vec::new();
+    out.shapes.iter().for_each(|c| collect(&c.shape, &mut texts));
+    texts
+}
+
+#[test]
+fn each_home_hoop_tile_opens_a_design_in_that_hoop_with_its_outline_and_name() {
+    let mut app = VectorcraftApp::new(vectorcraft_engine::Session::new(), crate::Services::default());
+    let mine = app.session.execute("embroidery.myMachine", &json!({})).unwrap_or_default();
+    let hoops = crate::canvas::home_hoops(&mine);
+    assert!(!hoops.is_empty());
+    for (_, name, w, h) in &hoops {
+        // what a tile click runs
+        app.run("embroidery.newDesign", json!({ "hoop": name })).unwrap();
+        let settings = app.session.execute("embroidery.settings", &json!({})).unwrap();
+        let hoop = &settings["hoop"];
+        assert_eq!(hoop["name"].as_str(), Some(name.as_str()), "{settings}");
+        assert!((hoop["width"].as_f64().unwrap() - w).abs() < 1e-6 && (hoop["height"].as_f64().unwrap() - h).abs() < 1e-6, "{hoop}");
+        // the blank page still shows the hoop's outline label
+        let texts = overlay_texts(&mut app);
+        assert!(texts.iter().any(|t| t == name), "{name} in {texts:?}");
+    }
+}
+
 /// The texts one frame of the Embroidery panel draws.
 fn panel_texts(app: &mut VectorcraftApp) -> Vec<String> {
     fn collect(s: &egui::Shape, out: &mut Vec<String>) {
