@@ -831,3 +831,45 @@ fn home_recent_reopen_focuses_an_already_open_document() {
     assert_eq!(app.session.doc().unwrap().doc.layers[0].children().unwrap().len(), 1);
     let _ = std::fs::remove_dir_all(d);
 }
+
+/// Make a Design's words step: a two-line entry in a chosen font, centred, is set as lettering of
+/// two lines in that font, in the middle of the hoop and inside it.
+#[test]
+fn make_a_design_words_step_sets_two_centred_lines_in_the_chosen_font() {
+    use crate::guide::Step;
+    use vectorcraft_embroidery::sf_core::attr::{LetterAlign, StitchType};
+    let mut app = VectorcraftApp::new(vectorcraft_engine::Session::new(), crate::Services::default());
+    app.run("embroidery.myMachine.set", json!({"machine": "Husqvarna Viking Designer Diamond deLuxe"})).unwrap();
+    let json = r#"{"name": "Straight Font", "size": 10, "min_scale": 0.5, "max_scale": 2, "leading": 60, "horiz_adv_x": {"A": 40}}"#;
+    let svg = r##"<svg xmlns="http://www.w3.org/2000/svg" xmlns:inkscape="http://www.inkscape.org/namespaces/inkscape" width="100mm" height="100mm" viewBox="0 0 100 100"><g inkscape:groupmode="layer" inkscape:label="GlyphLayer-A" id="l"><path d="M2 100 L20 80" fill="none" stroke="#000" stroke-dasharray="1 1"/></g></svg>"##;
+    app.run("embroidery.font.load", json!({"json": json, "svg": svg})).unwrap();
+    let hoop = "Husqvarna 240 × 150".to_string();
+    (app.guide.open, app.guide.what, app.guide.hoop, app.guide.step) = (true, Some("words"), Some(hoop.clone()), Step::Details);
+    app.guide.text = "A\nA".into();
+    app.guide.font = "Straight Font".into();
+    app.guide.align = Some(LetterAlign::Centre);
+    app.guide.more_options = true;
+    // the step shows the font (drawn in itself) and the line options
+    let s = guide_strings(&mut app);
+    for want in ["Font", "Straight Font", "More options", "Justify", "Centre", "Line spacing", "Height of line 1", "Height of line 2"] {
+        assert!(s.iter().any(|t| t == want), "{want} in {s:?}");
+    }
+    let mut q = crate::guide::words_params(&app);
+    q["hoop"] = json!(hoop);
+    crate::guide::make_it(&mut app, q);
+    assert_eq!(app.guide.step, Step::Fabric, "{:?}", app.guide.error);
+    let d = &app.session.active().unwrap().doc;
+    let (id, l) = (0..500u64)
+        .find_map(|i| match d.node(vectorcraft_doc::NodeId(i))?.embroidery.as_deref().map(|e| &e.stitch) {
+            Some(StitchType::Lettering(l)) => Some((i, (**l).clone())),
+            _ => None,
+        })
+        .expect("the words were set as lettering");
+    assert_eq!((l.font.as_str(), l.align), ("Straight Font", LetterAlign::Centre));
+    assert_eq!(l.text.lines().count(), 2, "{:?}", l.text);
+    // centred on the hoop's page and inside it
+    let page = d.artboards.first().unwrap().rect;
+    let b = d.node(vectorcraft_doc::NodeId(id)).unwrap().geometric_bounds().unwrap();
+    assert!((b.center().x - page.center().x).abs() < 1.0 && (b.center().y - page.center().y).abs() < 1.0, "{b:?} in {page:?}");
+    assert!(b.width() <= page.width() && b.height() <= page.height(), "{b:?} in {page:?}");
+}
