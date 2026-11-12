@@ -822,7 +822,13 @@ fn hoop_outline(painter: &Painter, xf: &Xf, hoop: &vectorcraft_embroidery::sf_co
 }
 
 /// The hoop's outline, centre marks and name round `c` (mm), blue when `fits`, else red.
-fn hoop_outline_at(painter: &Painter, xf: &Xf, hoop: &vectorcraft_embroidery::sf_core::hoops::Hoop, c: vectorcraft_embroidery::sf_core::Point, fits: bool) {
+fn hoop_outline_at(
+    painter: &Painter,
+    xf: &Xf,
+    hoop: &vectorcraft_embroidery::sf_core::hoops::Hoop,
+    c: vectorcraft_embroidery::sf_core::Point,
+    fits: bool,
+) {
     let color = if fits { Color32::from_rgb(70, 110, 170) } else { Color32::from_rgb(210, 50, 50) };
     let mut ring: Vec<Pos2> = hoop.outline().into_iter().map(|q| xf.to_screen(pt(q + c))).collect();
     if let Some(&first) = ring.first() {
