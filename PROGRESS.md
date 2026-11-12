@@ -16,3 +16,5 @@
 - Fix #66: decoration stitches (cord, sequins, beads, boring) stop at `decor::MAX_STITCHES` (200,000) per object, and a cord segment with a non-finite length is skipped.
 - 2026-11-09 nightly sweep: no reports to triage; cargo audit finds no vulnerabilities (7 unmaintained/yanked notices). Filed #84 (satin split length has no lower bound).
 - Fix #79: run, zigzag, blanket, backstitch and stem lines stop at `run::MAX_RUN_STITCHES` (1,000,000 points per object, all passes), and satin sampling at `MAX_SATIN_PAIRS`. `polyline::points_at` walks a polyline once instead of once per point, so a long column is no longer quadratic.
+- 2026-11-12 nightly sweep: no reports to triage; filed #137 (scaled lettering keeps its old per-line sizes). `cargo xtask ci` and cargo audit run on main.
+- Fix #137: scaling lettering scales each line's own size with it, so a line set twice the block's size stays twice it when the lettering is set again.
