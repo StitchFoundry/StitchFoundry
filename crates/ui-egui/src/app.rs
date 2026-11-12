@@ -81,6 +81,7 @@ impl VectorcraftApp {
             simple: simple::SimpleState::default(),
             guide: guide::GuideState::default(),
             updates: updates::UpdateState::default(),
+            staging: false,
             perf: Perf::default(),
             dock_rt: Default::default(),
             titlebar_inset: 0.0,
@@ -539,6 +540,7 @@ impl VectorcraftApp {
         }
         dialogs::show(self, &ctx);
         updates_ui::show(self, &ctx);
+        crate::staging::banner(self, &ctx);
         export_progress::show(self, &ctx);
         plugin_runs::show(self, &ctx);
         palette::show(self, &ctx);
