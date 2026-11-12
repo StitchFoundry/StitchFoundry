@@ -51,6 +51,15 @@ pub fn specs() -> Vec<CommandSpec> {
             list_fonts
         ),
         cmd!(
+            "embroidery.font.preview",
+            "Embroidery Font Preview",
+            [],
+            None,
+            "{font, text?: up to 200 letters (a newline starts a line; default: the font's name), size?: mm (the capitals' height; 10), lineSizes?: [mm, …], leading?: × the font's line height (1), align?: left|centre|right (centre)} what text looks like in an embroidery font, for the font pickers: the outline of its digitized art, nothing is added to the design → {font, lines: [[[x, y], …], …] (polylines, mm), x, y, width, height (their bounds, mm)}",
+            always,
+            font_preview
+        ),
+        cmd!(
             "embroidery.teamNames.export",
             "Export Team Names",
             [],
@@ -100,7 +109,7 @@ pub fn specs() -> Vec<CommandSpec> {
             "Embroidery Lettering",
             [],
             None,
-            "{text, font, size?: mm (its capitals' height; default: the font's own), at?: [x, y] (where the first line's baseline starts, or its middle or end by `align`; default: the first artboard's centre), leading?: × the font's line height (1), align?: left|centre|right (left), arc?: mm (the baseline round a circle that radius: positive arched over its top, negative along its bottom; 0 straight), spiral?: mm (with `arc`: its radius shrinks this much a turn, the line winding in; negative, out; 0), puff?: bool (3D puff: the glyphs' satin sewn over foam, see embroidery.puff), vertical?: bool (letters one under another, each centred; lines side by side; straight lettering only), path?: id|true (a line or shape to set the text along, from its start, upright to it: its id, or true for the selected one), stitch?: font|satin|fill (as the font digitizes them; satin: filled parts sewn as satin across; fill: each letter one tatami fill the shape of what it sews), small?: auto|on|off (small text: a centre-run underlay, half the pull compensation, short stitches; auto: under 6 mm), applique?: \"#rrggbb\"|true|false (appliqué letters: each glyph one patch of fabric that colour, the shape of what it sews, with a placement line, tack-down and cover; true: light grey), order?: left|right|centre (the letters sewn left to right, right to left or from the middle out, as for caps; left), lines?: down|up (the lines sewn from the first down or the last up; down), join?: closest|baseline (each letter started where closest to the last, or at its baseline's start and stopped at its end, the thread running on along the baseline; closest), trim?: auto|letter|word|line (the thread cut after each letter, word or line; auto: where the jumps need it)} set text in a loaded embroidery font: each glyph its digitized art, kerned and scaled, a group per glyph inside one for the lettering, which remembers what it says (embroidery.lettering.edit sets it again); a size outside what the font sews well at comes with a warning → {id, glyphs, warnings}",
+            "{text, font, size?: mm (its capitals' height; default: the font's own), lineSizes?: [mm, …] (each line's own capitals' height; 0 or a line left out: `size`), at?: [x, y] (where the first line's baseline starts, or its middle or end by `align`; default: the first artboard's centre), leading?: × the font's line height (1), align?: left|centre|right (left), arc?: mm (the baseline round a circle that radius: positive arched over its top, negative along its bottom; 0 straight), spiral?: mm (with `arc`: its radius shrinks this much a turn, the line winding in; negative, out; 0), puff?: bool (3D puff: the glyphs' satin sewn over foam, see embroidery.puff), vertical?: bool (letters one under another, each centred; lines side by side; straight lettering only), path?: id|true (a line or shape to set the text along, from its start, upright to it: its id, or true for the selected one), stitch?: font|satin|fill (as the font digitizes them; satin: filled parts sewn as satin across; fill: each letter one tatami fill the shape of what it sews), small?: auto|on|off (small text: a centre-run underlay, half the pull compensation, short stitches; auto: under 6 mm), applique?: \"#rrggbb\"|true|false (appliqué letters: each glyph one patch of fabric that colour, the shape of what it sews, with a placement line, tack-down and cover; true: light grey), order?: left|right|centre (the letters sewn left to right, right to left or from the middle out, as for caps; left), lines?: down|up (the lines sewn from the first down or the last up; down), join?: closest|baseline (each letter started where closest to the last, or at its baseline's start and stopped at its end, the thread running on along the baseline; closest), trim?: auto|letter|word|line (the thread cut after each letter, word or line; auto: where the jumps need it)} set text in a loaded embroidery font: each glyph its digitized art, kerned and scaled, a group per glyph inside one for the lettering, which remembers what it says (embroidery.lettering.edit sets it again); a size outside what the font sews well at comes with a warning → {id, glyphs, warnings}",
             has_doc,
             lettering
         ),
@@ -109,7 +118,7 @@ pub fn specs() -> Vec<CommandSpec> {
             "Edit Lettering",
             [],
             None,
-            "{id?, text?, font?, size?: mm, leading?, align?, arc?: mm, spiral?: mm, vertical?: bool, path?: id|true|null (along a line; null: straight again), puff?: bool, stitch?: font|satin|fill, small?: auto|on|off, applique?: \"#rrggbb\"|false, order?, lines?, join?, trim?} set the selected lettering (in an embroidery font) again with a new text, font, size or line spacing, where it is now, moved, turned and scaled as it is; its font must be loaded → {id, glyphs, warnings}",
+            "{id?, text?, font?, size?: mm, lineSizes?: [mm, …] (null: all `size`), leading?, align?, arc?: mm, spiral?: mm, vertical?: bool, path?: id|true|null (along a line; null: straight again), puff?: bool, stitch?: font|satin|fill, small?: auto|on|off, applique?: \"#rrggbb\"|false, order?, lines?, join?, trim?} set the selected lettering (in an embroidery font) again with a new text, font, size or line spacing, where it is now, moved, turned and scaled as it is; its font must be loaded → {id, glyphs, warnings}",
             has_selection,
             edit_lettering
         ),
@@ -369,6 +378,89 @@ fn list_fonts(s: &mut Session, _: &Value) -> Result<Value> {
     Ok(json!({ "fonts": fonts, "warnings": warnings }))
 }
 
+/// Collects `n`'s paths (and its children's), flattened, as polylines in mm.
+fn preview_lines(n: &Node, out: &mut Vec<Vec<[f64; 2]>>, points: &mut usize) {
+    const MAX_POINTS: usize = 60_000;
+    if let NodeKind::Path { path, .. } = &n.kind {
+        for sub in &path.subpaths {
+            if *points >= MAX_POINTS {
+                return;
+            }
+            let bez = vectorcraft_geom::path::PathData::new(vec![sub.clone()]).to_bezpath();
+            let mut line: Vec<[f64; 2]> = Vec::new();
+            kurbo::flatten(bez.iter(), 0.3, |el| {
+                if let kurbo::PathEl::MoveTo(q) | kurbo::PathEl::LineTo(q) = el
+                    && q.x.is_finite()
+                    && q.y.is_finite()
+                {
+                    line.push([q.x / vectorcraft_embroidery::PT_PER_MM, q.y / vectorcraft_embroidery::PT_PER_MM]);
+                }
+            });
+            if sub.closed
+                && let Some(&first) = line.first()
+            {
+                line.push(first);
+            }
+            *points += line.len();
+            if line.len() >= 2 {
+                out.push(line);
+            }
+        }
+    }
+    if let Some(children) = n.children() {
+        for c in children {
+            preview_lines(c, out, points);
+        }
+    }
+}
+
+fn font_preview(s: &mut Session, p: &Value) -> Result<Value> {
+    const CMD: &str = "embroidery.font.preview";
+    let name = str_param(p, "font").ok_or_else(|| bad(CMD, "missing `font`"))?;
+    let _ = ensure_fonts(s);
+    let font = loaded(s, name).ok_or_else(|| not_loaded(CMD, name))?;
+    let text = match p.get("text") {
+        None | Some(Value::Null) => font.info.name.clone(),
+        Some(v) => v.as_str().filter(|t| t.chars().count() <= 200).ok_or_else(|| bad(CMD, "`text` is up to 200 letters"))?.to_string(),
+    };
+    let size = ranged(p, "size", 1.0..=500.0, CMD, "`size` is 1 to 500 mm")?.unwrap_or(10.0);
+    let leading = ranged(p, "leading", 0.2..=5.0, CMD, "`leading` is 0.2 to 5")?.unwrap_or(1.0);
+    let spec = Lettering {
+        text,
+        font: font.info.name.clone(),
+        size,
+        line_sizes: line_sizes_param(p, CMD)?.unwrap_or_default(),
+        leading,
+        arc: 0.0,
+        spiral: 0.0,
+        align: align_param(p, CMD)?.unwrap_or(LetterAlign::Centre),
+        sew: LetterSewing::default(),
+        letters: Vec::new(),
+        puff: None,
+        applique: None,
+        stitch: LetterStitch::Font,
+        small: SmallText::Off,
+        vertical: false,
+        path: Vec::new(),
+        frame: sf_core::Affine::IDENTITY,
+    };
+    // laid out on a scratch page, which is dropped: the design isn't touched
+    let mut scratch = Document::new(10.0, 10.0);
+    let set = glyphs(&mut scratch, &font, &spec);
+    let (mut lines, mut points) = (Vec::new(), 0);
+    for g in &set {
+        preview_lines(g, &mut lines, &mut points);
+    }
+    let (mut x0, mut y0, mut x1, mut y1) = (f64::MAX, f64::MAX, f64::MIN, f64::MIN);
+    for q in lines.iter().flatten() {
+        (x0, y0, x1, y1) = (x0.min(q[0]), y0.min(q[1]), x1.max(q[0]), y1.max(q[1]));
+    }
+    if lines.is_empty() {
+        return Err(bad(CMD, format!("{} has none of these characters", font.info.name)));
+    }
+    Ok(json!({ "font": font.info.name, "lines": lines, "x": x0, "y": y0, "width": x1 - x0, "height": y1 - y0 }))
+}
+
 fn forget_font(s: &mut Session, p: &Value) -> Result<Value> {
     const CMD: &str = "embroidery.font.forget";
     let name = str_param(p, "name").map(str::trim).filter(|n| !n.is_empty()).ok_or_else(|| bad(CMD, "missing `name`"))?;
@@ -465,6 +557,10 @@ fn glyphs_indexed(d: &mut Document, font: &EmbFont, spec: &Lettering) -> Vec<(us
     let k = spec.size / own_size(font);
     let frame = Affine::new(spec.frame.0);
     let placed = font.layout(&spec.text);
+    // each line's scale (1: the block's size), and how far down one's baseline is: each line
+    // after the first adds a line height of its own size
+    let line_scale = |l: usize| spec.line_sizes.get(l).copied().filter(|s| s.is_finite() && *s > 0.0).map_or(1.0, |s| s / spec.size);
+    let lines_above = |l: usize| (1..=l).map(line_scale).sum::<f64>();
     // each line's width (font units), to align it
     let mut widths: Vec<f64> = Vec::new();
     for g in &placed {
@@ -498,7 +594,7 @@ fn glyphs_indexed(d: &mut Document, font: &EmbFont, spec: &Lettering) -> Vec<(us
     let origin = vectorcraft_geom::Point::new(0.0, 0.0);
     for (index, g) in placed.iter().enumerate() {
         let Some(glyph) = font.glyphs.get(&g.glyph) else { continue };
-        let u = glyph.unit * k;
+        let u = glyph.unit * k * line_scale(g.line);
         // the letter moved, scaled or turned about its baseline's middle
         let adjust =
             spec.letters.iter().find(|a| a.index == index).map_or(Affine::IDENTITY, |a| {
@@ -508,7 +604,7 @@ fn glyphs_indexed(d: &mut Document, font: &EmbFont, spec: &Lettering) -> Vec<(us
         // the glyph's art from its page to its place: the middle of its baseline along the line
         // (from the origin, by the alignment), down to its line, round the arc
         let mut along = (g.x + g.advance * 0.5 - width * spec.align.share()) * u;
-        let mut down = g.line as f64 * i.leading * spec.leading * u;
+        let mut down = lines_above(g.line) * i.leading * spec.leading * glyph.unit * k;
         if vertical {
             // one under another, 1.4 capitals apart; the lines side by side
             (along, down) = (down, rows.get(index).copied().unwrap_or(0) as f64 * spec.size * pt * 1.4 * spec.leading);
@@ -517,7 +613,7 @@ fn glyphs_indexed(d: &mut Document, font: &EmbFont, spec: &Lettering) -> Vec<(us
             * base(along, down)
             * adjust
             * Affine::translate((-g.advance * 0.5 * u, 0.0))
-            * Affine::scale(k)
+            * Affine::scale(k * line_scale(g.line))
             * Affine::translate((0.0, -glyph.baseline));
         let children: Vec<Arc<Node>> = glyph
             .art
@@ -1114,6 +1210,27 @@ fn align_param(p: &Value, cmd: &str) -> Result<Option<LetterAlign>> {
     }
 }
 
+/// `lineSizes`, when given: each line's capitals' height (mm), 1 to 500 (0: the block's size);
+/// null for none.
+fn line_sizes_param(p: &Value, cmd: &str) -> Result<Option<Vec<f64>>> {
+    let err = || bad(cmd, "`lineSizes` is a list of sizes, 1 to 500 mm (0: the block's size)");
+    match p.get("lineSizes") {
+        None => Ok(None),
+        Some(Value::Null) => Ok(Some(Vec::new())),
+        Some(Value::Array(a)) if a.len() <= 1000 => {
+            let mut v = Vec::with_capacity(a.len());
+            for x in a {
+                match x.as_f64() {
+                    Some(n) if n == 0.0 || (1.0..=500.0).contains(&n) => v.push(n),
+                    _ => return Err(err()),
+                }
+            }
+            Ok(Some(v))
+        }
+        Some(_) => Err(err()),
+    }
+}
+
 fn lettering(s: &mut Session, p: &Value) -> Result<Value> {
     let text = text_param(p, SET)?.ok_or_else(|| bad(SET, "missing `text`"))?;
     let name = str_param(p, "font").ok_or_else(|| bad(SET, "missing `font`"))?;
@@ -1133,6 +1250,7 @@ fn lettering(s: &mut Session, p: &Value) -> Result<Value> {
         text: text.to_string(),
         font: font.info.name.clone(),
         size,
+        line_sizes: line_sizes_param(p, SET)?.unwrap_or_default(),
         leading,
         arc: arc_param(p, SET)?.unwrap_or(0.0),
         spiral: spiral_param(p, SET)?.unwrap_or(0.0),
@@ -1192,6 +1310,9 @@ fn edit_lettering(s: &mut Session, p: &Value) -> Result<Value> {
     spec.font = font.info.name.clone();
     if let Some(v) = ranged(p, "size", 1.0..=500.0, EDIT, "`size` is 1 to 500 mm")? {
         spec.size = v;
+    }
+    if let Some(v) = line_sizes_param(p, EDIT)? {
+        spec.line_sizes = v;
     }
     if let Some(v) = ranged(p, "leading", 0.2..=5.0, EDIT, "`leading` is 0.2 to 5")? {
         spec.leading = v;

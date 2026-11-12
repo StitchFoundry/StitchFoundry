@@ -1,7 +1,7 @@
 //! Foundry Account (Embroidery and Help menus): sign in to the StitchFoundry cloud service
 //! or make an account, see the credits, buy more (Stripe's checkout page opens in the browser) and
-//! choose to pay for the AI features with them instead of one's own Anthropic API key. With that
-//! on, Design from Prompt, Redraw Image, Ask About Embroidery and Check My Sew-out send their
+//! pay for the AI features with them: the Foundry Account is the one way to sign in and pay for AI
+//! (there is no option to use one's own Anthropic API key). Design from Prompt, Redraw Image, Ask About Embroidery and Check My Sew-out send their
 //! requests through the service ([`prompt::post`] reroutes them: [`cloud::through_cloud`]).
 //!
 //! A new account's email waits to be confirmed (the service emails a link); until it is, the
@@ -24,7 +24,6 @@ use crate::theme::Tokens;
 
 /// The secrets the choices are kept as.
 const SERVER_NAME: &str = "stitchfoundry-server";
-const CREDITS_NAME: &str = "stitchfoundry-pay-with-credits";
 
 /// What a request on its way was for.
 #[derive(Clone, Debug, PartialEq)]
@@ -48,8 +47,6 @@ pub struct AccountState {
     pub server: String,
     /// The session token; empty while signed out.
     pub token: String,
-    /// Pay for the AI features with Foundry credits.
-    pub use_credits: bool,
     pub email: String,
     pub password: String,
     /// The account as last read (`{email, credits, packs, payments, history}`).
@@ -87,8 +84,6 @@ pub(crate) fn load(app: &mut VectorcraftApp) {
         if let Some(server) = s.load(SERVER_NAME) {
             st.server = server;
         }
-        // signed in and never chosen: paying with credits, as signing in chooses
-        st.use_credits = s.load(CREDITS_NAME).map_or(!st.token.is_empty(), |v| v == "1");
     }
     st.stale = !st.token.is_empty();
 }
@@ -112,8 +107,7 @@ pub fn server(app: &VectorcraftApp) -> Option<String> {
 
 /// Whether AI requests go through the service, paid in credits.
 pub fn paying_with_credits(app: &VectorcraftApp) -> bool {
-    let st = &app.embroidery.account;
-    st.use_credits && !st.token.is_empty() && server(app).is_some()
+    !app.embroidery.account.token.is_empty() && server(app).is_some()
 }
 
 /// The credits left, as last read.
@@ -121,11 +115,11 @@ pub fn credits(app: &VectorcraftApp) -> Option<u64> {
     app.embroidery.account.info.as_ref().and_then(|i| i["credits"].as_u64())
 }
 
-/// What the AI features send in the API key's place: the session token when paying with
-/// credits, else the user's own Anthropic key.
+/// What the AI features send in the API key's place: the Foundry Account's session token (empty
+/// while signed out: the AI features then ask for a sign-in).
 pub fn key_to_send(app: &mut VectorcraftApp) -> String {
     load(app);
-    if paying_with_credits(app) { app.embroidery.account.token.clone() } else { app.embroidery.prompt.key.clone() }
+    if paying_with_credits(app) { app.embroidery.account.token.clone() } else { String::new() }
 }
 
 /// Whether the account, as last read, is waiting for its email to be confirmed.
@@ -160,7 +154,7 @@ pub fn open(app: &mut VectorcraftApp, p: &Value) -> Result<Value, String> {
         "signedIn": !st.token.is_empty(),
         "server": server(app),
         "credits": credits(app),
-        "payWithCredits": st.use_credits,
+        "payWithCredits": paying_with_credits(app),
         "verified": st.info.as_ref().and_then(|i| i["verified"].as_bool()),
         "resending": resending && st.pending.is_some(),
     }))
@@ -295,8 +289,6 @@ fn answered(app: &mut VectorcraftApp, action: Action, r: Result<Value, ArtError>
             let st = &mut app.embroidery.account;
             st.token = token;
             st.password.clear();
-            // signing in is choosing to pay with credits
-            st.use_credits = true;
             st.info = Some(v["account"].clone());
             st.stale = true;
             st.note = Some(match action {
@@ -306,7 +298,6 @@ fn answered(app: &mut VectorcraftApp, action: Action, r: Result<Value, ArtError>
                 Action::SignUp => "Account made: welcome to StitchFoundry.".into(),
                 _ => "Signed in.".into(),
             });
-            keep(app, CREDITS_NAME, Some("1"));
         }
         Action::Refresh => app.embroidery.account.info = Some(v),
         Action::Buy => match v["url"].as_str().filter(|u| u.starts_with("https://")) {
@@ -441,8 +432,6 @@ pub fn paid_line(app: &mut VectorcraftApp, ui: &mut egui::Ui, t: &Tokens) -> boo
             if ui.link(RichText::new(tl!("Sign In")).size(11.0)).clicked() {
                 show(app, false);
             }
-        } else if server(app).is_some() && ui.link(RichText::new(tl!("Pay with Foundry credits instead")).size(11.0)).clicked() {
-            app.embroidery.account.open = true;
         }
     });
     credits_on
@@ -472,7 +461,7 @@ pub fn window(app: &mut VectorcraftApp, ctx: &egui::Context) {
             let busy = app.embroidery.account.pending.is_some();
             let st = &mut app.embroidery.account;
             if srv.is_none() {
-                ui.label(tl!("Foundry accounts aren't open yet. Until then, the AI features work with your own Anthropic API key."));
+                ui.label(tl!("Foundry accounts aren't open yet. The AI features need a Foundry Account."));
             } else if st.token.is_empty() {
                 let create = !st.sign_in_shown;
                 if create {
@@ -549,13 +538,6 @@ pub fn window(app: &mut VectorcraftApp, ctx: &egui::Context) {
                     .size(20.0)
                     .strong(),
                 );
-                let mut on = st.use_credits;
-                if ui.checkbox(&mut on, tl!("Pay for the AI features with my Foundry credits")).changed() {
-                    todo = Some(Box::new(move |app| {
-                        app.embroidery.account.use_credits = on;
-                        keep(app, CREDITS_NAME, Some(if on { "1" } else { "0" }));
-                    }));
-                }
                 if let Some(f) = info["freeChecks"].as_u64() {
                     ui.label(
                         RichText::new(crate::i18n::fmt(tl!("Free sew-out checks left this month: {n}"), &[("n", &f.to_string())])).color(t.text_dim),
