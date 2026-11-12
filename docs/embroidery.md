@@ -1378,7 +1378,13 @@ fixed place, x and y mm from the hoop's centre (`embroidery.settings {hoopPositi
 fit check follow. **Custom Hoops** keeps hoops of one's own by name with their field
 (`embroidery.hoop.saveCustom {name, width, height, shape?}`, `.deleteCustom`), listed with the
 standard ones everywhere a hoop is chosen (`embroidery.hoops` lists them all, with whether the
-design fits each).
+design fits each). A custom hoop may be rect, oval, round or square, sized in mm or inches
+(`unit`), with an optional `cornerRadius` (rectangles) and outer frame (`frameWidth`,
+`frameHeight`); rounded corners count in the outline and the fit check. `.attach {name, machine,
+attach?}` puts it in a machine's hoop list (several machines allowed; one on no machine is on every
+list), `saveCustom {was}` renames, `embroidery.hoop.export {name, path?}` writes a small JSON file
+to share and `embroidery.hoop.import {path | text}` reads one back. They are kept in the local
+preferences (desktop and browser storage). Syncing to the Foundry Account is not done yet.
 
 ## Garment photo
 
