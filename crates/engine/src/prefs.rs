@@ -300,6 +300,10 @@ pub struct Prefs {
     /// hoop and Save for My Machine its format.
     #[serde(default, skip_serializing_if = "String::is_empty")]
     pub my_machine: String,
+    /// The hoop of the last design started with `embroidery.newDesign` by name: the next new design
+    /// with no hoop named takes it (when My Machine has it, or no machine is chosen).
+    #[serde(default, skip_serializing_if = "String::is_empty")]
+    pub last_hoop: String,
     /// Where Keep Safe saves a beginner's new designs (`file.keepSafe`; empty: Documents/StitchFoundry Designs).
     #[serde(default, skip_serializing_if = "String::is_empty")]
     pub my_designs_folder: String,
@@ -526,6 +530,7 @@ impl Default for Prefs {
             embroidery_ai_effort: String::new(),
             embroidery_send_dirs: vec![],
             my_machine: String::new(),
+            last_hoop: String::new(),
             my_designs_folder: String::new(),
             screen_export_presets: vec![],
             templates_folder: String::new(),
