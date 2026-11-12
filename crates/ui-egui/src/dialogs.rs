@@ -109,6 +109,7 @@ pub(crate) mod simplify_slider;
 pub mod slices;
 pub(crate) mod smooth_slider;
 pub mod spot_colors;
+pub mod start_design;
 pub(crate) mod svg_options;
 pub mod swatch_conflict;
 pub mod swatch_options;
@@ -542,6 +543,7 @@ pub fn show(app: &mut VectorcraftApp, ctx: &egui::Context) {
     help::show(app, ctx);
     life_size::show(app, ctx);
     my_machine::show(app, ctx);
+    start_design::show(app, ctx);
     memory_card::show(app, ctx);
     orders::show(app, ctx);
     font_library::show(app, ctx);
