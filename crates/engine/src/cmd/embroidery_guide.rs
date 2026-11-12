@@ -41,6 +41,12 @@ fn make_design(s: &mut Session, p: &Value) -> Result<Value> {
             if let Some(h) = p.get("height") {
                 q["height"] = h.clone();
             }
+            // an embroidery font and how the lines sit (see embroidery.addWords)
+            for key in ["font", "align", "leading", "lineSizes"] {
+                if let Some(v) = p.get(key).filter(|v| !v.is_null()) {
+                    q[key] = v.clone();
+                }
+            }
             let id = s.execute("embroidery.addWords", &q)?["id"].clone();
             // words longer than the hoop is wide: made smaller, to nine tenths of the hoop
             let (hw, hh) = (made["width"].as_f64().unwrap_or(0.0), made["height"].as_f64().unwrap_or(0.0));
