@@ -488,6 +488,10 @@ impl Lettering {
         let [a, b, c, d, e, g] = f.0;
         self.frame = Affine([a / k, b / k, c / k, d / k, e, g]);
         self.size *= k;
+        // a line's own size grows with the rest (0 stays "the block's size")
+        for s in &mut self.line_sizes {
+            *s *= k;
+        }
         self.arc *= k;
         self.spiral *= k;
         for q in &mut self.path {
@@ -1106,6 +1110,33 @@ mod tests {
         // no pieces is one; no heads is one
         let one = CostModel { heads: 0, ..m.clone() }.estimate(&stats, 0);
         assert!((one.setup - 30.0).abs() < 1e-9 && (one.time - 10.0).abs() < 1e-9, "{one:?}");
+    }
+
+    #[test]
+    fn lettering_lines_with_a_size_of_their_own_scale_with_it() {
+        let mut l = Lettering {
+            text: "Hi\nthere".into(),
+            font: "F".into(),
+            size: 10.0,
+            line_sizes: vec![0.0, 20.0],
+            leading: 1.0,
+            arc: 0.0,
+            spiral: 0.0,
+            align: LetterAlign::Centre,
+            sew: LetterSewing::default(),
+            letters: Vec::new(),
+            puff: None,
+            applique: None,
+            stitch: LetterStitch::Font,
+            small: SmallText::Auto,
+            vertical: false,
+            path: Vec::new(),
+            frame: Affine::IDENTITY,
+        };
+        l.transform(&Affine::scale(2.0, 2.0));
+        // the block doubled; the line twice the block's size stays twice it (0 stays "the block's")
+        assert!((l.size - 20.0).abs() < 1e-9, "{l:?}");
+        assert_eq!(l.line_sizes, vec![0.0, 40.0]);
     }
 
     #[test]
