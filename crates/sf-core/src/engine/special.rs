@@ -148,6 +148,8 @@ pub(crate) fn radial(polygon: &Polygon, center: Option<Point>, spacing: f64, spl
     if let Some(&p0) = pts.first() {
         out.connect(p0, trim, 2.5);
     }
+    // A tiny split length is raised to the minimum (#84).
+    let split = crate::model::effective_split_length(split);
     let mut prev = pts[0];
     for (i, &p) in pts.iter().enumerate().skip(1) {
         let d = prev.distance(p);
@@ -858,6 +860,19 @@ mod tests {
         assert!(free.finish().iter().filter(|s| s.cmd == Cmd::Stitch).all(|s| on_grid(s.pos().x, 1.0) || on_grid(s.pos().y, 1.0)));
         // the anchored grid has its corners at (0, 0), (3, 3) and (6, 6)
         assert!(pts.iter().any(|p| p.distance(Point::new(3.0, 3.0)) < 1e-9) && pts.iter().any(|p| p.distance(Point::new(6.0, 6.0)) < 1e-9));
+    }
+
+    #[test]
+    fn radial_split_length_has_a_minimum() {
+        // #84: a tiny split length is raised to MIN_SPLIT_LENGTH instead of making millions of stitches.
+        let count = |split: f64| {
+            let mut out = Out::new();
+            radial(&square(20.0), None, 0.8, split, &mut out, 2.0);
+            out.finish().len()
+        };
+        let tiny = count(1e-6);
+        assert_eq!(tiny, count(crate::model::MIN_SPLIT_LENGTH));
+        assert!(tiny < 100_000, "{tiny}");
     }
 
     #[test]

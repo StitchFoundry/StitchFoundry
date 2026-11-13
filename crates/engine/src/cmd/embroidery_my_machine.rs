@@ -51,11 +51,13 @@ fn get(s: &mut Session, _: &Value) -> Result<Value> {
         .iter()
         .map(|h| {
             let shape = if h.shape == sf_core::hoops::HoopShape::Oval { "oval" } else { "rect" };
-            json!({ "name": h.name, "width": h.width, "height": h.height, "shape": shape })
+            json!({ "name": h.name, "width": h.width, "height": h.height, "shape": shape, "machines": h.machines })
         })
         .collect();
-    if m.is_some() {
-        hoops.extend(own.iter().map(|h| json!({ "name": h["name"], "width": h["width"], "height": h["height"] })));
+    if let Some(m) = m {
+        // the ones of one's own put on this machine, and the ones put on none (on every machine)
+        let on = |h: &&sf_core::hoops::Hoop| h.machines.is_empty() || h.machines.iter().any(|n| n == m.name);
+        hoops.extend(s.prefs.embroidery_custom_hoops.iter().filter(on).map(|h| json!({ "name": h.name, "width": h.width, "height": h.height })));
     }
     Ok(json!({
         "machine": m.map(|m| m.name),
