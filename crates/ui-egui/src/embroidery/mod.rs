@@ -4,8 +4,8 @@
 pub mod account;
 pub mod ask;
 pub mod family;
-pub mod hoop_editor;
 pub mod font_picker;
+pub mod hoop_editor;
 pub mod kiosk;
 pub mod overlay;
 pub mod panel;
