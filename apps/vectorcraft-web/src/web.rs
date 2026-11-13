@@ -148,11 +148,14 @@ async fn run(host: Host, canvas: web_sys::HtmlCanvasElement, moving: Option<Movi
                         if query().trim_start_matches('?').split('&').any(|kv| kv == "view" || kv.starts_with("view=")) {
                             app.ui.viewer = true;
                         }
+                        // `?services=staging`: this tab uses the staging services (remembered for the
+                        // tab's session only; the addresses are compiled in, see ui_egui::staging)
+                        app.staging = staging_requested();
                         // Open in StitchFoundry: `?open=` names a design on MakerFoundry, opened once
                         if let Some(raw) = query_param("open") {
                             // Read once: a reload or a shared link mustn't open the design again.
                             forget_param("open");
-                            match crate::open_link::allowed(&raw) {
+                            match crate::open_link::allowed(&raw, app.staging) {
                                 Ok(url) => {
                                     app.status("Opening the design from MakerFoundry…");
                                     crate::open_link::start(url, host.inbox.clone(), host.note.clone(), ctx.clone());
@@ -231,6 +234,21 @@ fn forget_param(name: &str) {
         // A browser refusing it leaves the address as it was, which is harmless.
         let _ = history.replace_state_with_url(&wasm_bindgen::JsValue::NULL, "", Some(&url));
     }
+}
+
+/// Whether this tab is in staging mode: `?services=staging` now, or asked for earlier in this tab's
+/// session (sessionStorage; it goes with the tab).
+fn staging_requested() -> bool {
+    const KEY: &str = "sf-services";
+    let storage = web_sys::window().and_then(|w| w.session_storage().ok().flatten());
+    if vectorcraft_ui_egui::staging::requested(&query()) {
+        if let Some(s) = &storage {
+            // (a browser refusing storage just forgets it on reload)
+            let _ = s.set_item(KEY, "staging");
+        }
+        return true;
+    }
+    storage.and_then(|s| s.get_item(KEY).ok().flatten()).as_deref() == Some("staging")
 }
 
 fn query() -> String {
