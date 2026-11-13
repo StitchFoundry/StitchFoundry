@@ -8,6 +8,7 @@ rust-version.workspace = true
 repository.workspace = true
 
 [dependencies]
+chrono = { workspace = true }
 sf-core = { workspace = true }
 serde_json = { workspace = true }
 thiserror = { workspace = true }

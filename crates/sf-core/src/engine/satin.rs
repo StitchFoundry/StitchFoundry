@@ -3,27 +3,36 @@
 
 use super::out::Out;
 use crate::geom::{Column, FLATTEN_TOLERANCE, Point, Rung, polyline};
-use crate::model::{JaggedSides, SatinParams, TATAMI_LENGTH};
+use crate::model::{JaggedSides, SatinParams, TATAMI_LENGTH, effective_split_length};
 use crate::pattern::Stitch;
 
+/// Most rail pairs one sampling of a column makes (#79): a column about 25 m long at the
+/// finest sampling (50 m at the usual one). A longer column is sampled more coarsely.
+const MAX_SATIN_PAIRS: usize = 1_000_000;
+
+/// Most pieces auto split cuts one stitch into (#84).
+const MAX_SPLIT_PIECES: usize = 10_000;
+
 /// Fine samples along the column: pairs of corresponding rail points spaced
-/// `half_step(width)` apart along the longer rail.
+/// `half_step(width)` apart along the longer rail, at most about [`MAX_SATIN_PAIRS`].
 fn sample_pairs(col: &Column, half_step: impl Fn(f64) -> f64) -> Vec<(Point, Point)> {
     let sections = col.sections(FLATTEN_TOLERANCE);
     let mut out = Vec::new();
     let last = sections.len().saturating_sub(1);
+    // The column's length along its longer rails: no step is shorter than its share of the cap.
+    let total: f64 = sections.iter().map(|(a, b)| polyline::length(a).max(polyline::length(b))).sum();
+    let floor = if total.is_finite() { total / MAX_SATIN_PAIRS as f64 } else { 0.0 };
     for (si, (a, b)) in sections.iter().enumerate() {
         let la = polyline::length(a);
         let lb = polyline::length(b);
         let w0 = a.first().zip(b.first()).map(|(p, q)| p.distance(*q)).unwrap_or(0.0);
         let w1 = a.last().zip(b.last()).map(|(p, q)| p.distance(*q)).unwrap_or(0.0);
-        let hs = half_step((w0 + w1) * 0.5).max(0.05);
-        let n = ((la.max(lb) / hs).ceil() as usize).max(1);
+        let hs = half_step((w0 + w1) * 0.5).max(0.05).max(floor);
+        let n = ((la.max(lb) / hs).ceil() as usize).clamp(1, MAX_SATIN_PAIRS);
         let end = if si == last { n } else { n - 1 };
-        for m in 0..=end {
-            let t = m as f64 / n as f64;
-            out.push((polyline::point_at(a, t * la), polyline::point_at(b, t * lb)));
-        }
+        let on_a = polyline::points_at(a, (0..=end).map(|m| m as f64 / n as f64 * la));
+        let on_b = polyline::points_at(b, (0..=end).map(|m| m as f64 / n as f64 * lb));
+        out.extend(on_a.into_iter().zip(on_b));
     }
     out
 }
@@ -98,12 +107,14 @@ pub(crate) fn effective_spacing(params: &SatinParams, width: f64) -> f64 {
 /// Splits a long stitch `p → q` into shorter staggered pieces.
 fn split_stitch(p: Point, q: Point, max_len: f64, index: usize, out: &mut Vec<Point>) {
     let len = p.distance(q);
-    if max_len <= 0.0 || len <= max_len {
+    let max_len = effective_split_length(max_len);
+    if max_len <= 0.0 || len.is_nan() || len <= max_len {
         out.push(q);
         return;
     }
-    // Leave 25 % slack so the staggered split points never exceed `max_len`.
-    let k = (len / (max_len * 0.75)).ceil() as usize;
+    // Leave 25 % slack so the staggered split points never exceed `max_len`; at most
+    // MAX_SPLIT_PIECES pieces however long the stitch (#84).
+    let k = ((len / (max_len * 0.75)).ceil() as usize).clamp(1, MAX_SPLIT_PIECES);
     // Stagger the split points so they don't line up into a visible groove.
     const PHASES: [f64; 5] = [0.0, 0.4, -0.3, 0.2, -0.4];
     let shift = PHASES[index % PHASES.len()] / k as f64;
@@ -120,11 +131,15 @@ fn split_stitch(p: Point, q: Point, max_len: f64, index: usize, out: &mut Vec<Po
 /// lines up.
 fn split_tatami(p: Point, q: Point, len: f64, row: usize, out: &mut Vec<Point>) {
     let d = p.distance(q);
+    let len = effective_split_length(len);
     let min = 0.3 * len;
-    if len <= 0.0 || d <= len + min {
+    if len <= 0.0 || d.is_nan() || d <= len + min {
         out.push(q);
         return;
     }
+    // A stitch longer than MAX_SPLIT_PIECES pieces is cut into longer pieces (#84).
+    let len = len.max(d / MAX_SPLIT_PIECES as f64);
+    let min = 0.3 * len;
     let phase = (row % 4) as f64 * 0.25 * len;
     let mut cuts: Vec<f64> = (0usize..).map(|k| phase + k as f64 * len).take_while(|x| *x < d - min).filter(|x| *x > min).collect();
     // even rows run from side A, odd ones back from side B
@@ -520,13 +535,10 @@ fn resample_pairs(pairs: &[(Point, Point)], step: f64) -> Vec<(Point, Point)> {
     let b: Vec<Point> = pairs.iter().map(|p| p.1).collect();
     let la = polyline::length(&a);
     let lb = polyline::length(&b);
-    let n = ((la.max(lb) / step.max(0.05)).ceil() as usize).max(1);
-    (0..=n)
-        .map(|m| {
-            let t = m as f64 / n as f64;
-            (polyline::point_at(&a, t * la), polyline::point_at(&b, t * lb))
-        })
-        .collect()
+    let n = ((la.max(lb) / step.max(0.05)).ceil() as usize).clamp(1, MAX_SATIN_PAIRS);
+    let on_a = polyline::points_at(&a, (0..=n).map(|m| m as f64 / n as f64 * la));
+    let on_b = polyline::points_at(&b, (0..=n).map(|m| m as f64 / n as f64 * lb));
+    on_a.into_iter().zip(on_b).collect()
 }
 
 /// Satin border of `width` centred on a path (used for appliqué cover stitches
@@ -562,8 +574,29 @@ pub(crate) fn border(pts: &[Point], closed: bool, width: f64, spacing: f64, pull
 mod tests {
     use super::*;
     use crate::geom::{Node, NodeKind};
-    use crate::model::SatinUnderlay;
+    use crate::model::{MIN_SPLIT_LENGTH, SatinUnderlay};
     use crate::pattern::Cmd;
+
+    /// #79: a satin column 10 km long used to be sampled every 0.1 mm or finer (hundreds of
+    /// millions of rail pairs). Sampling now stops at `MAX_SATIN_PAIRS`.
+    #[test]
+    fn a_very_long_satin_column_stays_bounded() {
+        let col = Column::new(vec![
+            Rung::new(Point::new(0.0, -1.0), Point::new(0.0, 1.0), NodeKind::Corner),
+            Rung::new(Point::new(1e7, -1.0), Point::new(1e7, 1.0), NodeKind::Corner),
+        ]);
+        assert!(sample_pairs(&col, |_| 0.025).len() <= MAX_SATIN_PAIRS + 2);
+        let started = std::time::Instant::now();
+        let out = generate(&col, &SatinParams::default(), None, None, 12.0);
+        assert!(!out.is_empty() && out.len() <= 8 * MAX_SATIN_PAIRS, "{}", out.len());
+        assert!(started.elapsed().as_secs() < 30, "took {:?}", started.elapsed());
+        // A short column keeps its usual sampling.
+        let short = Column::new(vec![
+            Rung::new(Point::new(0.0, -1.0), Point::new(0.0, 1.0), NodeKind::Corner),
+            Rung::new(Point::new(10.0, -1.0), Point::new(10.0, 1.0), NodeKind::Corner),
+        ]);
+        assert_eq!(sample_pairs(&short, |_| 0.2).len(), 51);
+    }
 
     /// Sew-out on a T-shirt: serif tips narrower than the shortest stitch were dropped and
     /// came out ragged. No satin stitch is narrower than `MIN_WIDTH`.
@@ -691,6 +724,29 @@ mod tests {
         // satin without it keeps whole stitches
         let satin = generate(&straight(6.0, 30.0), &SatinParams { tatami: false, split_length: 8.0, ..params.clone() }, None, None, 12.0);
         assert!(satin.iter().filter(|s| s.cmd == Cmd::Stitch).all(|s| s.pos().y < 0.3 || s.pos().y > 5.7 || s.pos().x < 0.5 || s.pos().x > 29.5));
+    }
+
+    #[test]
+    fn a_tiny_split_length_is_raised_to_the_minimum() {
+        // #84: a 10 mm wide column 20 mm long with split_length 1e-6 made billions of stitches.
+        let bare = SatinUnderlay { auto: false, center_run: false, ..Default::default() };
+        let base = SatinParams { auto_spacing: false, pull_comp: 0.0, underlay: bare, ..Default::default() };
+        for tatami in [false, true] {
+            for split_length in [1e-6, 1e-300, f64::MIN_POSITIVE] {
+                let params = SatinParams { tatami, split_length, ..base.clone() };
+                let tiny = generate(&straight(10.0, 20.0), &params, None, None, 12.0);
+                let at_min = generate(&straight(10.0, 20.0), &SatinParams { split_length: MIN_SPLIT_LENGTH, ..params.clone() }, None, None, 12.0);
+                assert_eq!(tiny.len(), at_min.len(), "tatami {tatami}, split {split_length}");
+                assert!(tiny.len() < 20_000, "tatami {tatami}: {} stitches", tiny.len());
+            }
+        }
+        // A stitch is never cut into more than MAX_SPLIT_PIECES pieces.
+        let mut out = Vec::new();
+        split_stitch(Point::new(0.0, 0.0), Point::new(1e9, 0.0), 1.0, 0, &mut out);
+        assert_eq!(out.len(), MAX_SPLIT_PIECES);
+        out.clear();
+        split_tatami(Point::new(0.0, 0.0), Point::new(1e9, 0.0), 1.0, 0, &mut out);
+        assert!(out.len() <= MAX_SPLIT_PIECES + 1, "{}", out.len());
     }
 
     #[test]

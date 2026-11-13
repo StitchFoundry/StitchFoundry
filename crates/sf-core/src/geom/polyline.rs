@@ -68,6 +68,37 @@ pub fn point_at(pts: &[Point], dist: f64) -> Point {
     pts[pts.len() - 1]
 }
 
+/// The points [`point_at`] gives at each of `dists` (ascending), in one walk along the
+/// polyline instead of one from its start per distance: the same points, in linear time.
+pub fn points_at(pts: &[Point], dists: impl IntoIterator<Item = f64>) -> Vec<Point> {
+    let dists = dists.into_iter();
+    let mut out = Vec::with_capacity(dists.size_hint().0);
+    let (Some(&first), Some(&last)) = (pts.first(), pts.last()) else {
+        out.extend(dists.map(|_| Point::ZERO));
+        return out;
+    };
+    let mut i = 0;
+    let mut acc = 0.0;
+    for dist in dists {
+        if dist <= 0.0 {
+            out.push(first);
+            continue;
+        }
+        let mut found = None;
+        while let (Some(&a), Some(&b)) = (pts.get(i), pts.get(i + 1)) {
+            let l = a.distance(b);
+            if acc + l >= dist && l > 0.0 {
+                found = Some(a.lerp(b, (dist - acc) / l));
+                break;
+            }
+            acc += l;
+            i += 1;
+        }
+        out.push(found.unwrap_or(last));
+    }
+    out
+}
+
 /// Unit tangent at arc length `dist`.
 pub fn tangent_at(pts: &[Point], dist: f64) -> Point {
     let mut acc = 0.0;
@@ -147,9 +178,7 @@ pub fn resample(pts: &[Point], step: f64, corner_angle: f64) -> Vec<Point> {
         let len = length(piece);
         let n = ((len / step).ceil() as usize).max(1);
         let seg = len / n as f64;
-        for k in 1..n {
-            out.push(point_at(piece, seg * k as f64));
-        }
+        out.extend(points_at(piece, (1..n).map(|k| seg * k as f64)));
         out.push(pts[w[1]]);
     }
     out
@@ -473,6 +502,19 @@ mod tests {
 
     fn square() -> Vec<Point> {
         vec![Point::new(0.0, 0.0), Point::new(10.0, 0.0), Point::new(10.0, 10.0), Point::new(0.0, 10.0)]
+    }
+
+    /// `points_at` gives exactly the points `point_at` does (#79), repeated vertices and
+    /// distances before, at and past the ends included.
+    #[test]
+    fn points_at_matches_point_at() {
+        let mut line = square();
+        line.insert(2, Point::new(10.0, 0.0));
+        let dists: Vec<f64> = [-1.0, 0.0, 0.5, 10.0, 10.0, 13.3, 20.0, 29.9, 30.0, 45.0].to_vec();
+        let one = points_at(&line, dists.iter().copied());
+        let each: Vec<Point> = dists.iter().map(|&d| point_at(&line, d)).collect();
+        assert_eq!(one, each);
+        assert_eq!(points_at(&[], [1.0, 2.0]), vec![Point::ZERO; 2]);
     }
 
     #[test]

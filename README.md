@@ -55,6 +55,13 @@ release above; on macOS right-click › **Open** the first time).
   <br><sub>Branching: thirty satin petals and a fill vine sewn as one thread, ordered in the Stitch Sequence panel</sub>
 </p>
 
+## Getting started
+
+Open StitchFoundry and press **Start a design**: pick your machine (asked once, then remembered),
+your hoop (only the hoops that machine has) and, if you like, your fabric. The design opens the size
+of the hoop's sewing field, ready to digitize and to save for your machine. A blank page of any size
+is still under **Blank canvas (page size)** and File › New….
+
 ## What it does
 
 ### For everyone
@@ -197,7 +204,7 @@ commercial embroidery software.
 
 ## Reporting bugs
 
-In the app, **Help → Report a Bug…** opens StitchHub's report page, filled in with the version and your system. **Help → Suggest a Feature…** opens the same page for an idea, which is emailed to us.
+In the app, **Help → Report a Bug…** opens StitchHub's bug form (`/report/stitchfoundry/bug`), filled in with the version and your system. **Help → Suggest a Feature…** opens the feature form (`/report/stitchfoundry/feature`).
 Describe what happened and send it: it becomes an issue in this repository (a public one, so leave out anything
 private). You can also [open an issue](https://github.com/StitchFoundry/StitchFoundry/issues) yourself. A maintainer can
 have Claude work on an issue by labelling it `claude-fix`; Claude opens a pull request for review, and never merges.
