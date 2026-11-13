@@ -318,7 +318,9 @@ mod tests {
         assert!((app.embroidery.hoop_form.corner_radius - 12.7).abs() < 1e-6, "Edit keeps the corner radius");
         let ctx = egui::Context::default();
         let raw = egui::RawInput { screen_rect: Some(egui::Rect::from_min_size(egui::Pos2::ZERO, egui::vec2(420.0, 800.0))), ..Default::default() };
-        let _ = ctx.run_ui(raw, |ui| show(&mut app, ui, false));
+        let mut out = ctx.run_ui(raw, |ui| show(&mut app, ui, false));
+        // egui panics when a frame's texture deltas are dropped unapplied
+        out.textures_delta.clear();
         // Export, delete, Import
         let picked = path.clone();
         app.services.pick_save = Some(Box::new(move |_: &crate::FilePick| Some(picked.clone())));
