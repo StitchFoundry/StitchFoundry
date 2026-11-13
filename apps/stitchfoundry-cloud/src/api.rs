@@ -18,6 +18,9 @@
 //! - `GET  /v1/account` → `{id, email, verified, credits, packs, history}`.
 //! - `POST /v1/checkout {pack}` → `{url}`: Stripe's checkout page for the pack.
 //! - `POST /v1/stripe/webhook`: Stripe's signed word that a checkout was paid.
+//! - `POST /v1/phone {name, data}`, `GET /v1/phone/list` (signed in) and `GET /v1/phone/sfp_…`
+//!   (no sign-in: the private link): Send to my phone. A design file is kept for 24 hours under a
+//!   random link (the QR code in the app), at most ten sends an account.
 //! - `POST /v1/messages`: an Anthropic Messages API request, sent with the service's key and paid
 //!   for in credits (`x-stitchfoundry-credits` on the reply: what is left).
 //!
@@ -42,7 +45,7 @@ use serde_json::{Value, json};
 
 use crate::auth::{self, Throttle};
 use crate::config::Config;
-use crate::store::{Check, Store, StoreError};
+use crate::store::{Check, PHONE_TTL, Phone, Store, StoreError};
 use crate::{pricing, sewout, stripe};
 
 /// The largest request body accepted (an image to redraw is the largest thing sent).
@@ -115,6 +118,21 @@ fn same_secret(given: &str, secret: &str) -> bool {
 
 /// The answer to any unknown route, which a test route gives too when it isn't on or the secret
 /// is wrong (so nothing says it exists).
+/// The biggest design file Send to my phone keeps (bytes).
+const MAX_PHONE_FILE: usize = 4 * 1024 * 1024;
+
+/// `name` as a file name a phone can save: letters, digits, spaces, `-`, `_` and `.`, at most 64
+/// characters, ending in an extension of one to five letters or digits (the machine format).
+fn phone_name(name: &str) -> Option<String> {
+    let name = name.trim();
+    let ok = !name.is_empty()
+        && name.chars().count() <= 64
+        && !name.starts_with('.')
+        && name.chars().all(|c| c.is_ascii_alphanumeric() || matches!(c, ' ' | '-' | '_' | '.'));
+    let (stem, ext) = name.rsplit_once('.')?;
+    (ok && !stem.is_empty() && (1..=5).contains(&ext.len()) && ext.bytes().all(|b| b.is_ascii_alphanumeric())).then(|| name.to_string())
+}
+
 fn not_found() -> Response {
     Response::error(404, "not_found_error", "no such endpoint")
 }
@@ -180,12 +198,14 @@ pub struct Response {
     pub status: u16,
     pub content_type: &'static str,
     pub body: String,
+    /// A file's bytes, sent instead of `body` when not empty.
+    pub raw: Vec<u8>,
     pub headers: Vec<(String, String)>,
 }
 
 impl Response {
     fn json(status: u16, v: &Value) -> Response {
-        Response { status, content_type: "application/json", body: v.to_string(), headers: Vec::new() }
+        Response { status, content_type: "application/json", body: v.to_string(), raw: Vec::new(), headers: Vec::new() }
     }
 
     fn error(status: u16, kind: &str, message: impl Into<String>) -> Response {
@@ -194,7 +214,7 @@ impl Response {
 
     /// An HTML page titled `title` around `body`, with [`PAGE_HEADERS`].
     fn html(status: u16, title: &str, body: &str) -> Response {
-        Response { status, content_type: "text/html; charset=utf-8", body: page_html(title, body), headers: page_headers() }
+        Response { status, content_type: "text/html; charset=utf-8", body: page_html(title, body), raw: Vec::new(), headers: page_headers() }
     }
 
     /// A page for Stripe's return addresses: `text`, what to do next, and a way to the site (the
@@ -203,7 +223,7 @@ impl Response {
         let body = format!(
             "<!doctype html><html lang=\"en\"><meta charset=\"utf-8\"><meta name=\"viewport\" content=\"width=device-width\"><title>StitchFoundry</title><body style=\"font-family:sans-serif;max-width:32em;margin:4em auto;padding:0 1em;line-height:1.5\"><h1>StitchFoundry</h1><p>{text}</p><p>{next}</p><p><a href=\"{SITE_URL}\" style=\"display:inline-block;padding:.6em 1.2em;border-radius:.4em;background:#2a5bd7;color:#fff;text-decoration:none\">Back to stitchfoundry.app</a></p></body></html>"
         );
-        Response { status: 200, content_type: "text/html; charset=utf-8", body, headers: page_headers() }
+        Response { status: 200, content_type: "text/html; charset=utf-8", body, raw: Vec::new(), headers: page_headers() }
     }
 }
 
@@ -358,6 +378,7 @@ fn link_html(title: &str, body: &str) -> Response {
         status: 200,
         content_type: "text/html; charset=utf-8",
         body: html,
+        raw: Vec::new(),
         headers: headers.iter().map(|(k, v)| (k.to_string(), v.to_string())).collect(),
     }
 }
@@ -415,7 +436,7 @@ impl Service {
         let path = req.path.split('?').next().unwrap_or_default();
         match (req.method.as_str(), path) {
             // a browser asking whether it may call
-            ("OPTIONS", _) => Response { status: 204, content_type: "text/plain", body: String::new(), headers: Vec::new() },
+            ("OPTIONS", _) => Response { status: 204, content_type: "text/plain", body: String::new(), raw: Vec::new(), headers: Vec::new() },
             ("GET", "/") => home(),
             ("GET", "/v1/health") => Response::json(
                 200,
@@ -438,6 +459,9 @@ impl Service {
             ("POST", "/v1/sewout") => self.sewout(req),
             ("POST", "/v1/sewout/delete") => self.delete_shared(req),
             ("POST", "/v1/report") => self.report(req),
+            ("POST", "/v1/phone") => self.phone_send(req),
+            ("GET" | "POST", "/v1/phone/list") => self.phone_list(req),
+            ("GET", p) if p.starts_with("/v1/phone/") => self.phone_get(&p["/v1/phone/".len()..]),
             ("GET", "/paid") => self.paid(req),
             ("GET", "/cancelled") => {
                 Response::page("The payment was cancelled; nothing was charged.", "You can close this tab and go back to StitchFoundry.")
@@ -1183,6 +1207,80 @@ impl Service {
     }
 
     /// Delete a shared check (`{check}`), or all of the account's (`{}`) → `{deleted}`.
+    /// Send to my phone: keep a design file (`name`, base64 `data`) for 24 hours under a private
+    /// link → `{link, name, expires}`.
+    fn phone_send(&self, req: &Request) -> Response {
+        let id = match self.signed_in(req) {
+            Ok(id) => id,
+            Err(r) => return r,
+        };
+        let v = match body_json(req) {
+            Ok(v) => v,
+            Err(r) => return r,
+        };
+        let Some(name) = v.get("name").and_then(Value::as_str).and_then(phone_name) else {
+            return Response::error(400, "invalid_request_error", "the file needs a name with its extension, like Rose.dst");
+        };
+        let Some(bytes) = v.get("data").and_then(Value::as_str).and_then(sewout::base64_decode).filter(|b| !b.is_empty()) else {
+            return Response::error(400, "invalid_request_error", "the file can't be read");
+        };
+        if bytes.len() > MAX_PHONE_FILE {
+            return Response::error(413, "request_too_large", "the file is too large to send to a phone");
+        }
+        let token = match auth::new_phone_token() {
+            Ok(t) => t,
+            Err(e) => {
+                log::error!("phone: no random token: {e}");
+                return Response::error(500, "api_error", "the service couldn't make a link: try again later");
+            }
+        };
+        let now = (self.clock)();
+        let phone = Phone { account: id, name, created: now, expires: now + PHONE_TTL };
+        if let Err(e) = self.store().add_phone(&token, phone.clone(), bytes, now) {
+            return store_error(e);
+        }
+        Response::json(200, &json!({ "link": self.phone_link(&token), "name": phone.name, "expires": phone.expires }))
+    }
+
+    /// The last sends that still work, newest first → `{sends: [{link, name, created, expires}]}`.
+    fn phone_list(&self, req: &Request) -> Response {
+        let id = match self.signed_in(req) {
+            Ok(id) => id,
+            Err(r) => return r,
+        };
+        let now = (self.clock)();
+        let sends: Vec<Value> = self
+            .store()
+            .phones(id, now)
+            .iter()
+            .map(|(t, p)| json!({ "link": self.phone_link(t), "name": p.name, "created": p.created, "expires": p.expires }))
+            .collect();
+        Response::json(200, &json!({ "sends": sends }))
+    }
+
+    /// The file behind a private link, as a download (the phone's browser opens this).
+    fn phone_get(&self, token: &str) -> Response {
+        let gone = || Response::error(404, "not_found_error", "this link has expired or doesn't exist: send the design again");
+        if !auth::good_phone_token(token) {
+            return gone();
+        }
+        let Some((phone, bytes)) = self.store().phone_file(token, (self.clock)()) else { return gone() };
+        Response {
+            status: 200,
+            content_type: "application/octet-stream",
+            body: String::new(),
+            raw: bytes,
+            headers: vec![
+                ("Content-Disposition".into(), format!("attachment; filename=\"{}\"", phone.name)),
+                ("Cache-Control".into(), "private, no-store".into()),
+            ],
+        }
+    }
+
+    fn phone_link(&self, token: &str) -> String {
+        format!("{}/v1/phone/{token}", self.cfg.public_url)
+    }
+
     fn delete_shared(&self, req: &Request) -> Response {
         let id = match self.signed_in(req) {
             Ok(id) => id,
@@ -1350,6 +1448,7 @@ impl Service {
                 status,
                 content_type: "application/json",
                 body: text,
+                raw: Vec::new(),
                 headers: vec![("x-stitchfoundry-credits".into(), left.to_string()), ("x-stitchfoundry-spent".into(), spent.to_string())],
             },
             Err(e) => {
@@ -2502,5 +2601,76 @@ mod tests {
         assert!(same_secret(SECRET, SECRET));
         assert!(!same_secret(&SECRET[..31], SECRET) && !same_secret("", SECRET) && !same_secret(&format!("{SECRET}x"), SECRET));
         assert!(good_run_id("qa-2026-11-03-1") && !good_run_id("") && !good_run_id("QA"));
+    }
+
+    #[test]
+    fn send_to_my_phone_keeps_a_private_file_for_24_hours() {
+        let (s, _) = service((200, "{}".into()), true);
+        let t = sign_up(&s);
+        let data = sewout::base64_encode(&[1, 2, 3, 0, 255]);
+        let sent = s.handle(&req("POST", "/v1/phone", Some(&t), json!({"name": "Rose.dst", "data": data})));
+        assert_eq!(sent.status, 200, "{}", sent.body);
+        let v = json_of(&sent);
+        let link = v["link"].as_str().unwrap().to_string();
+        assert!(link.contains("/v1/phone/sfp_"), "{link}");
+        assert_eq!(v["expires"], 1_000_000 + 24 * 3600);
+        // the phone opens the link without signing in and gets the bytes
+        let path = &link[link.find("/v1/phone/").unwrap()..];
+        let got = s.handle(&req("GET", path, None, json!({})));
+        assert_eq!((got.status, got.raw.clone()), (200, vec![1, 2, 3, 0, 255]));
+        assert!(got.headers.iter().any(|(k, v)| k == "Content-Disposition" && v.contains("Rose.dst")));
+        // the list shows it, only to its owner
+        assert_eq!(json_of(&s.handle(&req("GET", "/v1/phone/list", Some(&t), json!({}))))["sends"].as_array().unwrap().len(), 1);
+        assert_eq!(s.handle(&req("GET", "/v1/phone/list", None, json!({}))).status, 401);
+        let other = s.handle(&req("POST", "/v1/signup", None, json!({"email": "ben@example.com", "password": "fire truck 2"})));
+        let other = json_of(&other)["token"].as_str().unwrap().to_string();
+        assert_eq!(json_of(&s.handle(&req("GET", "/v1/phone/list", Some(&other), json!({}))))["sends"].as_array().unwrap().len(), 0);
+    }
+
+    #[test]
+    fn send_to_my_phone_needs_an_account_a_good_name_and_a_file() {
+        let (s, _) = service((200, "{}".into()), true);
+        let data = sewout::base64_encode(&[1, 2, 3]);
+        assert_eq!(s.handle(&req("POST", "/v1/phone", None, json!({"name": "a.dst", "data": data}))).status, 401);
+        let t = sign_up(&s);
+        for bad in ["", "noext", "../x.dst", "a/b.dst", ".dst", "x.toolongext", "x.d-t", "\\evil.dst"] {
+            assert_eq!(s.handle(&req("POST", "/v1/phone", Some(&t), json!({"name": bad, "data": data}))).status, 400, "{bad}");
+        }
+        assert_eq!(s.handle(&req("POST", "/v1/phone", Some(&t), json!({"name": "a.dst", "data": ""}))).status, 400);
+        assert_eq!(s.handle(&req("POST", "/v1/phone", Some(&t), json!({"name": "a.dst"}))).status, 400);
+        let big = sewout::base64_encode(&vec![7u8; MAX_PHONE_FILE + 1]);
+        assert_eq!(s.handle(&req("POST", "/v1/phone", Some(&t), json!({"name": "a.dst", "data": big}))).status, 413);
+    }
+
+    #[test]
+    fn a_phone_link_that_is_unknown_or_malformed_finds_nothing() {
+        let (s, _) = service((200, "{}".into()), true);
+        for p in
+            ["/v1/phone/sfp_nope", "/v1/phone/..%2f..", &format!("/v1/phone/sfp_{}", "0".repeat(64)), &format!("/v1/phone/sfs_{}", "0".repeat(64))]
+        {
+            assert_eq!(s.handle(&req("GET", p, None, json!({}))).status, 404, "{p}");
+        }
+    }
+
+    #[test]
+    fn phone_sends_expire_and_an_account_keeps_the_last_ten() {
+        let mut store = Store::in_memory();
+        let phone = |created: u64| Phone { account: 1, name: "a.dst".into(), created, expires: created + PHONE_TTL };
+        for i in 0..12u64 {
+            store.add_phone(&format!("sfp_{i:064x}"), phone(100 + i), vec![i as u8], 100 + i).unwrap();
+        }
+        let mine = store.phones(1, 200);
+        assert_eq!(mine.len(), crate::store::PHONE_KEEP);
+        assert_eq!(mine[0].1.created, 111, "newest first");
+        assert!(store.phone_file(&format!("sfp_{:064x}", 0), 200).is_none(), "the oldest two were replaced");
+        assert_eq!(store.phone_file(&format!("sfp_{:064x}", 5), 200).unwrap().1, vec![5]);
+        // 24 hours on, the link is dead; the next send clears the files
+        let late = 100 + 5 + PHONE_TTL;
+        assert!(store.phone_file(&format!("sfp_{:064x}", 5), late).is_none());
+        assert!(store.phones(1, late).len() < 10);
+        store.add_phone(&format!("sfp_{:064x}", 99), phone(late), vec![9], late).unwrap();
+        assert_eq!(store.phone_file(&format!("sfp_{:064x}", 11), late + 1).unwrap().1, vec![11], "a newer send is still good");
+        assert_eq!(store.phones(1, late + 1).len(), 6, "the expired ones were cleared");
+        assert_eq!(store.phone_file(&format!("sfp_{:064x}", 99), late + 1).unwrap().1, vec![9]);
     }
 }

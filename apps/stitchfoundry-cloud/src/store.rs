@@ -108,6 +108,17 @@ pub struct Report {
     pub created: u64,
 }
 
+/// A design sent to the user's phone (Send to my phone): whose, what it's called, and until when
+/// its private link works. The file itself is kept under the SHA-256 of the link's token.
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+pub struct Phone {
+    pub account: u64,
+    /// The file's name, as the phone's app will see it (`"Rose.dst"`).
+    pub name: String,
+    pub created: u64,
+    pub expires: u64,
+}
+
 #[derive(Debug, Default, Serialize, Deserialize)]
 struct State {
     next_id: u64,
@@ -133,7 +144,15 @@ struct State {
     /// Email-confirmation links by the SHA-256 of their token (the token itself is never kept).
     #[serde(default)]
     verifies: BTreeMap<String, Verify>,
+    /// Designs sent to a phone, by their link's token.
+    #[serde(default)]
+    phones: BTreeMap<String, Phone>,
 }
+
+/// A link made by Send to my phone works for this long (seconds): 24 hours.
+pub const PHONE_TTL: u64 = 24 * 3600;
+/// How many sends an account keeps at once; a new one beyond this replaces the oldest.
+pub const PHONE_KEEP: usize = 10;
 
 /// The most recent entries kept for an account's history.
 const RECENT: usize = 50;
@@ -445,6 +464,73 @@ impl Store {
             }
         }
         Ok(())
+    }
+
+    // ---------- Send to my phone ----------
+
+    /// The id a phone send's file is kept under: the SHA-256 of its link token, so a file's folder
+    /// name is always plain hex.
+    fn phone_file_id(token: &str) -> String {
+        format!("phone-{}", crate::auth::token_hash(token))
+    }
+
+    /// Keep `bytes` for the link `token` (its `phone` record says whose and until when), and drop
+    /// the account's oldest sends beyond [`PHONE_KEEP`] and anything expired.
+    pub fn add_phone(&mut self, token: &str, phone: Phone, bytes: Vec<u8>, now: u64) -> Result<(), StoreError> {
+        self.forget_expired_phones(now)?;
+        self.keep_shared(&Self::phone_file_id(token), &[("file".to_string(), bytes)], "")?;
+        let account = phone.account;
+        self.state.phones.insert(token.to_string(), phone);
+        let mut mine: Vec<(u64, String)> =
+            self.state.phones.iter().filter(|(_, p)| p.account == account).map(|(t, p)| (p.created, t.clone())).collect();
+        mine.sort();
+        let extra = mine.len().saturating_sub(PHONE_KEEP);
+        for (_, t) in mine.into_iter().take(extra) {
+            self.forget_kept(&Self::phone_file_id(&t))?;
+            self.state.phones.remove(&t);
+        }
+        self.save()
+    }
+
+    /// The send behind link `token` and its file, unless it's unknown or expired.
+    pub fn phone_file(&self, token: &str, now: u64) -> Option<(Phone, Vec<u8>)> {
+        let phone = self.state.phones.get(token).filter(|p| p.expires > now)?;
+        let bytes = self.kept_file(&Self::phone_file_id(token), "file")?;
+        Some((phone.clone(), bytes))
+    }
+
+    /// `account`'s sends that still work, newest first, with their link tokens.
+    pub fn phones(&self, account: u64, now: u64) -> Vec<(String, Phone)> {
+        let mut v: Vec<(String, Phone)> =
+            self.state.phones.iter().filter(|(_, p)| p.account == account && p.expires > now).map(|(t, p)| (t.clone(), p.clone())).collect();
+        v.sort_by(|a, b| b.1.created.cmp(&a.1.created).then_with(|| a.0.cmp(&b.0)));
+        v
+    }
+
+    /// Delete the sends that have expired (their files too).
+    fn forget_expired_phones(&mut self, now: u64) -> Result<(), StoreError> {
+        let gone: Vec<String> = self.state.phones.iter().filter(|(_, p)| p.expires <= now).map(|(t, _)| t.clone()).collect();
+        for t in gone {
+            self.forget_kept(&Self::phone_file_id(&t))?;
+            self.state.phones.remove(&t);
+        }
+        Ok(())
+    }
+
+    /// The bytes of file `name` kept under `id`.
+    fn kept_file(&self, id: &str, name: &str) -> Option<Vec<u8>> {
+        match &self.backend {
+            Backend::Memory(m) => {
+                let m = m.lock().unwrap_or_else(std::sync::PoisonError::into_inner);
+                m.get(id)?.0.iter().find(|(n, _)| n == name).map(|(_, b)| b.clone())
+            }
+            Backend::Dir(dir) => std::fs::read(dir.join("shared").join(id).join(name)).ok(),
+            Backend::Db(c) => {
+                let mut c = c.lock().unwrap_or_else(std::sync::PoisonError::into_inner);
+                let row = c.query_opt("SELECT data FROM sf_shared_files WHERE check_id = $1 AND name = $2", &[&id, &name]).ok()??;
+                row.try_get::<_, Vec<u8>>(0).ok()
+            }
+        }
     }
 
     // ---------- sew-out reports ----------

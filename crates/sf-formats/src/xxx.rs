@@ -139,7 +139,10 @@ pub(crate) fn read(bytes: &[u8]) -> Result<Pattern, FormatError> {
     let colors = colors.min(dec.color_changes() + 1).min(MAX_COLORS);
     let fits = |off: usize| off.checked_add(4 * colors).is_some_and(|e| e <= bytes.len());
     // The table follows the end record and two zero bytes; the header points at the end record.
-    let pointed = u32_le_at(bytes, 0xFC).map(|o| o as usize).filter(|&o| o >= HEADER && bytes.get(o..o + 2) == Some(&[ESC, ESC]));
+    let pointed = u32_le_at(bytes, 0xFC).map(|o| o as usize).filter(|&o| {
+        // `checked_add`: on 32-bit targets (wasm) a pointer near u32::MAX would overflow `o + 2`.
+        o >= HEADER && o.checked_add(2).and_then(|e| bytes.get(o..e)) == Some(&[ESC, ESC])
+    });
     let table = pointed.map(|o| o + 6).or_else(|| end.map(|e| e + 2)).filter(|&o| fits(o));
     let threads: Vec<Thread> = match table {
         Some(off) => (0..colors)
