@@ -300,6 +300,10 @@ pub struct Prefs {
     /// hoop and Save for My Machine its format.
     #[serde(default, skip_serializing_if = "String::is_empty")]
     pub my_machine: String,
+    /// The file format someone saves for each machine, by machine name, when not its native one
+    /// (`embroidery.myMachine.setFormat`). Always one the machine reads.
+    #[serde(default, skip_serializing_if = "std::collections::BTreeMap::is_empty")]
+    pub my_machine_formats: std::collections::BTreeMap<String, String>,
     /// The hoop of the last design started with `embroidery.newDesign` by name: the next new design
     /// with no hoop named takes it (when My Machine has it, or no machine is chosen).
     #[serde(default, skip_serializing_if = "String::is_empty")]
@@ -530,6 +534,7 @@ impl Default for Prefs {
             embroidery_ai_effort: String::new(),
             embroidery_send_dirs: vec![],
             my_machine: String::new(),
+            my_machine_formats: Default::default(),
             last_hoop: String::new(),
             my_designs_folder: String::new(),
             screen_export_presets: vec![],
