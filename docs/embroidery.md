@@ -2529,6 +2529,15 @@ name, kept with your preferences for any design, and *Delete Template* removes o
 (`embroidery.monogram.templates`, `.saveTemplate`, `.deleteTemplate`; `embroidery.monogram
 {template}`, anything given with it winning).
 
+**Decorative frames**: eleven more gallery templates add frame art drawn round the letters, all
+original and made in code from plain geometry: *Vine*, *Floral wreath*, *Scroll flourish*,
+*Diamond with corner leaves*, *Nautical rope*, *Western*, *Varsity patch*, *Wedding script with
+hearts*, *Baby*, *Holly* and *Pumpkin*. Each template carries a letter layout, a frame
+(`frame: vine|floralWreath|scroll|cornerLeaves|rope|western|varsity|weddingHearts|baby|holly|pumpkin`),
+a suggested font family and three thread colours (`colors`, which can also be given on their own);
+the frame scales with the letters, which stay editable lettering. A test places every gallery
+template at 2, 3 and 4 inches and runs the design checks.
+
 ## Team names
 
 One design, many names (a team's shirts): set the name in an embroidery font, select it, and in the

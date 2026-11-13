@@ -5164,7 +5164,7 @@ fn monogram_templates_come_from_the_gallery_or_are_saved() {
     s.execute("embroidery.font.load", &json!({"json": TEST_FONT_JSON, "svg": TEST_FONT_SVG})).unwrap();
     let list = s.execute("embroidery.monogram.templates", &json!({})).unwrap();
     let names: Vec<&str> = list["templates"].as_array().unwrap().iter().filter_map(|t| t["name"].as_str()).collect();
-    assert!(names.contains(&"Wedding heart") && names.len() >= 9, "{names:?}");
+    assert!(names.contains(&"Wedding heart") && names.len() >= 20, "{names:?}");
     // a gallery template sets the look; the request still wins where it says
     let r = s.execute("embroidery.monogram", &json!({"letters": "AB", "font": "Test Script", "template": "Double ring"})).unwrap();
     let rings = |s: &Session, id: u64| {
@@ -6560,6 +6560,40 @@ fn auto_digitized_details_are_sewn_colour_by_colour_and_take_a_border() {
     // the border and its edge, the disc, then each line colour once: not a change per line
     assert_eq!(colours.first(), Some(&"#ffffff"), "the border first: {colours:?}");
     assert!(colours.len() <= 5, "{colours:?}");
+}
+
+#[test]
+fn twenty_monogram_templates_pass_the_design_checks_at_three_sizes() {
+    let mut s = session();
+    s.execute("embroidery.font.load", &json!({"json": TEST_FONT_JSON, "svg": TEST_FONT_SVG})).unwrap();
+    let list = s.execute("embroidery.monogram.templates", &json!({})).unwrap();
+    let all = list["templates"].as_array().unwrap();
+    assert_eq!(all.iter().filter(|t| t["builtin"] == true).count(), 20);
+    let framed: Vec<&str> = all.iter().filter(|t| t["frame"].as_str().is_some_and(|f| !f.is_empty())).filter_map(|t| t["name"].as_str()).collect();
+    assert_eq!(framed.len(), 11, "{framed:?}");
+    for t in all.iter().filter(|t| t["builtin"] == true) {
+        let name = t["name"].as_str().unwrap();
+        assert!(t["colors"].is_array() && t["font"].is_string());
+        // a 2, 3 and 4 inch monogram: the letters' height gives the overall size
+        for inches in [2.0_f64, 3.0, 4.0] {
+            let size = inches * 25.4 * 0.45;
+            s.execute("file.new", &json!({"width": 600, "height": 600})).unwrap();
+            let r = s
+                .execute("embroidery.monogram", &json!({"letters": "ABC", "font": "Test Script", "template": name, "size": size, "at": [300, 300]}))
+                .unwrap_or_else(|e| panic!("{name} at {inches}: {e:?}"));
+            assert!(r["id"].as_u64().is_some());
+            let check = s.execute("embroidery.check", &json!({})).unwrap();
+            let errors: Vec<&Value> =
+                check["findings"].as_array().map(|f| f.iter().filter(|x| x["severity"] == "error").collect()).unwrap_or_default();
+            assert!(errors.is_empty(), "{name} at {inches}\": {errors:?}");
+            let info = s.execute("embroidery.info", &json!({})).unwrap();
+            assert!(info["stitches"].as_u64().unwrap_or(0) > 100, "{name} at {inches}\" sews something");
+        }
+    }
+    // a frame can be asked for on its own, and an unknown one is an error
+    s.execute("file.new", &json!({"width": 600, "height": 600})).unwrap();
+    s.execute("embroidery.monogram", &json!({"letters": "A", "font": "Test Script", "frame": "holly", "colors": ["#b3202a", "#1f6b3a"]})).unwrap();
+    assert!(s.execute("embroidery.monogram", &json!({"letters": "A", "font": "Test Script", "frame": "nope"})).is_err());
 }
 
 #[test]
