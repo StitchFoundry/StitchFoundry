@@ -55,6 +55,13 @@ release above; on macOS right-click › **Open** the first time).
   <br><sub>Branching: thirty satin petals and a fill vine sewn as one thread, ordered in the Stitch Sequence panel</sub>
 </p>
 
+## Getting started
+
+Open StitchFoundry and press **Start a design**: pick your machine (asked once, then remembered),
+your hoop (only the hoops that machine has) and, if you like, your fabric. The design opens the size
+of the hoop's sewing field, ready to digitize and to save for your machine. A blank page of any size
+is still under **Blank canvas (page size)** and File › New….
+
 ## What it does
 
 ### For everyone
