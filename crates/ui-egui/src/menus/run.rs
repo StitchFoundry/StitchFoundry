@@ -654,6 +654,8 @@ fn run_ui_part7(app: &mut VectorcraftApp, id: &str, p: &Value) -> Option<Result<
         "ui.learn.watch" => crate::learn::act(app, "watch", p),
         "ui.learn.docs" => crate::learn::act(app, "docs", p),
         "ui.learn.try" => crate::learn::act(app, "try", p),
+        "ui.startDesign" => crate::dialogs::start_design::open(app),
+        "ui.startDesign.create" => crate::dialogs::start_design::create(app, p),
         "ui.saveForMemoryCard" => crate::dialogs::memory_card::run(app, p),
         "ui.onlineOrders" => crate::dialogs::orders::run(app, p),
         "ui.fontLibrary" => crate::dialogs::font_library::open(app),

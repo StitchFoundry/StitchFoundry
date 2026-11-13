@@ -188,7 +188,7 @@ pub const UI_COMMANDS: &[(&str, &str, &str, &str)] = &[
         "{} opens the dialog (on the document's last settings; while the Artboard tool is in use, with the artboards it has selected chosen); with params = document.exportForScreens (no folder on the web: downloads the files or the zip; openLocation: shows the first file in the file manager; a folder on the desktop with Background Export on: the files are written in the background → {background: true, status})",
     ),
     ("file.documentSetup", "Document Setup…", "Cmd+Alt+P", "{}"),
-    ("file.newDialog", "New…", "Cmd+N", "{} opens the New Document dialog"),
+    ("file.newDialog", "New…", "Cmd+N", "{} opens the New Document dialog (a blank page of any size; Start a Design begins in the hoop instead)"),
     (
         "file.newWithoutDialog",
         "New Without Dialog",
@@ -705,6 +705,18 @@ pub const UI_COMMANDS: &[(&str, &str, &str, &str)] = &[
     ),
     ("ui.learn.docs", "Learn: Read a Lesson's Guide Page", "", "{index} open the guide page of lesson `index`"),
     ("ui.learn.try", "Learn: Try a Lesson", "", "{index} open lesson `index`'s sample design → as embroidery.sample"),
+    (
+        "ui.startDesign",
+        "Start a Design…",
+        "",
+        "{} opens Start a Design: your machine (asked once, then remembered), the hoop (only the hoops that machine has) and the fabric (optional); the design opens the size of the hoop's sewing field → {open, step: machine|hoop}",
+    ),
+    (
+        "ui.startDesign.create",
+        "Create Design in Hoop",
+        "",
+        "{hoop: a hoop's name (embroidery.hoops), fabric?: a fabric from embroidery.info} makes the design in the hoop (embroidery.newDesign) and applies the fabric when named, then closes Start a Design → as embroidery.newDesign",
+    ),
     (
         "ui.myMachine",
         "My Machine…",

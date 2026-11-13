@@ -39,6 +39,24 @@ the control channel, the CLI and the MCP server.
 
 ## Quick start
 
+### Getting started: start in the hoop
+
+**Start a design** (the main button on Home, and File › Start a Design…; `ui.startDesign`) begins
+where an embroiderer does, with the machine and the hoop, not a page size:
+
+1. **Your machine.** Asked once (the same choice as My Machine) and remembered; the step is skipped
+   from then on, with a *Change machine* link on the next one. *I don't know / just exploring*
+   takes a general profile (plain DST files).
+2. **Your hoop.** Only the hoops that machine has, each drawn to scale with its sewing field
+   (e.g. 100 × 100 mm / 4×4″, 130 × 180 mm / 5×7″).
+3. **Your fabric** (optional). Pick one and the stitches are set up for it (density, underlay, pull
+   compensation), or skip it.
+
+The design opens the size of the hoop's sewing field and Save for My Machine works straight away
+(`ui.startDesign.create {hoop, fabric?}` runs `embroidery.newDesign` and `embroidery.applyFabric`).
+**Blank canvas (page size)** on Home and File › New… (Ctrl/Cmd+N) still open the New Document
+dialog with its page presets.
+
 **Learn** (a button on Home, and Help › Learn…; `ui.learn`) lists short video lessons: title, length
 and thumbnail, each with a **Watch** button (the YouTube video, channel @MakerFoundryApp, opened in
 your browser), a link to the matching page of this guide and, for some, **Try it**, which opens a
@@ -801,7 +819,7 @@ charted, and sews as X stitches that sit exactly in their squares.
 The Embroidery panel's **Clipart** section places simple motifs drawn for StitchFoundry (heart,
 star, sparkle, crown, paw, leaf, flower, sun, moon, lightning, shield, snowflake, music note,
 anchor, check mark, arrow) digitized in the design chart's threads, as Design from Prompt's art
-is (`embroidery.clipart.insert {name, size?, at?, color?}`; `color` puts every part in one
+is (`embroidery.clipart.insert {name, size?, at?, color?}`; the picker has **set tabs** (Holidays, Sports, Pets & animals, Nature, Kids, Words & frames) and a search box, `embroidery.clipart.list {set?, q?}`, and the library is growing toward about a hundred original motifs (36 now); `color` puts every part in one
 colour). Designs of your own come in from the Design Library.
 
 ## Design templates
@@ -1388,7 +1406,13 @@ fixed place, x and y mm from the hoop's centre (`embroidery.settings {hoopPositi
 fit check follow. **Custom Hoops** keeps hoops of one's own by name with their field
 (`embroidery.hoop.saveCustom {name, width, height, shape?}`, `.deleteCustom`), listed with the
 standard ones everywhere a hoop is chosen (`embroidery.hoops` lists them all, with whether the
-design fits each).
+design fits each). A custom hoop may be rect, oval, round or square, sized in mm or inches
+(`unit`), with an optional `cornerRadius` (rectangles) and outer frame (`frameWidth`,
+`frameHeight`); rounded corners count in the outline and the fit check. `.attach {name, machine,
+attach?}` puts it in a machine's hoop list (several machines allowed; one on no machine is on every
+list), `saveCustom {was}` renames, `embroidery.hoop.export {name, path?}` writes a small JSON file
+to share and `embroidery.hoop.import {path | text}` reads one back. They are kept in the local
+preferences (desktop and browser storage). Syncing to the Foundry Account is not done yet.
 
 ## Garment photo
 
@@ -1762,12 +1786,12 @@ the design is placed, the status line says what it took, from the reply itself: 
 searches, and what you paid for them: dollars on your own key, credits at StitchFoundry's price
 when you pay with credits.
 
-**Your own API key.** Design from Prompt uses your Anthropic API key, and each design is billed to
-your Anthropic account; get a key in the [Anthropic Console](https://console.anthropic.com/settings/keys).
-Paste it into the dialog. With **Remember the key on this computer**, once Anthropic accepts the
-key it is kept in a file of its own, `anthropic-api-key`, next to StitchFoundry's settings and
-readable by you alone: not in the settings themselves, which the control channel and MCP agents
-can read. Turn the option off and Generate to forget a kept key. Without a kept key, the `ANTHROPIC_API_KEY` environment variable is used.
+**Your Foundry Account.** Design from Prompt is paid with Foundry credits: sign in to your Foundry Account
+(Embroidery › Foundry Account…) and each design costs credits. There is no option to use your own
+Anthropic API key. A key saved by an older version is ignored and deleted when the app starts, and the
+status bar says once "AI now uses your Foundry Account. Sign in to continue." The headless tools (the
+command line and MCP, for developers) may still use the `ANTHROPIC_API_KEY` environment variable; it
+never appears in the app.
 
 Only your description, the size and the colour count are sent (and, to redraw an image, the
 image: see below), to `api.anthropic.com` over HTTPS, and only when you click Generate; nothing
@@ -1781,7 +1805,7 @@ it: an agent that draws can hand its own SVG to `embroidery.placeArt`, which doe
 
 Select a placed logo or image and choose **Embroidery › Create › Redraw Image with Claude…** (or **Redraw
 with Claude…** in the Embroidery panel, next to Auto-Digitize). Claude redraws it as clean
-flat-colour art in the same dialog as Design from Prompt, with the same API key: it keeps the
+flat-colour art in the same dialog as Design from Prompt, paid the same way: it keeps the
 image's composition, shapes, lettering and colours, leaves out its background (unless it is part
 of the design, like a badge shape), merges shades into at most the thread colours asked for, and
 thickens or drops what is too fine to stitch. Write anything to change in the box ("leave out the
@@ -1824,8 +1848,8 @@ design fits), fabric, machine and file format, what Check Design finds, and its 
 order with their stitch types and sizes (the selected ones marked). What Claude looks at with its
 commands goes too; the design's file is never sent.
 
-It uses the same Anthropic API key as Design from Prompt, billed to your Anthropic account; the key
-row shows while there is none (or after **Change key**). Answers can be wrong: try a test sew
+It is paid with Foundry credits through your Foundry Account, as Design from Prompt is; signed out, the
+window offers **Create Free Account** and **Sign In**. Answers can be wrong: try a test sew
 before an important piece. It works in the desktop and the web app, as Design from Prompt does,
 and agents can open it with a question (`ui.askAboutEmbroidery {question}`).
 
@@ -1855,10 +1879,8 @@ to tension and threading, not the design. It offers to make the design fixes, an
 only after you **Allow** it, as Ask About Embroidery does; ask follow-up questions in the same
 window. Try a fix on a scrap of the same fabric before the real piece.
 
-It uses your own Anthropic API key, as Design from Prompt and Ask do, or your StitchFoundry
-credits (below): then the first three checks each month are free, and a check after them costs 10
-credits, its follow-up questions and fixes included (`ui.checkSewout {photos?}`). With your own key,
-the photos and the design go to Anthropic for the check and StitchFoundry keeps nothing. With
+It uses your Foundry Account credits (below), as Design from Prompt and Ask do: the first three checks each month are free, and a check after them costs 10
+credits, its follow-up questions and fixes included (`ui.checkSewout {photos?}`). The photos and the design go to Anthropic for the check and StitchFoundry keeps nothing. With
 credits you can tick **Share this check to help improve StitchFoundry**: the photos, what was found
 and what was changed are kept, privately, so the software can learn from real sew-outs; and after
 sewing the fix, **This is the sew-out after the fix from my last check** tells it whether the fix
@@ -1882,12 +1904,12 @@ Shared Sew-out Checks** in Foundry Account deletes your reports too.
 
 ## Foundry Account
 
-**Embroidery › Foundry Account…** (also in the Help menu) is the other way to pay for the AI
-features: instead of your own Anthropic API key, Foundry credits.
+**Embroidery › Foundry Account…** (also in the Help menu) is the one way to sign in and pay
+for the AI features, with Foundry credits.
 
 - **Sign in** with your email and password, or **Create Account** (a new account starts with free
   credits). The password is sent once and forgotten; the app keeps only the sign-in, on this
-  computer, as it keeps the API key.
+  computer.
 - **Confirm your email.** A new account is sent an email with a link; open it within 48 hours to
   confirm the address. Until then you can sign in, and the window says **Check your email to
   confirm your account**, but the AI features, the free sew-out checks and buying credits wait
@@ -1898,10 +1920,9 @@ features: instead of your own Anthropic API key, Foundry credits.
 - The window shows your **credits**, the free sew-out checks left this month, and the packs to
   **Buy…**: the payment page opens in your browser, on Stripe's secure site (your card never
   reaches StitchFoundry); afterwards press **Refresh**.
-- **Pay for the AI features with my Foundry credits**, on once you sign in, sends Design from
-  Prompt, Redraw Image, Ask About Embroidery and Check My Sew-out through StitchFoundry: they
-  stop asking for an API key and say "Paid with Foundry credits (N left)". Turn it off to use
-  your own key again. **Sign Out** ends the sign-in here and at the service.
+- Once you sign in, Design from Prompt, Redraw Image, Ask About Embroidery and Check My Sew-out go
+  through StitchFoundry and say "Paid with Foundry credits (N left)"; signed out they offer to create
+  an account or sign in. **Sign Out** ends the sign-in here and at the service.
 - Running out says so ("Not enough Foundry credits: buy more in Foundry Account");
   nothing is charged for a request that fails.
 
@@ -2641,8 +2662,7 @@ round trips and robustness tests in the repository.
   plural form for every number.
 - Auto-Digitize works best on flat-colour logos; photos and gradients need tracing by hand
   first.
-- Design from Prompt and Redraw Image work with your own Anthropic API key only (StitchFoundry
-  accounts and AI credits aren't built yet). The drawing follows the
+- Design from Prompt and Redraw Image need a Foundry Account and credits. The drawing follows the
   description or the image loosely and can use more colours than asked (colours close enough to
   share a thread are merged), and a drawing is billed even when it comes out unusable.
 - Branching orders objects closest-first rather than searching for the best tour, and only

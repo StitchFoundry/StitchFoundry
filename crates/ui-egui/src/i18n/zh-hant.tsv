@@ -5154,16 +5154,12 @@ machine	Stop	停止
 	Generate	產生
 	Describe the design:	描述圖案：
 	Size (longest side):	大小 (最長邊)：
-	Anthropic API key:	Anthropic API 金鑰：
-	Remember the key on this computer	在此電腦上記住金鑰
-	Claude draws the artwork with your own Anthropic API key, billed to your Anthropic account; StitchFoundry then digitizes it. Check the stitches before you sew.	Claude 會使用您自己的 Anthropic API 金鑰繪製圖稿，費用由您的 Anthropic 帳號支付；接著由 StitchFoundry 進行打版。繡製前請檢查針跡。
 	Get a key	取得金鑰
 	Drawing the design…	正在繪製圖案…
 	Describe a design and Claude draws artwork for it, then StitchFoundry digitizes it	描述圖案後，Claude 會為其繪製圖稿，再由 StitchFoundry 打版
 	Place Artwork as Embroidery	將圖稿作為刺繡置入
 	Place Artwork	置入圖稿
 @plural	Design placed: {n} stitched object|Design placed: {n} stitched objects	圖案已置入：{n} 個刺繡物件
-@msg	Enter your Anthropic API key first.	請先輸入您的 Anthropic API 金鑰。
 @msg	The API key isn't valid: paste it again from the Anthropic Console.	API 金鑰無效：請從 Anthropic Console 重新貼上。
 @msg	Describe the design first.	請先描述圖案。
 @msg	The description is too long: keep it under 2,000 characters.	描述過長：請縮短至 2,000 個字元以內。
@@ -5188,7 +5184,6 @@ machine	Stop	停止
 	Redraw Image with Claude	使用 Claude 重繪影像
 	What to change (optional):	要變更的內容 (選填)：
 	Only redraw artwork you own or have permission to use.	只重繪您擁有或已取得使用授權的圖稿。
-	Claude redraws the image as flat-colour art with your own Anthropic API key, billed to your Anthropic account; StitchFoundry then digitizes it. Check the stitches before you sew.	Claude 會使用您自己的 Anthropic API 金鑰將影像重繪為平塗圖稿，費用由您的 Anthropic 帳號支付；接著由 StitchFoundry 進行打版。繡製前請檢查針跡。
 	Redraw with Claude…	使用 Claude 重繪…
 	Claude redraws the image as clean flat-colour art, then StitchFoundry digitizes it	Claude 會將影像重繪為乾淨的平塗圖稿，再由 StitchFoundry 打版
 @msg	select an image to redraw	請選取要重繪的影像
@@ -6259,8 +6254,6 @@ machine	Stop	停止
 	Ask	提問
 	New Conversation	新對話
 	Include my design	附上我的設計
-	Answers come from Claude with your own Anthropic API key, billed to your Anthropic account. They can be wrong: try a test sew before an important piece.	回答由 Claude 使用您自己的 Anthropic API 金鑰產生，費用計入您的 Anthropic 帳戶。回答可能有誤：重要作品前請先試繡。
-	Change key	更換金鑰
 @msg	Type a question first.	請先輸入問題。
 @msg	The question is too long: keep it under 2,000 characters.	問題太長：請不要超過 2,000 個字元。
 @msg	The AI declined to answer this: ask another way.	AI 拒絕回答此問題：請換一種問法。
@@ -6316,7 +6309,6 @@ machine	Stop	停止
 	Anything else? For example: a gap above the bumper	還有別的嗎？例如：保險桿上方有縫隙
 	As the design has it	依設計中的設定
 	Choose the photos in the browser's window…	請在瀏覽器視窗中選擇照片…
-	Claude looks at the photos with your own Anthropic API key, billed to your Anthropic account. It can be wrong: try a fix on a scrap of the same fabric first.	Claude 使用您自己的 Anthropic API 金鑰查看照片，費用計入您的 Anthropic 帳戶。它可能出錯：請先在同樣布料的碎布上試試修改。
 	Include the design that was sewn (open now), so it can be fixed	附上繡過的設計（目前開啟的），以便修改
 	My sew-out ({n} photos)	我的繡品（{n} 張照片）
 	Needle	針
@@ -6345,8 +6337,6 @@ machine	Stop	停止
 	Leave it empty for StitchFoundry's own service.	留空則使用 StitchFoundry 自己的服務。
 	Paid with Foundry credits ({n} left).	以 Foundry 點數支付（剩餘 {n}）。
 	Paid with Foundry credits.	以 Foundry 點數支付。
-	Pay for the AI features with my Foundry credits	用我的 Foundry 點數支付 AI 功能
-	Pay with Foundry credits instead	改用 Foundry 點數支付
 	Payment is on Stripe's secure page, in your browser; your card never reaches StitchFoundry.	在瀏覽器中的 Stripe 安全頁面付款；您的信用卡資料絕不會到達 StitchFoundry。
 	Reading your credits…	正在讀取點數…
 	Server	伺服器
@@ -6357,7 +6347,6 @@ machine	Stop	停止
 	Signed in as {email}	已登入：{email}
 	Foundry Account	Foundry 帳戶
 	Foundry Account…	Foundry 帳戶…
-	Foundry accounts aren't open yet. Until then, the AI features work with your own Anthropic API key.	Foundry 帳戶尚未開放。在此之前，AI 功能使用您自己的 Anthropic API 金鑰。
 	This is the sew-out after the fix from my last check	這是依上次檢查修改後繡的成品
 	{n} credits for {price}	{n} 點數，{price}
 	{n} credits	{n} 點數
@@ -6544,9 +6533,7 @@ machine	Stop	停止
 	Quick	快速
 	Thorough	深入
 	About {typical} credits a drawing, at most {most}.	每次繪製約 {typical} 點數，最多 {most}。
-	About {typical} a drawing on your Anthropic account, at most {most}.	每次繪製約從你的 Anthropic 帳戶扣 {typical}，最多 {most}。
 	{tokens} tokens	{tokens} 個詞元
-	{tokens} tokens, about {cost}	{tokens} 個詞元，約 {cost}
 # AI research and check
 	Thorough looks up what it draws, thinks longest and checks its stitches once: it costs several times as much as Normal. Use it for real things, like a dog breed or a truck model, and for detailed designs.	「深入」會先查閱要畫的東西，思考時間最長，並檢查一次針跡：費用是「一般」的好幾倍。適合真實的事物（如某個犬種或卡車型號）和細節很多的設計。
 	Checking the stitches…	正在檢查針跡…

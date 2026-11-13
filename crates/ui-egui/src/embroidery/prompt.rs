@@ -1,7 +1,7 @@
 //! Design from Prompt and Redraw Image (Embroidery menu): describe a design, or select a logo you
 //! may use, and Claude draws flat-colour artwork for it, which `embroidery.placeArt` places and
-//! digitizes (a redrawn image's art lands on the image). The request goes out with the user's own
-//! Anthropic API key through the host's `http_post` service, on a thread of its own, while the
+//! digitizes (a redrawn image's art lands on the image). The request goes out through the
+//! Foundry Account (credits) via the host's `http_post` service, on a thread of its own, while the
 //! dialog shows it drawing; [`poll`] picks the answer up on a later frame.
 
 use std::sync::mpsc::{Receiver, TryRecvError, channel};
@@ -18,17 +18,15 @@ use crate::state::Dialog;
 
 /// The dialog kind.
 pub const KIND: &str = "designFromPrompt";
-/// The secret the API key is kept as.
+/// The secret an Anthropic API key used to be kept as (retired: deleted on upgrade, [`purge_own_key`]).
 pub const KEY_NAME: &str = "anthropic-api-key";
-/// Where to get a key.
-pub const KEY_URL: &str = "https://console.anthropic.com/settings/keys";
+/// The one note shown after a saved key was removed.
+pub const KEY_REMOVED_NOTE: &str = "AI now uses your Foundry Account. Sign in to continue.";
 
-/// Design from Prompt between frames. Not saved: the key is kept by the host's secret store.
+/// Design from Prompt between frames. Not saved: other services' picture keys are kept by the host's secret store.
 #[derive(Default)]
 pub struct PromptState {
-    /// The API key as typed or loaded. Never in the dialog's fields, which agents can read.
-    pub key: String,
-    /// Whether the secret store was read for the key.
+    /// Whether the secret store was read for the picture services' keys.
     loaded: bool,
     /// The request on its way.
     pending: Option<Pending>,
@@ -65,8 +63,6 @@ struct Pending {
     rx: Receiver<Result<Art, ArtError>>,
     /// The request, kept for the check of what it drew (Thorough).
     request: Option<ArtRequest>,
-    /// The key sent, kept once Anthropic takes it (Remember the key).
-    keep: Option<String>,
     /// The placed art's name (the description) and size (mm).
     name: String,
     size: f64,
@@ -85,7 +81,6 @@ struct PicturePending {
     description: String,
     size: f64,
     colors: u32,
-    remember: bool,
     since: f64,
 }
 
@@ -120,9 +115,9 @@ pub(crate) fn post<T: Send + 'static>(
     post_ai(app, http, thread, cloud::MESSAGES, Vec::new(), parse)
 }
 
-/// Sends AI request `http` (built with [`super::account::key_to_send`]): to Anthropic with the
-/// user's own key, or, when paying with Foundry credits, to `path` on the StitchFoundry
-/// service with `extra` headers, its refusals read as the service's (sign in, credits).
+/// Sends AI request `http` (built with [`super::account::key_to_send`]) to `path` on the StitchFoundry
+/// service with `extra` headers, paid in Foundry credits, its refusals read as the service's (sign in,
+/// credits). Signed out, nothing is sent: the person is asked to sign in.
 pub(crate) fn post_ai<T: Send + 'static>(
     app: &VectorcraftApp,
     http: crate::HttpRequest,
@@ -132,13 +127,18 @@ pub(crate) fn post_ai<T: Send + 'static>(
     parse: fn(u16, &str) -> Result<T, ArtError>,
 ) -> Result<Receiver<Result<T, ArtError>>, String> {
     let credits = super::account::paying_with_credits(app);
-    let http = match super::account::server(app).filter(|_| credits) {
-        Some(server) => cloud::through_cloud(http, &server, path, extra).map_err(|e| e.to_string())?,
-        None => http,
+    let Some(server) = super::account::server(app).filter(|_| credits) else {
+        return Err(ArtError::NoKey.to_string());
     };
-    post_plain(app, http, thread, move |status, body| {
-        if credits && matches!(status, 401 | 402 | 403 | 503) { Err(cloud::status_error(status, body)) } else { parse(status, body) }
-    })
+    let http = cloud::through_cloud(http, &server, path, extra).map_err(|e| e.to_string())?;
+    post_plain(
+        app,
+        http,
+        thread,
+        move |status, body| {
+            if matches!(status, 401 | 402 | 403 | 503) { Err(cloud::status_error(status, body)) } else { parse(status, body) }
+        },
+    )
 }
 
 /// Sends `http` with the host's service and reads the answer with `parse`: on the desktop on a
@@ -204,14 +204,22 @@ fn ready(app: &mut VectorcraftApp) -> Result<(), String> {
     Ok(())
 }
 
-/// Read the API key from the secret store once (Design from Prompt and Ask share it).
+/// A saved Anthropic API key from an earlier version is ignored and deleted from the secret store;
+/// `true` when there was one (the person is told once: [`KEY_REMOVED_NOTE`]).
+pub fn purge_own_key(secrets: Option<&dyn crate::SecretStore>) -> bool {
+    let Some(s) = secrets else { return false };
+    let had = s.load(KEY_NAME).is_some();
+    if had && let Err(e) = s.save(KEY_NAME, None) {
+        log::warn!("couldn't remove the retired API key: {e}");
+    }
+    had
+}
+
+/// Read the picture services' keys from the secret store once (Design from Prompt and Ask share it).
 pub(crate) fn load_key(app: &mut VectorcraftApp) {
     let st = &mut app.embroidery.prompt;
     if !st.loaded {
         st.loaded = true;
-        if let Some(k) = app.services.secrets.as_ref().and_then(|s| s.load(KEY_NAME)) {
-            st.key = k;
-        }
         for p in Provider::ALL {
             if let Some(k) = app.services.secrets.as_ref().and_then(|s| s.load(p.key_name())) {
                 st.picture_keys.insert(p.id(), k);
@@ -322,18 +330,11 @@ pub fn start(app: &mut VectorcraftApp, d: &Dialog) -> Result<Value, String> {
         Ok(h) => h,
         Err(e) => return fail(app, e.to_string()),
     };
-    // Remember off forgets a kept key now; on, the key is kept once Anthropic takes it ([`poll`]).
-    // Paid with credits, no key goes and none is kept or forgotten.
-    let credits = super::account::paying_with_credits(app);
-    let keep = (d.bool("remember") && !credits).then(|| app.embroidery.prompt.key.trim().to_string());
-    if keep.is_none() && !credits {
-        keep_key(app.services.secrets.as_deref(), None);
-    }
     let rx = post(app, http, "design-from-prompt", ai::parse_reply)?;
     let name: String = if frame.is_some() { "Redrawn image".to_string() } else { request.prompt.chars().take(60).collect() };
     let st = &mut app.embroidery.prompt;
     st.error = None;
-    st.pending = Some(Pending { rx, keep, name, size: request.size_mm, frame, since: now, request: Some(request) });
+    st.pending = Some(Pending { rx, name, size: request.size_mm, frame, since: now, request: Some(request) });
     Ok(json!({ "drawing": true }))
 }
 
@@ -345,7 +346,7 @@ fn start_picture(app: &mut VectorcraftApp, d: &Dialog, provider: Provider) -> Re
         Err(m)
     };
     if ai::clean_key(&super::account::key_to_send(app)).is_err() {
-        return fail(app, "Redrawing the picture as stitches needs Claude: add your Anthropic API key, or sign in to Foundry Account.".into());
+        return fail(app, "Redrawing the picture as stitches needs Claude: sign in to your Foundry Account.".into());
     }
     let key = app.embroidery.prompt.picture_keys.get(provider.id()).cloned().unwrap_or_default();
     let colors = d.f64("colors", 6.0).round().clamp(1.0, 12.0) as u32;
@@ -368,7 +369,6 @@ fn start_picture(app: &mut VectorcraftApp, d: &Dialog, provider: Provider) -> Re
         description: description.trim().to_string(),
         size: d.f64("size", 100.0),
         colors,
-        remember,
         since: st.now,
     });
     Ok(json!({ "drawing": true, "picture": provider.id() }))
@@ -391,12 +391,10 @@ fn redraw_picture(app: &mut VectorcraftApp, p: PicturePending, picture: ArtImage
     let request = ArtRequest::new(&notes, p.size, p.colors).with_image(image).with_effort(effort(app));
     let key = super::account::key_to_send(app);
     let http = request.http(&key).map_err(|e| e.to_string())?;
-    let credits = super::account::paying_with_credits(app);
-    let keep = (p.remember && !credits).then(|| app.embroidery.prompt.key.trim().to_string());
     let rx = post(app, http, "design-from-prompt", ai::parse_reply)?;
     let name: String = p.description.chars().take(60).collect();
     let now = app.embroidery.prompt.now;
-    app.embroidery.prompt.pending = Some(Pending { rx, keep, name, size: p.size, frame: None, since: now, request: Some(request) });
+    app.embroidery.prompt.pending = Some(Pending { rx, name, size: p.size, frame: None, since: now, request: Some(request) });
     Ok(())
 }
 
@@ -405,8 +403,8 @@ pub fn effort(app: &VectorcraftApp) -> ai::Effort {
     vectorcraft_engine::cmd::embroidery_ai::effort(&app.session.prefs)
 }
 
-/// What a request should cost, in words: dollars on the user's own key, credits when paying
-/// with them (`creditsPerDollar` from the account), `None` when that isn't known.
+/// What a request should cost, in words: credits (`creditsPerDollar` from the account), `None`
+/// when that isn't known or nobody is signed in.
 pub fn cost_line(app: &VectorcraftApp, e: ai::effort::Estimate) -> Option<String> {
     if super::account::paying_with_credits(app) {
         let (typical, most) = (credits_for(app, e.typical)?, credits_for(app, e.most)?);
@@ -415,10 +413,7 @@ pub fn cost_line(app: &VectorcraftApp, e: ai::effort::Estimate) -> Option<String
             &[("typical", &typical.to_string()), ("most", &most.to_string())],
         ))
     } else {
-        Some(crate::i18n::fmt(
-            tl!("About {typical} a drawing on your Anthropic account, at most {most}."),
-            &[("typical", &dollars(e.typical)), ("most", &dollars(e.most))],
-        ))
+        None
     }
 }
 
@@ -428,18 +423,6 @@ fn credits_for(app: &VectorcraftApp, usd: f64) -> Option<u64> {
     let rate = app.embroidery.account.info.as_ref().and_then(|i| i["creditsPerDollar"].as_f64()).filter(|r| r.is_finite() && *r > 0.0)?;
     let c = (usd * rate).ceil();
     c.is_finite().then(|| c.clamp(1.0, 1e12) as u64)
-}
-
-/// `usd` as dollars and cents, at least a cent.
-fn dollars(usd: f64) -> String {
-    format!("${:.2}", usd.max(0.01))
-}
-
-/// Keep `key` as the API key (`None`: forget it). A store that can't only costs the convenience.
-pub(crate) fn keep_key(store: Option<&dyn crate::SecretStore>, key: Option<&str>) {
-    if let Some(Err(e)) = store.map(|s| s.save(KEY_NAME, key)) {
-        log::warn!("Design from Prompt: the API key: {e}");
-    }
 }
 
 /// Stop waiting for the request on its way (Cancel). The service may still bill it.
@@ -527,10 +510,6 @@ pub fn poll(app: &mut VectorcraftApp, ctx: &egui::Context) {
     let Some(p) = app.embroidery.prompt.pending.take() else { return };
     // the credits it cost show next time the account is read
     app.embroidery.account.stale |= super::account::paying_with_credits(app);
-    // Anthropic took the key unless it said otherwise.
-    if let Some(key) = p.keep.as_deref().filter(|_| !matches!(r, Err(ArtError::Key(_)))) {
-        keep_key(app.services.secrets.as_deref(), Some(key));
-    }
     let open = app.ui.dialog.as_ref().is_some_and(|d| d.kind == KIND);
     if let Ok(art) = &r {
         app.embroidery.prompt.last_usage = Some(art.usage);
@@ -582,15 +561,9 @@ fn place(app: &mut VectorcraftApp, art: Art, usage: ai::Usage, name: &str, size:
             if let Some(u) = usage.filter(|u| u.total() > 0) {
                 let tokens = u.total().to_string();
                 line.push_str(" · ");
-                line.push_str(&if super::account::paying_with_credits(app) {
-                    match credits_for(app, u.usd()) {
-                        Some(c) => {
-                            crate::i18n::fmt(tl!("{tokens} tokens, about {credits} credits"), &[("tokens", &tokens), ("credits", &c.to_string())])
-                        }
-                        None => crate::i18n::fmt(tl!("{tokens} tokens"), &[("tokens", &tokens)]),
-                    }
-                } else {
-                    crate::i18n::fmt(tl!("{tokens} tokens, about {cost}"), &[("tokens", &tokens), ("cost", &dollars(u.usd()))])
+                line.push_str(&match credits_for(app, u.usd()) {
+                    Some(c) => crate::i18n::fmt(tl!("{tokens} tokens, about {credits} credits"), &[("tokens", &tokens), ("credits", &c.to_string())]),
+                    None => crate::i18n::fmt(tl!("{tokens} tokens"), &[("tokens", &tokens)]),
                 });
             }
             if checked == Some(true) {

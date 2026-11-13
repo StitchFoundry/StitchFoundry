@@ -60,6 +60,7 @@ mod scrub;
 pub mod shortcut_editor;
 pub mod shortcuts;
 pub mod simple;
+pub mod staging;
 pub mod state;
 pub mod stylus;
 pub mod sysclip;
@@ -120,6 +121,8 @@ pub struct VectorcraftApp {
     pub ui: UiState,
     pub views: Vec<View>,
     pub services: Services,
+    /// The web page asked for the staging services (`?services=staging`, [`staging`]).
+    pub staging: bool,
     pub canvas: CanvasCache,
     /// Embroidery mode: stitch overlay settings, the stitch player and its mesh.
     pub embroidery: embroidery::EmbroideryUi,
