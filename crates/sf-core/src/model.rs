@@ -1303,6 +1303,17 @@ impl Default for Jagged {
 /// The stitch length of a tatami border when none is set (mm).
 pub const TATAMI_LENGTH: f64 = 4.0;
 
+/// The shortest auto-split or tatami piece (mm) (#84). A shorter `split_length` from a file,
+/// a paste or a command is raised to it: the stitch count grows as one over the split length,
+/// so a tiny value would make billions of stitches.
+pub const MIN_SPLIT_LENGTH: f64 = 0.5;
+
+/// The split length actually used for `split_length`: at least [`MIN_SPLIT_LENGTH`] when it is
+/// positive, 0 (never split) when it is 0, negative or not a number.
+pub fn effective_split_length(split_length: f64) -> f64 {
+    if split_length > 0.0 { split_length.max(MIN_SPLIT_LENGTH) } else { 0.0 }
+}
+
 fn is_false(b: &bool) -> bool {
     !*b
 }

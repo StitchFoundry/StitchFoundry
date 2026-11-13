@@ -130,3 +130,13 @@ fn other_formats_have_their_structure() {
     let exp = file(Format::Exp);
     assert!(exp.len().is_multiple_of(2));
 }
+
+#[test]
+fn xxx_end_record_pointer_near_u32_max_is_ignored_not_an_overflow() {
+    // On 32-bit targets (wasm) `0xFFFFFFFF + 2` would overflow `usize` and abort.
+    for ptr in [u32::MAX, u32::MAX - 1, u32::MAX - 5] {
+        let mut b = file(Format::Xxx);
+        b[0xFC..0x100].copy_from_slice(&ptr.to_le_bytes());
+        assert!(read(Format::Xxx, &b).is_ok(), "pointer {ptr:#x}");
+    }
+}
