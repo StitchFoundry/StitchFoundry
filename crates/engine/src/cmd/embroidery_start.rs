@@ -74,8 +74,9 @@ fn new_design(s: &mut Session, p: &Value) -> Result<Value> {
     }
     s.execute("file.new", &json!({ "width": w * PT_PER_MM, "height": h * PT_PER_MM }))?;
     s.execute("embroidery.settings", &json!({ "hoop": hoop_param }))?;
-    if let Some(m) = mine {
-        s.execute("embroidery.settings", &json!({ "machine": m.format }))?;
+    // the format chosen for this machine in My Machine, else its native one
+    if let Some(format) = super::embroidery_my_machine::save_format(s) {
+        s.execute("embroidery.settings", &json!({ "machine": format }))?;
     }
     Ok(json!({ "hoop": name, "width": w, "height": h }))
 }
