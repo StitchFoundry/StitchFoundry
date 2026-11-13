@@ -3,6 +3,25 @@
 Release notes for each version, newest first, written for the people who use StitchFoundry. The
 release workflow copies a version's section into its GitHub release (`docs/releasing.md`).
 
+## 0.15.0-rc.1 (test release)
+
+Everything since 0.14.0. A test release: please tell us what doesn't work, and test-sew designs before using them on a garment that matters.
+
+### Lettering
+- **More than one line.** Add Words now takes several lines of text; press Enter for a new line.
+- **See the font before you pick it.** One font picker everywhere you choose a font: each font is drawn in its own style, with a live preview of your own words.
+- **Line up your lines:** left, centre or right (centre by default).
+- **Line spacing** you can adjust, and **a different size for each line.**
+
+### Fixes
+- Embroidery file names can no longer become reserved Windows names (like CON or PRN).
+- Very dense run, zigzag and satin objects are capped, so a stray setting can't make a runaway stitch count.
+- The "before" picture for a file that can't be read is always the placeholder.
+- Customer-facing text says StitchFoundry everywhere.
+
+### Not in this build yet
+- Custom hoops: the engine is in, but the screens to make and attach your own hoop come in a later release.
+
 ## 0.14.0
 
 The first full release of 0.14. It has everything in the 0.14.0-rc.1 test release below (Simple

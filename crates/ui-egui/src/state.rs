@@ -500,6 +500,9 @@ pub struct UiState {
     /// Embroidery › My Machine….
     #[serde(skip)]
     pub my_machine: crate::dialogs::my_machine::MyMachineState,
+    /// File › Start a Design….
+    #[serde(skip)]
+    pub start_design: crate::dialogs::start_design::StartDesignState,
     /// Embroidery › Save for a Memory Card….
     #[serde(skip)]
     pub memory_card: crate::dialogs::memory_card::MemoryCardState,
@@ -934,6 +937,7 @@ impl Default for UiState {
             help: Default::default(),
             life_size: Default::default(),
             my_machine: Default::default(),
+            start_design: Default::default(),
             memory_card: Default::default(),
             action_sets: crate::panels::actions::default_sets(),
             action_set: None,

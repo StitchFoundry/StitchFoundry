@@ -70,10 +70,6 @@ pub struct AskState {
     messages: Vec<Value>,
     /// Send a summary of the design open now with each question.
     pub include_design: bool,
-    /// Keep the API key once Anthropic takes it.
-    pub remember: bool,
-    /// Show the API key row (it shows by itself while there is no key).
-    pub show_key: bool,
     /// The question being answered.
     current: Option<Current>,
     /// The request on its way.
@@ -94,8 +90,6 @@ impl Default for AskState {
             entries: Vec::new(),
             messages: Vec::new(),
             include_design: true,
-            remember: true,
-            show_key: false,
             current: None,
             pending: None,
             approval: None,
@@ -110,8 +104,6 @@ struct Current {
     start: usize,
     /// The requests sent for it so far.
     rounds: usize,
-    /// The key sent, kept once Anthropic takes it.
-    keep: Option<String>,
 }
 
 struct Pending {
@@ -420,7 +412,6 @@ pub fn send(app: &mut VectorcraftApp) -> Result<(), String> {
     }
     let fail = |app: &mut VectorcraftApp, e: ArtError| {
         let m = e.to_string();
-        app.embroidery.ask.show_key |= matches!(e, ArtError::NoKey | ArtError::BadKey);
         app.embroidery.ask.error = Some(m.clone());
         Err(m)
     };
@@ -438,14 +429,9 @@ pub fn send(app: &mut VectorcraftApp) -> Result<(), String> {
         Ok(m) => m,
         Err(e) => return fail(app, e),
     };
-    let credits = super::account::paying_with_credits(app);
-    let keep = (app.embroidery.ask.remember && !credits).then(|| app.embroidery.prompt.key.trim().to_string());
-    if keep.is_none() && !credits {
-        prompt::keep_key(app.services.secrets.as_deref(), None);
-    }
     let st = &mut app.embroidery.ask;
     let question = st.input.trim().to_string();
-    st.current = Some(Current { question: question.clone(), start: st.messages.len(), rounds: 0, keep });
+    st.current = Some(Current { question: question.clone(), start: st.messages.len(), rounds: 0 });
     st.messages.push(message);
     st.entries.push(Entry::Question(question));
     st.error = None;
@@ -479,20 +465,17 @@ pub fn begin_check(app: &mut VectorcraftApp, message: Value, shown: String, shar
     }
     clear(app);
     let key = super::account::key_to_send(app);
-    let credits = super::account::paying_with_credits(app);
     let id = cloud::check_id(&message, app.embroidery.prompt.now);
     let st = &mut app.embroidery.ask;
     st.open = true;
     st.mode = Mode::SewOut;
     st.check = Some(CheckHeaders { id: id.clone(), share, follow_up });
     if let Err(e) = vectorcraft_embroidery::sf_core::ai::clean_key(&key) {
-        st.show_key = true;
         let m = e.to_string();
         st.error = Some(m.clone());
         return Err(m);
     }
-    let keep = (st.remember && !credits).then(|| app.embroidery.prompt.key.trim().to_string());
-    st.current = Some(Current { question: String::new(), start: 0, rounds: 0, keep });
+    st.current = Some(Current { question: String::new(), start: 0, rounds: 0 });
     st.messages.push(message);
     st.entries.push(Entry::Question(shown));
     st.error = None;
@@ -565,15 +548,9 @@ pub fn poll(app: &mut VectorcraftApp, ctx: &egui::Context) {
     app.embroidery.ask.pending = None;
     // the credits it cost show next time the account is read
     app.embroidery.account.stale |= super::account::paying_with_credits(app);
-    // Anthropic took the key unless it said otherwise.
-    let keep = app.embroidery.ask.current.as_ref().and_then(|c| c.keep.clone());
-    if let Some(key) = keep.filter(|_| !matches!(r, Err(ArtError::Key(_)))) {
-        prompt::keep_key(app.services.secrets.as_deref(), Some(&key));
-    }
     let reply = match r {
         Ok(reply) => reply,
         Err(e) => {
-            app.embroidery.ask.show_key |= matches!(e, ArtError::Key(_));
             let _ = give_up(app, e.to_string()); // (shown in the window)
             return;
         }
@@ -708,7 +685,7 @@ pub fn window(app: &mut VectorcraftApp, ctx: &egui::Context) {
             let st = &app.embroidery.ask;
             // room under the conversation for the question box, its buttons, the key and the note
             let credits = super::account::paying_with_credits(app);
-            let footer = if (st.show_key || app.embroidery.prompt.key.trim().is_empty()) && !credits { 270.0 } else { 210.0 };
+            let footer = if credits { 210.0 } else { 240.0 };
             egui::ScrollArea::vertical()
                 .id_salt("ask-conversation")
                 .max_height((ui.available_height() - footer).max(120.0))
@@ -789,27 +766,10 @@ pub fn window(app: &mut VectorcraftApp, ctx: &egui::Context) {
                 }
             });
             ui.checkbox(&mut st.include_design, tl!("Include my design"));
-            // paid with Foundry credits: no key asked for
-            if super::account::paid_line(app, ui, &t) {
-                return;
-            }
-            let show_key = app.embroidery.ask.show_key || app.embroidery.prompt.key.trim().is_empty();
-            if show_key {
-                ui.horizontal(|ui| {
-                    ui.label(RichText::new(tl!("Anthropic API key:")).color(t.text_dim));
-                    ui.add(egui::TextEdit::singleline(&mut app.embroidery.prompt.key).password(true).desired_width(220.0).hint_text("sk-ant-…"));
-                });
-                ui.checkbox(&mut app.embroidery.ask.remember, tl!("Remember the key on this computer"));
-            }
+            // how the answers are paid for, with a sign-in when signed out
+            super::account::paid_line(app, ui, &t);
             ui.horizontal_wrapped(|ui| {
-                ui.label(RichText::new(tl!("Answers come from Claude with your own Anthropic API key, billed to your Anthropic account. They can be wrong: try a test sew before an important piece.")).size(11.0).color(t.text_dim));
-                if show_key {
-                    if ui.link(RichText::new(tl!("Get a key")).size(11.0)).clicked() {
-                        app.open_url(prompt::KEY_URL);
-                    }
-                } else if ui.link(RichText::new(tl!("Change key")).size(11.0)).clicked() {
-                    app.embroidery.ask.show_key = true;
-                }
+                ui.label(RichText::new(tl!("Answers come from Claude through your Foundry Account. They can be wrong: try a test sew before an important piece.")).size(11.0).color(t.text_dim));
             });
         });
     if let Some(allow) = decision {

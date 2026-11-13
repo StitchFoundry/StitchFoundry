@@ -253,6 +253,50 @@ fn the_panel_sets_lettering_in_a_loaded_font() {
 }
 
 #[test]
+fn the_font_picker_previews_the_text_and_follows_the_font() {
+    let mut app = app();
+    let glyph = |name: &str, d: &str| {
+        let json = format!(r#"{{"name": "{name}", "size": 10, "min_scale": 0.5, "max_scale": 2, "leading": 60, "horiz_adv_x": {{"A": 40}}}}"#);
+        let svg = format!(
+            r##"<svg xmlns="http://www.w3.org/2000/svg" xmlns:inkscape="http://www.inkscape.org/namespaces/inkscape" width="100mm" height="100mm" viewBox="0 0 100 100"><g inkscape:groupmode="layer" inkscape:label="GlyphLayer-A" id="l"><path d="{d}" fill="none" stroke="#000" stroke-dasharray="1 1"/></g></svg>"##
+        );
+        (json, svg)
+    };
+    let (j, s) = glyph("Straight Font", "M2 100 L20 80");
+    app.run("embroidery.font.load", json!({"json": j, "svg": s})).unwrap();
+    let (j, s) = glyph("Tall Font", "M2 100 L10 40 L20 100");
+    app.run("embroidery.font.load", json!({"json": j, "svg": s})).unwrap();
+    app.embroidery.lettering_font = "Straight Font".into();
+    app.embroidery.lettering_text = "A\nA".into();
+    let texts = painted_text_in(&mut app, crate::embroidery::panel::lettering_body, 900.0);
+    // the controls for lines: justification, spacing and a size for each line; the font named
+    for want in ["Justify", "Centre", "Line spacing", "Size of line 1", "Size of line 2", "Straight Font"] {
+        assert!(texts.iter().any(|t| t == want), "{want} missing from {texts:?}");
+    }
+    // the live preview of the user's text in the chosen font was drawn
+    let straight: Vec<_> = app.embroidery.font_previews.iter().filter(|(k, _)| k.contains("Straight Font")).collect();
+    let p1 = straight.iter().find_map(|(_, p)| (*p).clone()).expect("a preview of the text in Straight Font");
+    assert!(!p1.lines.is_empty() && p1.w > 0.0);
+    // another font: another drawing of the same text
+    app.embroidery.lettering_font = "Tall Font".into();
+    painted_text_in(&mut app, crate::embroidery::panel::lettering_body, 900.0);
+    let p2 = app
+        .embroidery
+        .font_previews
+        .iter()
+        .filter(|(k, _)| k.contains("Tall Font"))
+        .find_map(|(_, p)| p.clone())
+        .expect("a preview of the text in Tall Font");
+    assert_ne!(p1, p2);
+    assert!(p2.h > p1.h, "{p1:?} {p2:?}");
+    // the text typed: the preview follows it
+    let before = app.embroidery.font_previews.len();
+    app.embroidery.lettering_text = "AAA".into();
+    painted_text_in(&mut app, crate::embroidery::panel::lettering_body, 900.0);
+    assert!(app.embroidery.font_previews.len() > before);
+}
+
+#[test]
 fn the_font_creator_section_makes_and_edits_fonts() {
     let mut app = app();
     // no font document: ways to start one
@@ -412,12 +456,21 @@ mod design_from_prompt {
         }
     }
 
+    impl Keys {
+        /// Signed in to a Foundry Account: the session token and the service's address are kept.
+        pub(super) fn sign_in(&self) {
+            self.save(vectorcraft_embroidery::sf_core::ai::cloud::TOKEN_NAME, Some("sfs_test0123456789")).unwrap();
+            self.save("stitchfoundry-server", Some("https://cloud.test")).unwrap();
+        }
+    }
+
     pub(super) type Sent = Arc<Mutex<Vec<HttpRequest>>>;
 
-    /// An app whose AI service answers `(status, body)` after `delay`, recording what it was sent.
+    /// An app, signed in to a Foundry Account, whose AI service answers `(status, body)` after `delay`, recording what it was sent.
     pub(super) fn app(status: u16, body: String, delay: Duration) -> (VectorcraftApp, Sent, Keys) {
         let sent: Sent = Arc::default();
         let keys = Keys::default();
+        keys.sign_in();
         let log = sent.clone();
         let services = Services {
             http_post: Some(Arc::new(move |r: &HttpRequest| {
@@ -479,7 +532,7 @@ mod design_from_prompt {
     }
 
     #[test]
-    fn the_art_is_drawn_placed_and_digitized_with_the_users_key() {
+    fn the_art_is_drawn_placed_and_digitized_through_the_foundry_account() {
         let (mut app, sent, keys) = app(200, reply(ART), Duration::ZERO);
         assert!(crate::menus::enabled(&app, "ui.designFromPrompt"));
         app.run("ui.designFromPrompt", json!({"prompt": "a cartoon fox head", "size": 60, "colors": 4})).unwrap();
@@ -487,24 +540,25 @@ mod design_from_prompt {
         assert_eq!(d.kind, prompt::KIND);
         assert_eq!((d.str("prompt").as_str(), d.f64("size", 0.0), d.f64("colors", 0.0)), ("a cartoon fox head", 60.0, 4.0));
         let texts = dialog_text(&mut app);
-        for want in ["Design from Prompt", "Describe the design:", "Anthropic API key:", "Generate"] {
+        for want in ["Design from Prompt", "Describe the design:", "Generate"] {
             assert!(texts.iter().any(|t| t == want), "{want} missing from {texts:?}");
         }
-        // the key is typed into the dialog but is never one of its fields (agents read those)
-        app.embroidery.prompt.key = " sk-ant-test ".into();
+        assert!(!texts.iter().any(|t| t.contains("API key")), "no key row: {texts:?}");
         crate::dialogs::confirm(&mut app).unwrap();
-        assert!(app.ui.dialog.as_ref().is_some_and(|d| !d.fields.values().any(|v| v.as_str().is_some_and(|s| s.contains("sk-ant")))));
+        assert!(app.ui.dialog.as_ref().is_some_and(|d| !d.fields.values().any(|v| v.as_str().is_some_and(|s| s.contains("sfs_")))));
         assert!(dialog_text(&mut app).iter().any(|t| t.starts_with("Drawing the design…")));
         wait(&mut app);
         assert!(app.ui.dialog.is_none(), "placed: the dialog closes");
         assert!(app.ui.status.starts_with("Design placed: 3 stitched objects"), "{}", app.ui.status);
         let sent = sent.lock().unwrap();
         let r = &sent[0];
-        assert!(r.headers.iter().any(|(k, v)| *k == "x-api-key" && v == "sk-ant-test"));
+        assert_eq!(r.url, "https://cloud.test/v1/messages");
+        assert!(r.headers.contains(&("authorization", "Bearer sfs_test0123456789".to_string())));
+        assert!(r.headers.iter().all(|(k, _)| *k != "x-api-key"), "no Anthropic key goes anywhere");
         let body: Value = serde_json::from_str(&r.body).unwrap();
         assert!(body["messages"][0]["content"].as_str().unwrap().contains("a cartoon fox head"));
         assert!(body["system"].as_str().unwrap().contains("At most 4 different fill colours"));
-        assert_eq!(keys.load(prompt::KEY_NAME).as_deref(), Some("sk-ant-test"), "remembered");
+        assert_eq!(keys.load(prompt::KEY_NAME), None, "no Anthropic key is kept");
         // one group of stitched shapes, named by its description, gone with one undo
         let st = app.session.active().unwrap();
         let g = st.doc.node(st.selection.objects[0]).unwrap();
@@ -521,26 +575,28 @@ mod design_from_prompt {
     fn the_effort_is_chosen_with_its_cost_shown_and_sent() {
         let used = json!({"type": "message", "model": "claude-opus-5-5", "content": [{"type": "text", "text": ART}], "stop_reason": "end_turn", "usage": {"input_tokens": 1800, "output_tokens": 4200}});
         let (mut app, sent, _) = app(200, used.to_string(), Duration::ZERO);
+        // the account as read: 100 credits to the dollar
+        crate::embroidery::account::load(&mut app);
+        app.embroidery.account.info = Some(json!({"credits": 500, "creditsPerDollar": 100.0}));
         app.run("ui.designFromPrompt", json!({"prompt": "a cartoon fox head", "size": 60, "colors": 4})).unwrap();
         let texts = dialog_text(&mut app);
         assert!(texts.iter().any(|t| t == "Effort") && texts.iter().any(|t| t == "Normal"), "{texts:?}");
-        let cost = texts.iter().find(|t| t.starts_with("About $")).cloned().unwrap_or_else(|| panic!("no cost line in {texts:?}"));
-        assert!(cost.contains("on your Anthropic account, at most $"), "{cost}");
+        let cost = texts.iter().find(|t| t.starts_with("About ")).cloned().unwrap_or_else(|| panic!("no cost line in {texts:?}"));
+        assert!(cost.contains("credits a drawing, at most "), "{cost}");
         assert!(!texts.iter().any(|t| t.starts_with("Thorough looks up")), "no warning at Normal");
         app.run("embroidery.aiEffort", json!({"effort": "thorough"})).unwrap();
         let texts = dialog_text(&mut app);
         assert!(texts.iter().any(|t| t.starts_with("Thorough looks up what it draws")), "{texts:?}");
-        let thorough = texts.iter().find(|t| t.starts_with("About $")).cloned().unwrap_or_default();
+        let thorough = texts.iter().find(|t| t.starts_with("About ")).cloned().unwrap_or_default();
         assert_ne!(thorough, cost, "the estimate follows the effort");
         app.run("embroidery.aiEffort", json!({"effort": "quick"})).unwrap();
-        app.embroidery.prompt.key = "sk-ant-test".into();
         crate::dialogs::confirm(&mut app).unwrap();
         wait(&mut app);
         let body: Value = serde_json::from_str(&sent.lock().unwrap()[0].body).unwrap();
         assert_eq!(body["output_config"]["effort"], "low");
-        // the reply's usage: tokens and dollars on the user's own key
-        // 1 800 in and 4 200 out: 6 000 tokens, $0.0072 + $0.084
-        assert!(app.ui.status.ends_with("6000 tokens, about $0.09"), "{}", app.ui.status);
+        // the reply's usage: tokens and credits
+        // 1 800 in and 4 200 out: 6 000 tokens, $0.0072 + $0.084 = about 9.12 credits at 100 a dollar, 10 rounded up
+        assert!(app.ui.status.ends_with("6000 tokens, about 10 credits"), "{}", app.ui.status);
     }
 
     /// AI-04: at Thorough the drawing may be researched and goes back as it stitches to be
@@ -551,7 +607,6 @@ mod design_from_prompt {
         let (mut app, sent, _) = app(200, reply(ART), Duration::ZERO);
         app.run("embroidery.aiEffort", json!({"effort": "thorough"})).unwrap();
         app.run("ui.designFromPrompt", json!({"prompt": "a 2023 Ford F-350 crew cab", "size": 60, "colors": 4})).unwrap();
-        app.embroidery.prompt.key = "sk-ant-test".into();
         crate::dialogs::confirm(&mut app).unwrap();
         wait(&mut app);
         let sent = sent.lock().unwrap();
@@ -570,15 +625,15 @@ mod design_from_prompt {
 
     #[test]
     fn what_goes_wrong_is_shown_in_the_dialog() {
-        let err = json!({"type": "error", "error": {"type": "authentication_error", "message": "invalid x-api-key"}}).to_string();
-        let (mut app, sent, keys) = app(401, err, Duration::ZERO);
-        keys.save(prompt::KEY_NAME, Some("sk-ant-old")).unwrap();
+        let err = json!({"type": "error", "error": {"type": "billing_error", "message": "not enough credits"}}).to_string();
+        let (mut app, sent, keys) = app(402, err, Duration::ZERO);
+        // an Anthropic key kept by an earlier version is deleted, and the person is told once
+        let old = Keys::default();
+        old.save(prompt::KEY_NAME, Some("sk-ant-old")).unwrap();
+        assert!(prompt::purge_own_key(Some(&old)) && old.load(prompt::KEY_NAME).is_none());
+        assert!(!prompt::purge_own_key(Some(&old)), "nothing left to remove");
         app.run("ui.designFromPrompt", json!({"prompt": "a star"})).unwrap();
-        assert_eq!(app.embroidery.prompt.key, "sk-ant-old", "the kept key is filled in");
-        // nothing is sent without a key or a description
-        app.embroidery.prompt.key.clear();
-        assert_eq!(crate::dialogs::confirm(&mut app).unwrap_err(), "Enter your Anthropic API key first.");
-        app.embroidery.prompt.key = "sk-ant-bad".into();
+        // nothing is sent without a description
         if let Some(d) = app.ui.dialog.as_mut() {
             d.fields.insert("prompt".into(), json!("  "));
         }
@@ -590,24 +645,61 @@ mod design_from_prompt {
         crate::dialogs::confirm(&mut app).unwrap();
         wait(&mut app);
         assert!(app.ui.dialog.is_some(), "the dialog stays open to try again");
-        assert_eq!(app.embroidery.prompt.error.as_deref(), Some("Anthropic refused the API key: invalid x-api-key"));
-        assert!(dialog_text(&mut app).iter().any(|t| t == "Anthropic refused the API key: invalid x-api-key"));
-        assert_eq!(keys.load(prompt::KEY_NAME).as_deref(), Some("sk-ant-old"), "a refused key isn't remembered");
-        assert_eq!(objects(&app), 0);
-        // Remember off forgets the kept key
-        if let Some(d) = app.ui.dialog.as_mut() {
-            d.fields.insert("remember".into(), json!(false));
-        }
-        crate::dialogs::confirm(&mut app).unwrap();
+        let said = "Not enough Foundry credits: buy more in Foundry Account.";
+        assert_eq!(app.embroidery.prompt.error.as_deref(), Some(said));
+        assert!(dialog_text(&mut app).iter().any(|t| t == said));
         assert_eq!(keys.load(prompt::KEY_NAME), None);
-        wait(&mut app);
+        assert_eq!(objects(&app), 0);
+        // signed out: nothing is sent, and the person is asked to sign in
+        let (mut out, sent, keys) = app_signed_out();
+        keys.save(prompt::KEY_NAME, None).unwrap();
+        out.run("ui.designFromPrompt", json!({"prompt": "a star"})).unwrap();
+        let texts = dialog_text(&mut out);
+        assert!(!texts.iter().any(|t| t.contains("API key")), "{texts:?}");
+        assert_eq!(crate::dialogs::confirm(&mut out).unwrap_err(), "Sign in to your Foundry Account to use the AI features.");
+        assert!(sent.lock().unwrap().is_empty());
+    }
+
+    /// The same app, not signed in.
+    fn app_signed_out() -> (VectorcraftApp, Sent, Keys) {
+        let sent: Sent = Arc::default();
+        let keys = Keys::default();
+        let log = sent.clone();
+        let services = Services {
+            http_post: Some(Arc::new(move |r: &HttpRequest| {
+                log.lock().unwrap().push(r.clone());
+                Ok((200, String::new()))
+            })),
+            secrets: Some(Box::new(keys.clone())),
+            ..Default::default()
+        };
+        let mut app = VectorcraftApp::new(Session::new(), services);
+        app.run("file.new", json!({"width": 400, "height": 300})).unwrap();
+        (app, sent, keys)
+    }
+
+    /// An Anthropic key saved by an earlier version is deleted from the secret store when the app
+    /// starts, and the person is told once; the app never uses it.
+    #[test]
+    fn a_saved_anthropic_key_is_deleted_on_start_and_never_used() {
+        let keys = Keys::default();
+        keys.save(prompt::KEY_NAME, Some("sk-ant-old")).unwrap();
+        keys.save("stitchfoundry-pay-with-credits", Some("0")).unwrap();
+        let services = Services { secrets: Some(Box::new(keys.clone())), ..Default::default() };
+        let mut app = VectorcraftApp::new(Session::new(), services);
+        assert_eq!(keys.load(prompt::KEY_NAME), None, "deleted from the stored settings");
+        assert_eq!(app.ui.status, "AI now uses your Foundry Account. Sign in to continue.");
+        // signed out: no key goes to anyone
+        assert_eq!(crate::embroidery::account::key_to_send(&mut app), "");
+        // a start with nothing saved says nothing
+        let clean = VectorcraftApp::new(Session::new(), Services { secrets: Some(Box::new(Keys::default())), ..Default::default() });
+        assert!(clean.ui.status.is_empty(), "{}", clean.ui.status);
     }
 
     #[test]
     fn cancel_stops_waiting_and_the_web_has_no_service() {
         let (mut app, sent, _) = app(200, reply(ART), Duration::from_millis(150));
         app.run("ui.designFromPrompt", json!({"prompt": "a star"})).unwrap();
-        app.embroidery.prompt.key = "sk-ant-test".into();
         crate::dialogs::confirm(&mut app).unwrap();
         assert!(crate::dialogs::confirm(&mut app).is_err(), "one request at a time");
         crate::dialogs::cancel(&mut app);
@@ -646,7 +738,6 @@ mod design_from_prompt {
         for want in ["Redraw Image with Claude", "What to change (optional):", "Only redraw artwork you own or have permission to use."] {
             assert!(texts.iter().any(|t| t == want), "{want} missing from {texts:?}");
         }
-        app.embroidery.prompt.key = "sk-ant-test".into();
         crate::dialogs::confirm(&mut app).unwrap();
         wait(&mut app);
         assert!(app.ui.dialog.is_none(), "{:?}", app.embroidery.prompt.error);
@@ -677,7 +768,7 @@ mod design_from_prompt {
     fn another_services_picture_is_redrawn_by_claude_then_placed() {
         let sent: Sent = Arc::default();
         let keys = Keys::default();
-        keys.save(prompt::KEY_NAME, Some("sk-ant-test")).unwrap();
+        keys.sign_in();
         let log = sent.clone();
         let mut png = Vec::new();
         image::RgbImage::from_pixel(64, 64, image::Rgb([200, 30, 30]))
@@ -771,11 +862,11 @@ mod ask_about_embroidery {
     type Sent = Arc<Mutex<Vec<HttpRequest>>>;
 
     /// An app whose AI service answers with `replies` in turn, recording what it was sent, with an
-    /// API key kept.
+    /// Foundry Account signed in.
     fn app(replies: Vec<(u16, String)>) -> (VectorcraftApp, Sent, Keys) {
         let sent: Sent = Arc::default();
         let keys = Keys::default();
-        keys.save(prompt::KEY_NAME, Some("sk-ant-test")).unwrap();
+        keys.sign_in();
         let queue = Arc::new(Mutex::new(VecDeque::from(replies)));
         let log = sent.clone();
         let services = Services {
@@ -863,7 +954,7 @@ mod ask_about_embroidery {
         for want in ["Ask About Embroidery", "Which stabilizer for a T-shirt?", "Use a cut-away stabilizer on knits.", "Ask", "Include my design"] {
             assert!(texts.iter().any(|t| t == want), "{want} missing from {texts:?}");
         }
-        assert!(!texts.iter().any(|t| t == "Anthropic API key:"), "a kept key isn't asked for: {texts:?}");
+        assert!(!texts.iter().any(|t| t.contains("API key")), "no key is asked for: {texts:?}");
         // the design went along in the question, its object by id
         let b = body(&sent, 0);
         let summary = b["messages"][0]["content"][0]["text"].as_str().unwrap();
@@ -982,6 +1073,7 @@ mod ask_about_embroidery {
         let later: std::rc::Rc<std::cell::RefCell<Vec<Done>>> = Default::default();
         let queue = later.clone();
         let keys = Keys::default();
+        keys.sign_in();
         let services = Services {
             http_post_async: Some(std::rc::Rc::new(move |r: HttpRequest, done| {
                 log.lock().unwrap().push(r);
@@ -993,7 +1085,6 @@ mod ask_about_embroidery {
         let mut app = VectorcraftApp::new(Session::new(), services);
         app.run("file.new", json!({"width": 400, "height": 300})).unwrap();
         assert!(crate::menus::enabled(&app, "ui.askAboutEmbroidery") && crate::menus::enabled(&app, "ui.designFromPrompt"));
-        app.embroidery.prompt.key = "sk-ant-web".into();
         app.run("ui.askAboutEmbroidery", json!({"question": "Which needle for denim?"})).unwrap();
         assert_eq!(sent.lock().unwrap().len(), 1);
         assert!(app.embroidery.ask.waiting_for(0.0).is_some(), "waiting for the browser");
@@ -1002,7 +1093,7 @@ mod ask_about_embroidery {
         done(Ok(answer("A 90/14 or 100/16 jeans needle.")));
         ask::poll(&mut app, &egui::Context::default());
         assert_eq!(app.embroidery.ask.entries.last(), Some(&Entry::Answer("A 90/14 or 100/16 jeans needle.".into())));
-        assert_eq!(keys.load(prompt::KEY_NAME).as_deref(), Some("sk-ant-web"), "remembered in the browser's store");
+        assert_eq!(keys.load(prompt::KEY_NAME), None, "no Anthropic key is kept in the browser's store");
     }
 
     #[test]
@@ -1022,15 +1113,18 @@ mod ask_about_embroidery {
     }
 
     #[test]
-    fn without_a_key_or_a_question_nothing_is_sent() {
-        let err = json!({"type": "error", "error": {"message": "invalid x-api-key"}}).to_string();
+    fn without_an_account_or_a_question_nothing_is_sent() {
+        let err = json!({"type": "error", "error": {"message": "expired"}}).to_string();
         let (mut app, sent, keys) = app(vec![(401, err)]);
-        keys.save(prompt::KEY_NAME, None).unwrap();
+        keys.save(vectorcraft_embroidery::sf_core::ai::cloud::TOKEN_NAME, None).unwrap();
         app.run("ui.askAboutEmbroidery", json!({})).unwrap();
-        assert!(window_text(&mut app).iter().any(|t| t == "Anthropic API key:"), "no key yet: its row shows");
+        let texts = window_text(&mut app);
+        assert!(!texts.iter().any(|t| t.contains("API key")), "there is no key row: {texts:?}");
+        assert!(texts.iter().any(|t| t == "Create Free Account"), "signed out: the account is offered: {texts:?}");
         app.embroidery.ask.input = "Why does my thread break?".into();
-        assert_eq!(ask::send(&mut app).unwrap_err(), "Enter your Anthropic API key first.");
-        app.embroidery.prompt.key = "sk-ant-bad".into();
+        assert_eq!(ask::send(&mut app).unwrap_err(), "Sign in to your Foundry Account to use the AI features.");
+        // signed in: an empty question is refused before anything is sent
+        app.embroidery.account.token = "sfs_test0123456789".into();
         app.embroidery.ask.input = "   ".into();
         assert_eq!(ask::send(&mut app).unwrap_err(), "Type a question first.");
         assert!(sent.lock().unwrap().is_empty());
@@ -1039,15 +1133,20 @@ mod ask_about_embroidery {
         assert!(ask::send(&mut app).is_err(), "one question at a time");
         wait(&mut app);
         let st = &app.embroidery.ask;
-        assert_eq!(st.error.as_deref(), Some("Anthropic refused the API key: invalid x-api-key"));
+        assert_eq!(st.error.as_deref(), Some("Sign in to your Foundry account (Embroidery › Foundry Account…)."));
         assert_eq!(st.input, "Why does my thread break?", "the question stays to ask again");
         assert!(st.entries.is_empty() && !st.asking(), "{:?}", st.entries);
-        assert_eq!(keys.load(prompt::KEY_NAME), None, "a refused key isn't remembered");
-        assert!(window_text(&mut app).iter().any(|t| t == "Anthropic refused the API key: invalid x-api-key"));
+        assert_eq!(keys.load(prompt::KEY_NAME), None);
         // the web has no service yet
         let mut web = VectorcraftApp::new(Session::new(), Services::default());
         assert!(!crate::menus::enabled(&web, "ui.askAboutEmbroidery"));
         assert!(web.run("ui.askAboutEmbroidery", json!({})).is_err());
+    }
+
+    /// Forget the Foundry Account the harness signed in.
+    fn signed_out(keys: &Keys) {
+        keys.save(vectorcraft_embroidery::sf_core::ai::cloud::TOKEN_NAME, None).unwrap();
+        keys.save("stitchfoundry-server", None).unwrap();
     }
 
     fn jpeg(w: u32, h: u32) -> Vec<u8> {
@@ -1071,6 +1170,8 @@ mod ask_about_embroidery {
             (402, json!({"type": "error", "error": {"type": "billing_error", "message": "not enough credits"}}).to_string()),
             answer("The gap is the knit pulling in."),
         ]);
+        keys.save(vectorcraft_embroidery::sf_core::ai::cloud::TOKEN_NAME, None).unwrap();
+        keys.save("stitchfoundry-server", None).unwrap();
         app.embroidery.account.server = "https://cloud.example".into();
         assert_eq!(app.run("ui.account", json!({})).unwrap()["signedIn"], false);
         app.embroidery.account.email = "denise@example.com".into();
@@ -1097,7 +1198,7 @@ mod ask_about_embroidery {
         poll(&mut app);
         let st = &app.embroidery.account;
         assert_eq!(st.token, token);
-        assert!(st.password.is_empty() && st.use_credits, "signing in is choosing credits; the password is forgotten");
+        assert!(st.password.is_empty(), "the password is forgotten");
         assert_eq!(keys.load(vectorcraft_embroidery::sf_core::ai::cloud::TOKEN_NAME).as_deref(), Some(token));
         assert_eq!(sent.lock().unwrap()[0].url, "https://cloud.example/v1/signin");
         assert_eq!(sent.lock().unwrap()[1].url, "https://cloud.example/v1/account");
@@ -1122,10 +1223,10 @@ mod ask_about_embroidery {
         let r = sent.lock().unwrap()[4].clone();
         assert_eq!(r.url, "https://cloud.example/v1/sewout");
         assert!(r.headers.contains(&("x-stitchfoundry-check", id.clone())) && r.headers.contains(&("x-stitchfoundry-share", "1".to_string())));
-        // paying with credits off: back to the own key and Anthropic
-        app.embroidery.account.use_credits = false;
+        // signed out: no credits, and nothing to send in an API key's place
+        app.embroidery.account.token.clear();
         assert!(!account::paying_with_credits(&app));
-        assert_eq!(account::key_to_send(&mut app), "sk-ant-test");
+        assert_eq!(account::key_to_send(&mut app), "");
     }
 
     /// CLOUD-10: a new account waits for its email to be confirmed: the Account window says to check
@@ -1137,13 +1238,14 @@ mod ask_about_embroidery {
         let token = "sfs_0123456789abcdef";
         let refused = "Confirm your email first: we sent a link to denise@example.com (send it again from your Foundry Account window).";
         let unconfirmed = json!({"email": "denise@example.com", "verified": false, "credits": 100, "freeChecks": 3, "packs": [], "payments": false});
-        let (mut app, sent, _) = app(vec![
+        let (mut app, sent, keys) = app(vec![
             (200, json!({"token": token, "account": unconfirmed}).to_string()),
             (200, unconfirmed.to_string()),
             (403, json!({"type": "error", "error": {"type": "permission_error", "message": refused}}).to_string()),
             (200, json!({"sent": true, "verified": false, "message": "A new link is on its way to denise@example.com."}).to_string()),
             (200, unconfirmed.to_string()),
         ]);
+        signed_out(&keys);
         app.embroidery.account.server = "https://cloud.example".into();
         app.run("ui.account", json!({"create": true})).unwrap();
         assert!(app.run("ui.account", json!({"resend": true})).is_err(), "signed out: no account to send it to");
@@ -1302,7 +1404,9 @@ mod ask_about_embroidery {
         assert!(q.contains("people who make StitchFoundry"), "{q}");
         // not without leave, nor signed out
         assert!(app.run("ui.reportSewout", json!({"send": true})).is_err());
+        let session = std::mem::take(&mut app.embroidery.account.token);
         assert!(app.run("ui.reportSewout", json!({"consent": true, "send": true})).unwrap_err().contains("Sign in"));
+        app.embroidery.account.token = session;
         assert_eq!(sent.lock().unwrap().len(), 2, "nothing sent");
         app.embroidery.account.server = "https://cloud.example".into();
         app.embroidery.account.token = "sfs_0123456789abcdef".into();
@@ -1341,6 +1445,7 @@ mod ask_about_embroidery {
             (413, String::new()),
             (201, json!({"id": 7, "url": "http://127.0.0.1:8080/designs/7", "kind": "embroidery", "format": "DST"}).to_string()),
         ]);
+        signed_out(&keys);
         let publish = |app: &mut VectorcraftApp, p: Value| {
             app.run(publish::COMMAND, p).unwrap();
             let ctx = egui::Context::default();
@@ -1479,6 +1584,7 @@ mod ask_about_embroidery {
             (403, "<Error><Code>SignatureDoesNotMatch</Code></Error>".into()),
             said(401, "The Foundry Account service doesn't know that token: sign in to StitchFoundry again."),
         ]);
+        signed_out(&keys);
         let wait = stitchshop_wait;
         // nothing stitched, or signed out: not now
         assert!(!crate::menus::enabled(&app, stitchshop::COMMAND));
