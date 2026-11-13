@@ -81,6 +81,7 @@ impl VectorcraftApp {
             simple: simple::SimpleState::default(),
             guide: guide::GuideState::default(),
             updates: updates::UpdateState::default(),
+            learn: Default::default(),
             staging: false,
             perf: Perf::default(),
             dock_rt: Default::default(),

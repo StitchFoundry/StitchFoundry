@@ -7,6 +7,7 @@ use std::fmt::Write as _;
 
 use serde_json::{Value, json};
 
+use super::embroidery_clipart_sets::{SETS, motifs as more_motifs, set_of_original};
 use super::{CommandSpec, Result, Session, always, bad, cmd, has_doc, str_param};
 
 pub fn specs() -> Vec<CommandSpec> {
@@ -16,9 +17,18 @@ pub fn specs() -> Vec<CommandSpec> {
             "Embroidery Clipart",
             [],
             None,
-            "{} the clipart motifs, each with its SVG (100 × 100) → {clipart: [{name, svg}]}",
+            "{} the clipart motifs, each with its SVG (100 × 100) → {clipart: [{name, set, svg}]}",
             always,
             list
+        ),
+        cmd!(
+            query "embroidery.clipart.list",
+            "Browse Embroidery Clipart",
+            [],
+            None,
+            "{set?: Holidays|Sports|Pets & animals|Nature|Kids|Words & frames, q?: text (matches a motif's name or set)} the clipart sets and the motifs in them → {sets: [{name, count}], clipart: [{name, set, svg}]}",
+            always,
+            list_sets
         ),
         cmd!(
             "embroidery.clipart.insert",
@@ -33,7 +43,7 @@ pub fn specs() -> Vec<CommandSpec> {
 }
 
 /// A path of points joined by straight lines, closed.
-fn poly(pts: &[(f64, f64)]) -> String {
+pub(super) fn poly(pts: &[(f64, f64)]) -> String {
     let mut d = String::new();
     for (i, (x, y)) in pts.iter().enumerate() {
         let _ = write!(d, "{}{x:.2} {y:.2} ", if i == 0 { "M " } else { "L " });
@@ -43,12 +53,12 @@ fn poly(pts: &[(f64, f64)]) -> String {
 }
 
 /// A circle's path.
-fn circle(cx: f64, cy: f64, r: f64) -> String {
+pub(super) fn circle(cx: f64, cy: f64, r: f64) -> String {
     format!("M {:.2} {cy:.2} A {r:.2} {r:.2} 0 1 0 {:.2} {cy:.2} A {r:.2} {r:.2} 0 1 0 {:.2} {cy:.2} Z", cx - r, cx + r, cx - r)
 }
 
 /// An ellipse turned `deg` about its centre, as a path of points.
-fn ellipse(cx: f64, cy: f64, rx: f64, ry: f64, deg: f64) -> String {
+pub(super) fn ellipse(cx: f64, cy: f64, rx: f64, ry: f64, deg: f64) -> String {
     let a = deg.to_radians();
     let pts: Vec<(f64, f64)> = (0..36)
         .map(|k| {
@@ -72,7 +82,7 @@ fn star(n: u32, outer: f64, inner: f64) -> String {
     poly(&pts)
 }
 
-fn svg(parts: &[(&str, String)]) -> String {
+pub(super) fn svg(parts: &[(&str, String)]) -> String {
     let mut s = String::from("<svg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 100 100\" width=\"100\" height=\"100\">");
     for (fill, d) in parts {
         let _ = write!(s, "<path fill=\"{fill}\" d=\"{d}\"/>");
@@ -81,8 +91,8 @@ fn svg(parts: &[(&str, String)]) -> String {
     s
 }
 
-/// The motifs: a name and its SVG.
-fn motifs() -> Vec<(&'static str, String)> {
+/// The first motifs, drawn before the sets: a name and its SVG.
+fn original_motifs() -> Vec<(&'static str, String)> {
     let sun_rays: Vec<(f64, f64)> = (0..24)
         .map(|k| {
             let r = if k % 2 == 0 { 48.0 } else { 30.0 };
@@ -186,16 +196,41 @@ fn motifs() -> Vec<(&'static str, String)> {
     ]
 }
 
+/// Every motif: name, set, SVG.
+fn motifs() -> Vec<(&'static str, &'static str, String)> {
+    original_motifs().into_iter().map(|(n, svg)| (n, set_of_original(n), svg)).chain(more_motifs()).collect()
+}
+
 fn list(_: &mut Session, _: &Value) -> Result<Value> {
-    let v: Vec<Value> = motifs().into_iter().map(|(name, svg)| json!({ "name": name, "svg": svg })).collect();
+    let v: Vec<Value> = motifs().into_iter().map(|(name, set, svg)| json!({ "name": name, "set": set, "svg": svg })).collect();
     Ok(json!({ "clipart": v }))
+}
+
+/// `embroidery.clipart.list`: the motifs of a set and/or matching a search, with the sets.
+fn list_sets(_: &mut Session, p: &Value) -> Result<Value> {
+    const CMD: &str = "embroidery.clipart.list";
+    let all = motifs();
+    let set = match str_param(p, "set").map(str::trim).filter(|s| !s.is_empty()) {
+        None => None,
+        Some(s) => Some(
+            SETS.iter().copied().find(|k| k.eq_ignore_ascii_case(s)).ok_or_else(|| bad(CMD, format!("no such set: one of {}", SETS.join(", "))))?,
+        ),
+    };
+    let q = str_param(p, "q").map(|q| q.trim().to_lowercase()).unwrap_or_default();
+    let sets: Vec<Value> = SETS.iter().map(|s| json!({ "name": s, "count": all.iter().filter(|m| m.1 == *s).count() })).collect();
+    let found: Vec<Value> = all
+        .into_iter()
+        .filter(|(n, s, _)| set.is_none_or(|k| k == *s) && (q.is_empty() || n.to_lowercase().contains(&q) || s.to_lowercase().contains(&q)))
+        .map(|(name, set, svg)| json!({ "name": name, "set": set, "svg": svg }))
+        .collect();
+    Ok(json!({ "sets": sets, "clipart": found }))
 }
 
 fn insert(s: &mut Session, p: &Value) -> Result<Value> {
     const CMD: &str = "embroidery.clipart.insert";
     let name = str_param(p, "name").map(str::trim).ok_or_else(|| bad(CMD, "missing `name`: a clipart motif"))?;
-    let (title, mut art) =
-        motifs().into_iter().find(|(n, _)| n.eq_ignore_ascii_case(name)).ok_or_else(|| bad(CMD, format!("no clipart motif is named `{name}`")))?;
+    let (title, _, mut art) =
+        motifs().into_iter().find(|(n, ..)| n.eq_ignore_ascii_case(name)).ok_or_else(|| bad(CMD, format!("no clipart motif is named `{name}`")))?;
     if let Some(c) = str_param(p, "color") {
         let c = sf_core::Rgb::from_hex(c).ok_or_else(|| bad(CMD, "`color` is \"#rrggbb\""))?.to_hex();
         // every part in that colour

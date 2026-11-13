@@ -202,7 +202,7 @@ fn fill_piece_inner(piece: &Polygon, job: FillJob, out: &mut Out, hint: Option<P
                 row_spacing_end: params.spacing_end * f,
                 stitch_length: if satin { f64::INFINITY } else { params.stitch_length.max(0.5) },
                 offset: params.offset,
-                split_length: if satin { params.split_length } else { 0.0 },
+                split_length: if satin { crate::model::effective_split_length(params.split_length) } else { 0.0 },
                 pull_comp: params.pull_comp,
                 travel_length: 2.5,
                 random: params.random,

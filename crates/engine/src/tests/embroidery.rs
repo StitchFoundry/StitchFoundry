@@ -1373,7 +1373,7 @@ fn clipart_motifs_place_digitized() {
     let mut s = session();
     let list = s.execute("embroidery.clipart", &json!({})).unwrap();
     let names: Vec<String> = list["clipart"].as_array().unwrap().iter().map(|c| c["name"].as_str().unwrap().to_string()).collect();
-    assert!(names.len() >= 15, "{names:?}");
+    assert!(names.len() >= 36, "{names:?}");
     // every motif places and sews
     for name in &names {
         let r = s.execute("embroidery.clipart.insert", &json!({"name": name, "size": 30})).unwrap();
@@ -4737,6 +4737,35 @@ fn embroidery_fonts_open_to_edit_and_merge() {
 }
 
 #[test]
+fn embroidery_font_doc_opens_a_folder_and_removes_glyphs() {
+    let mut s = session();
+    s.execute("embroidery.font.load", &json!({"json": TEST_FONT_JSON, "svg": TEST_FONT_SVG})).unwrap();
+    // open by name -> save to a folder -> open that folder: the same glyphs
+    s.execute("embroidery.fontDoc.open", &json!({"font": "Test Script"})).unwrap();
+    let first = s.execute("embroidery.fontDoc.info", &json!({})).unwrap();
+    let dir = std::env::temp_dir().join(format!("sf-font-open-{}", std::process::id()));
+    let path = dir.to_string_lossy().to_string();
+    s.execute("embroidery.fontDoc.save", &json!({"folder": path})).unwrap();
+    let r = s.execute("embroidery.fontDoc.open", &json!({"folder": path})).unwrap();
+    assert_eq!(r["glyphs"].as_u64(), Some(3), "{r}");
+    let again = s.execute("embroidery.fontDoc.info", &json!({})).unwrap();
+    let names = |v: &Value| v["glyphs"].as_array().unwrap().iter().map(|g| g["name"].clone()).collect::<Vec<_>>();
+    assert_eq!(names(&first), names(&again));
+    assert_eq!(again["missing"].as_u64(), Some(0), "{again}");
+    // remove a glyph; the last one can't go
+    let r = s.execute("embroidery.fontDoc.removeGlyphs", &json!({"chars": "B"})).unwrap();
+    assert_eq!(r["removed"].as_u64(), Some(1));
+    let info = s.execute("embroidery.fontDoc.info", &json!({})).unwrap();
+    assert_eq!(names(&info), ["?", "A"]);
+    assert!(s.execute("embroidery.fontDoc.removeGlyphs", &json!({"chars": "B"})).is_err());
+    assert!(s.execute("embroidery.fontDoc.removeGlyphs", &json!({"chars": "?A"})).is_err());
+    assert!(s.execute("embroidery.fontDoc.open", &json!({})).is_err());
+    assert!(s.execute("embroidery.fontDoc.open", &json!({"font": "Nope"})).is_err());
+    assert!(s.execute("embroidery.fontDoc.open", &json!({"folder": "/nonexistent/sf-font"})).is_err());
+    std::fs::remove_dir_all(&dir).ok();
+}
+
+#[test]
 fn embroidery_fonts_start_from_type() {
     const PT: f64 = vectorcraft_embroidery::PT_PER_MM;
     let mut s = session();
@@ -5135,7 +5164,7 @@ fn monogram_templates_come_from_the_gallery_or_are_saved() {
     s.execute("embroidery.font.load", &json!({"json": TEST_FONT_JSON, "svg": TEST_FONT_SVG})).unwrap();
     let list = s.execute("embroidery.monogram.templates", &json!({})).unwrap();
     let names: Vec<&str> = list["templates"].as_array().unwrap().iter().filter_map(|t| t["name"].as_str()).collect();
-    assert!(names.contains(&"Wedding heart") && names.len() >= 9, "{names:?}");
+    assert!(names.contains(&"Wedding heart") && names.len() >= 20, "{names:?}");
     // a gallery template sets the look; the request still wins where it says
     let r = s.execute("embroidery.monogram", &json!({"letters": "AB", "font": "Test Script", "template": "Double ring"})).unwrap();
     let rings = |s: &Session, id: u64| {
@@ -6531,4 +6560,91 @@ fn auto_digitized_details_are_sewn_colour_by_colour_and_take_a_border() {
     // the border and its edge, the disc, then each line colour once: not a change per line
     assert_eq!(colours.first(), Some(&"#ffffff"), "the border first: {colours:?}");
     assert!(colours.len() <= 5, "{colours:?}");
+}
+
+#[test]
+fn twenty_monogram_templates_pass_the_design_checks_at_three_sizes() {
+    let mut s = session();
+    s.execute("embroidery.font.load", &json!({"json": TEST_FONT_JSON, "svg": TEST_FONT_SVG})).unwrap();
+    let list = s.execute("embroidery.monogram.templates", &json!({})).unwrap();
+    let all = list["templates"].as_array().unwrap();
+    assert_eq!(all.iter().filter(|t| t["builtin"] == true).count(), 20);
+    let framed: Vec<&str> = all.iter().filter(|t| t["frame"].as_str().is_some_and(|f| !f.is_empty())).filter_map(|t| t["name"].as_str()).collect();
+    assert_eq!(framed.len(), 11, "{framed:?}");
+    for t in all.iter().filter(|t| t["builtin"] == true) {
+        let name = t["name"].as_str().unwrap();
+        assert!(t["colors"].is_array() && t["font"].is_string());
+        // a 2, 3 and 4 inch monogram: the letters' height gives the overall size
+        for inches in [2.0_f64, 3.0, 4.0] {
+            let size = inches * 25.4 * 0.45;
+            s.execute("file.new", &json!({"width": 600, "height": 600})).unwrap();
+            let r = s
+                .execute("embroidery.monogram", &json!({"letters": "ABC", "font": "Test Script", "template": name, "size": size, "at": [300, 300]}))
+                .unwrap_or_else(|e| panic!("{name} at {inches}: {e:?}"));
+            assert!(r["id"].as_u64().is_some());
+            let check = s.execute("embroidery.check", &json!({})).unwrap();
+            let errors: Vec<&Value> =
+                check["findings"].as_array().map(|f| f.iter().filter(|x| x["severity"] == "error").collect()).unwrap_or_default();
+            assert!(errors.is_empty(), "{name} at {inches}\": {errors:?}");
+            let info = s.execute("embroidery.info", &json!({})).unwrap();
+            assert!(info["stitches"].as_u64().unwrap_or(0) > 100, "{name} at {inches}\" sews something");
+        }
+    }
+    // a frame can be asked for on its own, and an unknown one is an error
+    s.execute("file.new", &json!({"width": 600, "height": 600})).unwrap();
+    s.execute("embroidery.monogram", &json!({"letters": "A", "font": "Test Script", "frame": "holly", "colors": ["#b3202a", "#1f6b3a"]})).unwrap();
+    assert!(s.execute("embroidery.monogram", &json!({"letters": "A", "font": "Test Script", "frame": "nope"})).is_err());
+}
+
+#[test]
+fn clipart_library_has_sets_search_and_digitizable_motifs() {
+    let mut s = session();
+    let all = s.execute("embroidery.clipart.list", &json!({})).unwrap();
+    let sets: Vec<&str> = all["sets"].as_array().unwrap().iter().filter_map(|x| x["name"].as_str()).collect();
+    assert_eq!(sets, ["Holidays", "Sports", "Pets & animals", "Nature", "Kids", "Words & frames"]);
+    assert!(all["sets"].as_array().unwrap().iter().all(|x| x["count"].as_u64().unwrap() >= 2), "{all}");
+    assert!(all["clipart"].as_array().unwrap().len() >= 36);
+    // a set, a search (case-insensitive, by name or set) and both
+    let kids = s.execute("embroidery.clipart.list", &json!({"set": "kids"})).unwrap();
+    assert!(
+        kids["clipart"].as_array().unwrap().iter().all(|c| c["set"] == "Kids")
+            && kids["clipart"].as_array().unwrap().iter().any(|c| c["name"] == "Rocket")
+    );
+    let q = s.execute("embroidery.clipart.list", &json!({"q": "PUMP"})).unwrap();
+    assert_eq!(q["clipart"].as_array().unwrap().len(), 1);
+    let none = s.execute("embroidery.clipart.list", &json!({"set": "Holidays", "q": "rocket"})).unwrap();
+    assert!(none["clipart"].as_array().unwrap().is_empty());
+    assert!(s.execute("embroidery.clipart.list", &json!({"set": "Pirates"})).is_err());
+    // every one of the twenty new motifs inserts, sews and passes the design checks
+    let new = [
+        "Pumpkin",
+        "Christmas tree",
+        "Easter egg",
+        "Ghost",
+        "Gift box",
+        "Firework",
+        "Football",
+        "Baseball",
+        "Trophy",
+        "Fish",
+        "Bone",
+        "Cat face",
+        "Butterfly",
+        "Pine tree",
+        "Raindrop",
+        "Balloon",
+        "Rocket",
+        "Ice cream",
+        "Banner",
+        "Round frame",
+    ];
+    for name in new {
+        let mut s = session();
+        let r = s.execute("embroidery.clipart.insert", &json!({"name": name, "size": 40})).unwrap_or_else(|e| panic!("{name}: {e:?}"));
+        assert!(r["objects"].as_u64().unwrap() >= 1, "{name}");
+        assert!(s.embroidery_plan().unwrap().pattern().stitch_count() > 200, "{name} sews");
+        let check = s.execute("embroidery.check", &json!({})).unwrap();
+        let errors: Vec<&Value> = check["findings"].as_array().map(|f| f.iter().filter(|x| x["severity"] == "error").collect()).unwrap_or_default();
+        assert!(errors.is_empty(), "{name}: {errors:?}");
+    }
 }

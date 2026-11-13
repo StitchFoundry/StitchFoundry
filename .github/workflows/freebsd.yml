@@ -32,7 +32,7 @@ permissions:
 jobs:
   freebsd:
     # Upstream's CI: skipped in forks such as StitchFoundry.
-    if: github.repository == 'storytold/vectorcraft'
+    if: github.repository == 'StitchFoundry/StitchFoundry'
     name: FreeBSD 14 (build + test)
     runs-on: ubuntu-latest
     timeout-minutes: 300
@@ -49,7 +49,7 @@ jobs:
       # only their fonts/ folder. Bump the commit deliberately.
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
-          repository: Stitchwright/stitchfoundry-fonts
+          repository: StitchFoundry/stitchfoundry-fonts
           ref: 857ca33ffab22a3bfb976a0a301880b74dc57050
           path: stitchfoundry-fonts
           sparse-checkout: fonts
@@ -79,7 +79,7 @@ jobs:
     name: FreeBSD 14 (package)
     # The release build takes a while: only for PRs that touch FreeBSD packaging (or dependencies)
     # and on demand, not on every push to main.
-    if: github.repository == 'storytold/vectorcraft' && (github.event_name != 'push')
+    if: github.repository == 'StitchFoundry/StitchFoundry' && (github.event_name != 'push')
     runs-on: ubuntu-latest
     timeout-minutes: 150
     steps:
@@ -95,7 +95,7 @@ jobs:
       # only their fonts/ folder. Bump the commit deliberately.
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
-          repository: Stitchwright/stitchfoundry-fonts
+          repository: StitchFoundry/stitchfoundry-fonts
           ref: 857ca33ffab22a3bfb976a0a301880b74dc57050
           path: stitchfoundry-fonts
           sparse-checkout: fonts
