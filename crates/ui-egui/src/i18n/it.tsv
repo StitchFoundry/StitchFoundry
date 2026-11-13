@@ -5094,16 +5094,12 @@ machine	Stop	Arresto
 	Generate	Genera
 	Describe the design:	Descrivi il disegno:
 	Size (longest side):	Dimensione (lato più lungo):
-	Anthropic API key:	Chiave API Anthropic:
-	Remember the key on this computer	Ricorda la chiave su questo computer
-	Claude draws the artwork with your own Anthropic API key, billed to your Anthropic account; StitchFoundry then digitizes it. Check the stitches before you sew.	Claude disegna la grafica con la tua chiave API Anthropic personale, con addebito sul tuo account Anthropic; poi StitchFoundry la digitalizza. Controlla i punti prima di ricamare.
 	Get a key	Ottieni una chiave
 	Drawing the design…	Disegno in corso…
 	Describe a design and Claude draws artwork for it, then StitchFoundry digitizes it	Descrivi un disegno e Claude ne crea la grafica, poi StitchFoundry la digitalizza
 	Place Artwork as Embroidery	Inserisci grafica come ricamo
 	Place Artwork	Inserisci grafica
 @plural	Design placed: {n} stitched object|Design placed: {n} stitched objects	Disegno inserito: {n} oggetto ricamato|Disegno inserito: {n} oggetti ricamati
-@msg	Enter your Anthropic API key first.	Inserisci prima la tua chiave API Anthropic.
 @msg	The API key isn't valid: paste it again from the Anthropic Console.	La chiave API non è valida: incollala di nuovo dalla Anthropic Console.
 @msg	Describe the design first.	Descrivi prima il disegno.
 @msg	The description is too long: keep it under 2,000 characters.	La descrizione è troppo lunga: resta sotto i 2000 caratteri.
@@ -5128,7 +5124,6 @@ machine	Stop	Arresto
 	Redraw Image with Claude	Ridisegna immagine con Claude
 	What to change (optional):	Cosa cambiare (facoltativo):
 	Only redraw artwork you own or have permission to use.	Ridisegna solo grafiche di tua proprietà o che hai il permesso di usare.
-	Claude redraws the image as flat-colour art with your own Anthropic API key, billed to your Anthropic account; StitchFoundry then digitizes it. Check the stitches before you sew.	Claude ridisegna l'immagine come grafica a tinte piatte con la tua chiave API Anthropic personale, con addebito sul tuo account Anthropic; poi StitchFoundry la digitalizza. Controlla i punti prima di ricamare.
 	Redraw with Claude…	Ridisegna con Claude…
 	Claude redraws the image as clean flat-colour art, then StitchFoundry digitizes it	Claude ridisegna l'immagine come grafica pulita a tinte piatte, poi StitchFoundry la digitalizza
 @msg	select an image to redraw	seleziona un'immagine da ridisegnare
@@ -6252,8 +6247,6 @@ machine	Stop	Arresto
 	Ask	Chiedi
 	New Conversation	Nuova conversazione
 	Include my design	Includi il mio disegno
-	Answers come from Claude with your own Anthropic API key, billed to your Anthropic account. They can be wrong: try a test sew before an important piece.	Le risposte arrivano da Claude con la tua chiave API Anthropic, addebitata sul tuo account Anthropic. Possono essere sbagliate: fai una prova prima di un capo importante.
-	Change key	Cambia chiave
 @msg	Type a question first.	Scrivi prima una domanda.
 @msg	The question is too long: keep it under 2,000 characters.	La domanda è troppo lunga: resta sotto i 2.000 caratteri.
 @msg	The AI declined to answer this: ask another way.	L'IA ha rifiutato di rispondere: chiedi in un altro modo.
@@ -6310,7 +6303,6 @@ machine	Stop	Arresto
 	Anything else? For example: a gap above the bumper	Altro? Per esempio: uno spazio sopra il paraurti
 	As the design has it	Come nel disegno
 	Choose the photos in the browser's window…	Scegli le foto nella finestra del browser…
-	Claude looks at the photos with your own Anthropic API key, billed to your Anthropic account. It can be wrong: try a fix on a scrap of the same fabric first.	Claude guarda le foto con la tua chiave API Anthropic, addebitata sul tuo account Anthropic. Può sbagliare: prova una correzione prima su un ritaglio dello stesso tessuto.
 	Include the design that was sewn (open now), so it can be fixed	Includi il disegno ricamato (aperto ora), così si può correggere
 	My sew-out ({n} photos)	Il mio ricamo ({n} foto)
 	Needle	Ago
@@ -6345,8 +6337,6 @@ machine	Stop	Arresto
 	Leave it empty for StitchFoundry's own service.	Lascia vuoto per il servizio di StitchFoundry.
 	Paid with Foundry credits ({n} left).	Pagato con crediti Foundry ({n} rimasti).
 	Paid with Foundry credits.	Pagato con crediti Foundry.
-	Pay for the AI features with my Foundry credits	Paga le funzioni IA con i miei crediti Foundry
-	Pay with Foundry credits instead	Paga invece con i crediti Foundry
 	Payment is on Stripe's secure page, in your browser; your card never reaches StitchFoundry.	Il pagamento avviene sulla pagina sicura di Stripe, nel tuo browser; la tua carta non arriva mai a StitchFoundry.
 	Reading your credits…	Lettura dei crediti…
 	Server	Server
@@ -6357,7 +6347,6 @@ machine	Stop	Arresto
 	Signed in as {email}	Accesso come {email}
 	Foundry Account	Account Foundry
 	Foundry Account…	Account Foundry…
-	Foundry accounts aren't open yet. Until then, the AI features work with your own Anthropic API key.	Gli account Foundry non sono ancora aperti. Fino ad allora, le funzioni IA usano la tua chiave API Anthropic.
 	This is the sew-out after the fix from my last check	Questo è il ricamo dopo la correzione del mio ultimo controllo
 	{n} credits for {price}	{n} crediti per {price}
 	{n} credits	{n} crediti
@@ -6583,9 +6572,7 @@ machine	Stop	Arresto
 	Quick	Rapido
 	Thorough	Accurato
 	About {typical} credits a drawing, at most {most}.	Circa {typical} crediti a disegno, al massimo {most}.
-	About {typical} a drawing on your Anthropic account, at most {most}.	Circa {typical} a disegno sul tuo account Anthropic, al massimo {most}.
 	{tokens} tokens	{tokens} token
-	{tokens} tokens, about {cost}	{tokens} token, circa {cost}
 # AI research and check
 	Thorough looks up what it draws, thinks longest and checks its stitches once: it costs several times as much as Normal. Use it for real things, like a dog breed or a truck model, and for detailed designs.	Accurato si documenta su ciò che disegna, riflette più a lungo e controlla una volta i suoi punti: costa diverse volte più di Normale. Usalo per cose reali, come una razza di cane o un modello di camion, e per disegni dettagliati.
 	Checking the stitches…	Controllo dei punti…

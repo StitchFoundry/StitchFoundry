@@ -5045,16 +5045,12 @@ machine	Stop	Stopp
 	Generate	Generieren
 	Describe the design:	Beschreiben Sie das Stickmuster:
 	Size (longest side):	Größe (längste Seite):
-	Anthropic API key:	Anthropic-API-Schlüssel:
-	Remember the key on this computer	Schlüssel auf diesem Computer speichern
-	Claude draws the artwork with your own Anthropic API key, billed to your Anthropic account; StitchFoundry then digitizes it. Check the stitches before you sew.	Claude zeichnet die Grafik mit Ihrem eigenen Anthropic-API-Schlüssel, abgerechnet über Ihr Anthropic-Konto; StitchFoundry digitalisiert sie anschließend. Prüfen Sie die Stiche vor dem Sticken.
 	Get a key	Schlüssel anfordern
 	Drawing the design…	Stickmuster wird gezeichnet…
 	Describe a design and Claude draws artwork for it, then StitchFoundry digitizes it	Beschreiben Sie ein Stickmuster: Claude zeichnet eine Grafik dafür, die StitchFoundry anschließend digitalisiert
 	Place Artwork as Embroidery	Grafik als Stickerei platzieren
 	Place Artwork	Grafik platzieren
 @plural	Design placed: {n} stitched object|Design placed: {n} stitched objects	Stickmuster platziert: {n} gesticktes Objekt|Stickmuster platziert: {n} gestickte Objekte
-@msg	Enter your Anthropic API key first.	Geben Sie zuerst Ihren Anthropic-API-Schlüssel ein.
 @msg	The API key isn't valid: paste it again from the Anthropic Console.	Der API-Schlüssel ist ungültig: Fügen Sie ihn erneut aus der Anthropic Console ein.
 @msg	Describe the design first.	Beschreiben Sie zuerst das Stickmuster.
 @msg	The description is too long: keep it under 2,000 characters.	Die Beschreibung ist zu lang: Bleiben Sie unter 2000 Zeichen.
@@ -5079,7 +5075,6 @@ machine	Stop	Stopp
 	Redraw Image with Claude	Bild mit Claude neu zeichnen
 	What to change (optional):	Gewünschte Änderungen (optional):
 	Only redraw artwork you own or have permission to use.	Zeichnen Sie nur Grafiken neu, die Ihnen gehören oder die Sie verwenden dürfen.
-	Claude redraws the image as flat-colour art with your own Anthropic API key, billed to your Anthropic account; StitchFoundry then digitizes it. Check the stitches before you sew.	Claude zeichnet das Bild mit Ihrem eigenen Anthropic-API-Schlüssel als Grafik aus einfarbigen Flächen neu, abgerechnet über Ihr Anthropic-Konto; StitchFoundry digitalisiert sie anschließend. Prüfen Sie die Stiche vor dem Sticken.
 	Redraw with Claude…	Mit Claude neu zeichnen…
 	Claude redraws the image as clean flat-colour art, then StitchFoundry digitizes it	Claude zeichnet das Bild als saubere Grafik aus einfarbigen Flächen neu, die StitchFoundry anschließend digitalisiert
 @msg	select an image to redraw	wählen Sie ein Bild zum Neuzeichnen aus
@@ -6216,8 +6211,6 @@ effect	Soft	Weich
 	Ask	Fragen
 	New Conversation	Neues Gespräch
 	Include my design	Mein Stickmuster mitsenden
-	Answers come from Claude with your own Anthropic API key, billed to your Anthropic account. They can be wrong: try a test sew before an important piece.	Die Antworten kommen von Claude mit Ihrem eigenen Anthropic-API-Schlüssel, abgerechnet über Ihr Anthropic-Konto. Sie können falsch sein: Sticken Sie vor einem wichtigen Stück eine Probe.
-	Change key	Schlüssel ändern
 @msg	Type a question first.	Geben Sie zuerst eine Frage ein.
 @msg	The question is too long: keep it under 2,000 characters.	Die Frage ist zu lang: Bleiben Sie unter 2000 Zeichen.
 @msg	The AI declined to answer this: ask another way.	Die KI hat es abgelehnt, darauf zu antworten: Fragen Sie anders.
@@ -6274,7 +6267,6 @@ effect	Soft	Weich
 	Anything else? For example: a gap above the bumper	Sonst noch etwas? Zum Beispiel: eine Lücke über der Stoßstange
 	As the design has it	Wie im Stickmuster
 	Choose the photos in the browser's window…	Wählen Sie die Fotos im Fenster des Browsers…
-	Claude looks at the photos with your own Anthropic API key, billed to your Anthropic account. It can be wrong: try a fix on a scrap of the same fabric first.	Claude sieht sich die Fotos mit Ihrem eigenen Anthropic-API-Schlüssel an, abgerechnet über Ihr Anthropic-Konto. Es kann sich irren: Probieren Sie eine Korrektur zuerst auf einem Rest desselben Stoffs.
 	Include the design that was sewn (open now), so it can be fixed	Das gestickte Stickmuster (jetzt geöffnet) mitsenden, damit es korrigiert werden kann
 	My sew-out ({n} photos)	Mein Stickergebnis ({n} Fotos)
 	Needle	Nadel
@@ -6309,8 +6301,6 @@ effect	Soft	Weich
 	Leave it empty for StitchFoundry's own service.	Leer lassen für den eigenen Dienst von StitchFoundry.
 	Paid with Foundry credits ({n} left).	Bezahlt mit Foundry-Credits (noch {n}).
 	Paid with Foundry credits.	Bezahlt mit Foundry-Credits.
-	Pay for the AI features with my Foundry credits	Die KI-Funktionen mit meinen Foundry-Credits bezahlen
-	Pay with Foundry credits instead	Stattdessen mit Foundry-Credits bezahlen
 	Payment is on Stripe's secure page, in your browser; your card never reaches StitchFoundry.	Bezahlt wird auf der sicheren Seite von Stripe in Ihrem Browser; Ihre Karte erreicht StitchFoundry nie.
 	Reading your credits…	Credits werden gelesen…
 	Server	Server
@@ -6321,7 +6311,6 @@ effect	Soft	Weich
 	Signed in as {email}	Angemeldet als {email}
 	Foundry Account	Foundry-Konto
 	Foundry Account…	Foundry-Konto…
-	Foundry accounts aren't open yet. Until then, the AI features work with your own Anthropic API key.	Foundry-Konten gibt es noch nicht. Bis dahin funktionieren die KI-Funktionen mit Ihrem eigenen Anthropic-API-Schlüssel.
 	This is the sew-out after the fix from my last check	Dies ist das Stickergebnis nach der Korrektur aus meiner letzten Prüfung
 	{n} credits for {price}	{n} Credits für {price}
 	{n} credits	{n} Credits
@@ -6548,9 +6537,7 @@ effect	Soft	Weich
 	Quick	Schnell
 	Thorough	Gründlich
 	About {typical} credits a drawing, at most {most}.	Etwa {typical} Credits pro Zeichnung, höchstens {most}.
-	About {typical} a drawing on your Anthropic account, at most {most}.	Etwa {typical} pro Zeichnung auf Ihrem Anthropic-Konto, höchstens {most}.
 	{tokens} tokens	{tokens} Tokens
-	{tokens} tokens, about {cost}	{tokens} Tokens, etwa {cost}
 # AI research and check
 	Thorough looks up what it draws, thinks longest and checks its stitches once: it costs several times as much as Normal. Use it for real things, like a dog breed or a truck model, and for detailed designs.	Gründlich recherchiert, was es zeichnet, denkt am längsten und prüft seine Stiche einmal: Es kostet ein Mehrfaches von Normal. Für echte Dinge wie eine Hunderasse oder ein Lkw-Modell und für detailreiche Designs.
 	Checking the stitches…	Stiche werden geprüft…

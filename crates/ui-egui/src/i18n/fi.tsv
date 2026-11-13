@@ -5667,16 +5667,12 @@ machine	Stop	Pysäytys
 	Generate	Luo
 	Describe the design:	Kuvaile malli:
 	Size (longest side):	Koko (pisin sivu):
-	Anthropic API key:	Anthropic API -avain:
-	Remember the key on this computer	Muista avain tällä tietokoneella
-	Claude draws the artwork with your own Anthropic API key, billed to your Anthropic account; StitchFoundry then digitizes it. Check the stitches before you sew.	Claude piirtää kuvituksen omalla Anthropic API -avaimellasi, ja se laskutetaan Anthropic-tililtäsi; sen jälkeen StitchFoundry digitoi sen. Tarkista pistot ennen ompelua.
 	Get a key	Hanki avain
 	Drawing the design…	Piirretään mallia…
 	Describe a design and Claude draws artwork for it, then StitchFoundry digitizes it	Kuvaile malli, niin Claude piirtää sille kuvituksen ja StitchFoundry digitoi sen
 	Place Artwork as Embroidery	Sijoita kuvitus kirjontana
 	Place Artwork	Sijoita kuvitus
 @plural	Design placed: {n} stitched object|Design placed: {n} stitched objects	Malli sijoitettu: {n} ommeltu objekti|Malli sijoitettu: {n} ommeltua objektia
-@msg	Enter your Anthropic API key first.	Anna ensin Anthropic API -avaimesi.
 @msg	The API key isn't valid: paste it again from the Anthropic Console.	API-avain ei kelpaa: liitä se uudelleen Anthropic Consolesta.
 @msg	Describe the design first.	Kuvaile malli ensin.
 @msg	The description is too long: keep it under 2,000 characters.	Kuvaus on liian pitkä: pidä se alle 2 000 merkissä.
@@ -5699,7 +5695,6 @@ machine	Stop	Pysäytys
 	Redraw Image with Claude	Piirrä kuva uudelleen Claudella
 	What to change (optional):	Mitä muutetaan (valinnainen):
 	Only redraw artwork you own or have permission to use.	Piirrä uudelleen vain kuvitusta, jonka omistat tai jonka käyttöön sinulla on lupa.
-	Claude redraws the image as flat-colour art with your own Anthropic API key, billed to your Anthropic account; StitchFoundry then digitizes it. Check the stitches before you sew.	Claude piirtää kuvan uudelleen tasavärisenä kuvituksena omalla Anthropic API -avaimellasi, ja se laskutetaan Anthropic-tililtäsi; sen jälkeen StitchFoundry digitoi sen. Tarkista pistot ennen ompelua.
 	Redraw with Claude…	Piirrä uudelleen Claudella…
 	Claude redraws the image as clean flat-colour art, then StitchFoundry digitizes it	Claude piirtää kuvan uudelleen selkeänä tasavärisenä kuvituksena, ja StitchFoundry digitoi sen
 @msg	select an image to redraw	valitse uudelleen piirrettävä kuva
@@ -6603,8 +6598,6 @@ machine	Stop	Pysäytys
 	Ask	Kysy
 	New Conversation	Uusi keskustelu
 	Include my design	Liitä mukaan mallini
-	Answers come from Claude with your own Anthropic API key, billed to your Anthropic account. They can be wrong: try a test sew before an important piece.	Vastaukset tulevat Claudelta omalla Anthropic API -avaimellasi, ja ne laskutetaan Anthropic-tililtäsi. Ne voivat olla vääriä: tee koeompelu ennen tärkeää työtä.
-	Change key	Vaihda avain
 @msg	Type a question first.	Kirjoita ensin kysymys.
 @msg	The question is too long: keep it under 2,000 characters.	Kysymys on liian pitkä: pidä se alle 2 000 merkissä.
 @msg	The AI declined to answer this: ask another way.	Tekoäly kieltäytyi vastaamasta tähän: kysy toisin.
@@ -6660,7 +6653,6 @@ machine	Stop	Pysäytys
 	Anything else? For example: a gap above the bumper	Jotain muuta? Esimerkiksi: rako puskurin yläpuolella
 	As the design has it	Kuten mallissa
 	Choose the photos in the browser's window…	Valitse kuvat selaimen ikkunassa…
-	Claude looks at the photos with your own Anthropic API key, billed to your Anthropic account. It can be wrong: try a fix on a scrap of the same fabric first.	Claude katsoo kuvat omalla Anthropic API -avaimellasi, ja maksu menee Anthropic-tilillesi. Se voi erehtyä: kokeile korjausta ensin saman kankaan palaan.
 	Include the design that was sewn (open now), so it can be fixed	Liitä kirjottu malli (nyt auki), jotta sen voi korjata
 	My sew-out ({n} photos)	Kirjontani ({n} kuvaa)
 	Needle	Neula
@@ -6689,8 +6681,6 @@ machine	Stop	Pysäytys
 	Leave it empty for StitchFoundry's own service.	Jätä tyhjäksi StitchFoundryn omalle palvelulle.
 	Paid with Foundry credits ({n} left).	Maksettu Foundry-krediiteillä ({n} jäljellä).
 	Paid with Foundry credits.	Maksettu Foundry-krediiteillä.
-	Pay for the AI features with my Foundry credits	Maksa tekoälytoiminnot Foundry-krediiteilläni
-	Pay with Foundry credits instead	Maksa sen sijaan Foundry-krediiteillä
 	Payment is on Stripe's secure page, in your browser; your card never reaches StitchFoundry.	Maksu tehdään Stripen suojatulla sivulla selaimessasi; korttisi ei koskaan päädy StitchFoundrylle.
 	Reading your credits…	Luetaan krediittejä…
 	Server	Palvelin
@@ -6701,7 +6691,6 @@ machine	Stop	Pysäytys
 	Signed in as {email}	Kirjautuneena: {email}
 	Foundry Account	Foundry-tili
 	Foundry Account…	Foundry-tili…
-	Foundry accounts aren't open yet. Until then, the AI features work with your own Anthropic API key.	Foundry-tilit eivät ole vielä auki. Siihen asti tekoälytoiminnot toimivat omalla Anthropic API -avaimellasi.
 	This is the sew-out after the fix from my last check	Tämä on kirjonta viime tarkistuksen korjauksen jälkeen
 	{n} credits for {price}	{n} krediittiä hintaan {price}
 	{n} credits	{n} krediittiä
@@ -6957,9 +6946,7 @@ swatch	Bright Violet	Kirkas violetti
 	Quick	Nopea
 	Thorough	Perusteellinen
 	About {typical} credits a drawing, at most {most}.	Noin {typical} krediittiä piirrokselta, enintään {most}.
-	About {typical} a drawing on your Anthropic account, at most {most}.	Noin {typical} piirrokselta Anthropic-tililläsi, enintään {most}.
 	{tokens} tokens	{tokens} tokenia
-	{tokens} tokens, about {cost}	{tokens} tokenia, noin {cost}
 # AI research and check
 	Thorough looks up what it draws, thinks longest and checks its stitches once: it costs several times as much as Normal. Use it for real things, like a dog breed or a truck model, and for detailed designs.	Perusteellinen selvittää, mitä se piirtää, miettii pisimpään ja tarkistaa pistonsa kerran: se maksaa moninkertaisesti Normaaliin verrattuna. Käytä sitä todellisiin asioihin, kuten koirarotuun tai kuorma-automalliin, ja yksityiskohtaisiin malleihin.
 	Checking the stitches…	Tarkistetaan pistoja…
