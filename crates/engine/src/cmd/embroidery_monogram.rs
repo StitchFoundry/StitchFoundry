@@ -389,6 +389,7 @@ fn monogram(s: &mut Session, p: &Value) -> Result<Value> {
             text: c.to_string(),
             font: font.info.name.clone(),
             size: *h,
+            line_sizes: Vec::new(),
             leading: 1.0,
             arc: 0.0,
             spiral: 0.0,

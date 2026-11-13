@@ -5181,16 +5181,12 @@ machine	Stop	Zastavení
 	Generate	Generovat
 	Describe the design:	Popište motiv:
 	Size (longest side):	Velikost (delší strana):
-	Anthropic API key:	Klíč API Anthropic:
-	Remember the key on this computer	Zapamatovat si klíč v tomto počítači
-	Claude draws the artwork with your own Anthropic API key, billed to your Anthropic account; StitchFoundry then digitizes it. Check the stitches before you sew.	Kresbu vytvoří Claude pomocí vašeho vlastního klíče API Anthropic a zaplatíte ji ze svého účtu Anthropic; StitchFoundry ji pak digitalizuje. Před vyšíváním zkontrolujte stehy.
 	Get a key	Získat klíč
 	Drawing the design…	Kreslí se motiv…
 	Describe a design and Claude draws artwork for it, then StitchFoundry digitizes it	Popište motiv a Claude k němu vytvoří kresbu, kterou pak StitchFoundry digitalizuje
 	Place Artwork as Embroidery	Umístit kresbu jako výšivku
 	Place Artwork	Umístit kresbu
 @plural	Design placed: {n} stitched object|Design placed: {n} stitched objects	Motiv umístěn: {n} vyšívaný objekt|Motiv umístěn: {n} vyšívané objekty|Motiv umístěn: {n} vyšívaných objektů
-@msg	Enter your Anthropic API key first.	Nejprve zadejte svůj klíč API Anthropic.
 @msg	The API key isn't valid: paste it again from the Anthropic Console.	Klíč API není platný: vložte ho znovu z Anthropic Console.
 @msg	Describe the design first.	Nejprve popište motiv.
 @msg	The description is too long: keep it under 2,000 characters.	Popis je příliš dlouhý: zkraťte ho na méně než 2000 znaků.
@@ -5215,7 +5211,6 @@ machine	Stop	Zastavení
 	Redraw Image with Claude	Překreslit obraz pomocí Claude
 	What to change (optional):	Co změnit (nepovinné):
 	Only redraw artwork you own or have permission to use.	Překreslujte jen kresby, které vlastníte nebo které máte svolení používat.
-	Claude redraws the image as flat-colour art with your own Anthropic API key, billed to your Anthropic account; StitchFoundry then digitizes it. Check the stitches before you sew.	Claude obraz překreslí na kresbu z jednobarevných ploch pomocí vašeho vlastního klíče API Anthropic a zaplatíte ji ze svého účtu Anthropic; StitchFoundry ji pak digitalizuje. Před vyšíváním zkontrolujte stehy.
 	Redraw with Claude…	Překreslit pomocí Claude…
 	Claude redraws the image as clean flat-colour art, then StitchFoundry digitizes it	Claude obraz překreslí na čistou kresbu z jednobarevných ploch, kterou pak StitchFoundry digitalizuje
 @msg	select an image to redraw	vyberte obraz k překreslení
@@ -6615,8 +6610,6 @@ mark-style	Japanese	Japonské
 	Ask	Zeptat se
 	New Conversation	Nová konverzace
 	Include my design	Přiložit můj vzor
-	Answers come from Claude with your own Anthropic API key, billed to your Anthropic account. They can be wrong: try a test sew before an important piece.	Odpovědi přicházejí od Clauda s vaším vlastním klíčem API Anthropic, účtovaným na váš účet Anthropic. Mohou být chybné: před důležitým kusem vyšijte zkoušku.
-	Change key	Změnit klíč
 @msg	Type a question first.	Nejprve napište otázku.
 @msg	The question is too long: keep it under 2,000 characters.	Otázka je příliš dlouhá: nepřekračujte 2 000 znaků.
 @msg	The AI declined to answer this: ask another way.	AI odmítla odpovědět: zeptejte se jinak.
@@ -6673,7 +6666,6 @@ mark-style	Japanese	Japonské
 	Anything else? For example: a gap above the bumper	Ještě něco? Například: mezera nad nárazníkem
 	As the design has it	Jak je ve vzoru
 	Choose the photos in the browser's window…	Vyberte fotky v okně prohlížeče…
-	Claude looks at the photos with your own Anthropic API key, billed to your Anthropic account. It can be wrong: try a fix on a scrap of the same fabric first.	Claude se na fotky podívá s vaším vlastním klíčem API Anthropic, účtovaným na váš účet Anthropic. Může se mýlit: opravu nejdřív vyzkoušejte na zbytku stejné látky.
 	Include the design that was sewn (open now), so it can be fixed	Přiložit vyšitý vzor (teď otevřený), aby se dal opravit
 	My sew-out ({n} photos)	Moje výšivka ({n} fotek)
 	Needle	Jehla
@@ -6708,8 +6700,6 @@ mark-style	Japanese	Japonské
 	Leave it empty for StitchFoundry's own service.	Nechte prázdné pro vlastní službu StitchFoundry.
 	Paid with Foundry credits ({n} left).	Placeno kredity Foundry (zbývá {n}).
 	Paid with Foundry credits.	Placeno kredity Foundry.
-	Pay for the AI features with my Foundry credits	Platit funkce AI mými kredity Foundry
-	Pay with Foundry credits instead	Platit raději kredity Foundry
 	Payment is on Stripe's secure page, in your browser; your card never reaches StitchFoundry.	Platí se na zabezpečené stránce Stripe ve vašem prohlížeči; vaše karta se do StitchFoundry nikdy nedostane.
 	Reading your credits…	Načítají se kredity…
 	Server	Server
@@ -6720,7 +6710,6 @@ mark-style	Japanese	Japonské
 	Signed in as {email}	Přihlášen jako {email}
 	Foundry Account	Účet Foundry
 	Foundry Account…	Účet Foundry…
-	Foundry accounts aren't open yet. Until then, the AI features work with your own Anthropic API key.	Účty Foundry zatím nejsou otevřené. Do té doby funkce AI fungují s vaším vlastním klíčem API Anthropic.
 	This is the sew-out after the fix from my last check	Toto je výšivka po opravě z mé poslední kontroly
 	{n} credits for {price}	{n} kreditů za {price}
 	{n} credits	{n} kreditů
@@ -6945,9 +6934,7 @@ mark-style	Japanese	Japonské
 	Quick	Rychlé
 	Thorough	Důkladné
 	About {typical} credits a drawing, at most {most}.	Asi {typical} kreditů za kresbu, nejvýše {most}.
-	About {typical} a drawing on your Anthropic account, at most {most}.	Asi {typical} za kresbu na vašem účtu Anthropic, nejvýše {most}.
 	{tokens} tokens	{tokens} tokenů
-	{tokens} tokens, about {cost}	{tokens} tokenů, asi {cost}
 # AI research and check
 	Thorough looks up what it draws, thinks longest and checks its stitches once: it costs several times as much as Normal. Use it for real things, like a dog breed or a truck model, and for detailed designs.	Důkladné si vyhledá, co kreslí, přemýšlí nejdéle a jednou zkontroluje své stehy: stojí několikrát víc než Normální. Použijte je pro skutečné věci, jako je psí plemeno nebo model nákladního auta, a pro detailní návrhy.
 	Checking the stitches…	Kontrola stehů…

@@ -5136,16 +5136,12 @@ machine	Stop	停止
 	Generate	生成
 	Describe the design:	デザインの説明:
 	Size (longest side):	サイズ (長辺):
-	Anthropic API key:	Anthropic API キー:
-	Remember the key on this computer	このコンピューターにキーを保存
-	Claude draws the artwork with your own Anthropic API key, billed to your Anthropic account; StitchFoundry then digitizes it. Check the stitches before you sew.	Claude がお持ちの Anthropic API キーでアートワークを描き、StitchFoundry がそれをデジタイズします。料金はお使いの Anthropic アカウントに請求されます。縫う前にステッチを確認してください。
 	Get a key	キーを取得
 	Drawing the design…	デザインを描画中…
 	Describe a design and Claude draws artwork for it, then StitchFoundry digitizes it	デザインを説明すると、Claude がアートワークを描き、StitchFoundry がそれをデジタイズします
 	Place Artwork as Embroidery	アートワークを刺繍として配置
 	Place Artwork	アートワークの配置
 @plural	Design placed: {n} stitched object|Design placed: {n} stitched objects	デザインを配置しました: {n} 個の刺繍オブジェクト
-@msg	Enter your Anthropic API key first.	先に Anthropic API キーを入力してください。
 @msg	The API key isn't valid: paste it again from the Anthropic Console.	API キーが正しくありません: Anthropic Console からもう一度貼り付けてください。
 @msg	Describe the design first.	先にデザインの説明を入力してください。
 @msg	The description is too long: keep it under 2,000 characters.	説明が長すぎます: 2,000 文字未満にしてください。
@@ -5170,7 +5166,6 @@ machine	Stop	停止
 	Redraw Image with Claude	Claude で画像を描き直す
 	What to change (optional):	変更したい点 (任意):
 	Only redraw artwork you own or have permission to use.	所有しているアートワーク、または使用許可を得ているアートワークだけを描き直してください。
-	Claude redraws the image as flat-colour art with your own Anthropic API key, billed to your Anthropic account; StitchFoundry then digitizes it. Check the stitches before you sew.	Claude がお持ちの Anthropic API キーで画像をフラットカラーのアートワークに描き直し、StitchFoundry がそれをデジタイズします。料金はお使いの Anthropic アカウントに請求されます。縫う前にステッチを確認してください。
 	Redraw with Claude…	Claude で描き直す…
 	Claude redraws the image as clean flat-colour art, then StitchFoundry digitizes it	Claude が画像をすっきりしたフラットカラーのアートワークに描き直し、StitchFoundry がそれをデジタイズします
 @msg	select an image to redraw	描き直す画像を選択してください
@@ -6293,8 +6288,6 @@ machine	Stop	停止
 	Ask	質問する
 	New Conversation	新しい会話
 	Include my design	デザインを含める
-	Answers come from Claude with your own Anthropic API key, billed to your Anthropic account. They can be wrong: try a test sew before an important piece.	回答はお客様自身の Anthropic API キーを使って Claude が作成し、Anthropic アカウントに請求されます。回答は誤っている場合があります。大切な作品の前には試し縫いをしてください。
-	Change key	キーを変更
 @msg	Type a question first.	まず質問を入力してください。
 @msg	The question is too long: keep it under 2,000 characters.	質問が長すぎます：2,000 文字以内にしてください。
 @msg	The AI declined to answer this: ask another way.	AI がこの質問への回答を断りました：別の聞き方をしてください。
@@ -6351,7 +6344,6 @@ machine	Stop	停止
 	Anything else? For example: a gap above the bumper	ほかに何か？ 例：バンパーの上にすき間がある
 	As the design has it	デザインのとおり
 	Choose the photos in the browser's window…	ブラウザーのウィンドウで写真を選んでください…
-	Claude looks at the photos with your own Anthropic API key, billed to your Anthropic account. It can be wrong: try a fix on a scrap of the same fabric first.	Claude はお使いの Anthropic API キーで写真を見ます。料金はお使いの Anthropic アカウントに請求されます。間違えることもあるので、まず同じ生地の端切れで直し方を試してください。
 	Include the design that was sewn (open now), so it can be fixed	刺しゅうしたデザイン（いま開いているもの）を含め、直せるようにする
 	My sew-out ({n} photos)	私の刺しゅう（写真 {n} 枚）
 	Needle	針
@@ -6386,8 +6378,6 @@ machine	Stop	停止
 	Leave it empty for StitchFoundry's own service.	StitchFoundry 自身のサービスを使うときは空欄のままにします。
 	Paid with Foundry credits ({n} left).	Foundry クレジットで支払い（残り {n}）。
 	Paid with Foundry credits.	Foundry クレジットで支払い。
-	Pay for the AI features with my Foundry credits	AI 機能を Foundry クレジットで支払う
-	Pay with Foundry credits instead	代わりに Foundry クレジットで支払う
 	Payment is on Stripe's secure page, in your browser; your card never reaches StitchFoundry.	支払いはブラウザーで開く Stripe の安全なページで行います。カード情報が StitchFoundry に届くことはありません。
 	Reading your credits…	クレジットを読み込み中…
 	Server	サーバー
@@ -6398,7 +6388,6 @@ machine	Stop	停止
 	Signed in as {email}	{email} でサインイン中
 	Foundry Account	Foundry アカウント
 	Foundry Account…	Foundry アカウント…
-	Foundry accounts aren't open yet. Until then, the AI features work with your own Anthropic API key.	Foundry アカウントはまだ始まっていません。それまでは、AI 機能はご自分の Anthropic API キーで使えます。
 	This is the sew-out after the fix from my last check	前回のチェックの直しを入れて刺しゅうしたものです
 	{n} credits for {price}	{n} クレジット（{price}）
 	{n} credits	{n} クレジット
@@ -6624,9 +6613,7 @@ machine	Stop	停止
 	Quick	速い
 	Thorough	じっくり
 	About {typical} credits a drawing, at most {most}.	1 回の描画で約 {typical} クレジット、最大 {most}。
-	About {typical} a drawing on your Anthropic account, at most {most}.	1 回の描画で Anthropic アカウントに約 {typical}、最大 {most}。
 	{tokens} tokens	{tokens} トークン
-	{tokens} tokens, about {cost}	{tokens} トークン、約 {cost}
 # AI research and check
 	Thorough looks up what it draws, thinks longest and checks its stitches once: it costs several times as much as Normal. Use it for real things, like a dog breed or a truck model, and for detailed designs.	「じっくり」は描くものを調べ、最も長く考え、ステッチを一度確認します。費用は「標準」の数倍です。犬種やトラックの車種のような実在のものや、細部の多いデザインに使ってください。
 	Checking the stitches…	ステッチを確認しています…

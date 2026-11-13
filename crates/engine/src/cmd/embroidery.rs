@@ -2396,7 +2396,15 @@ fn settings_hoop(s: &Session, h: &Value) -> Result<Option<sf_core::hoops::Hoop>>
             let w = h.get("width").and_then(Value::as_f64).filter(|v| v.is_finite() && *v > 1.0).ok_or_else(|| bad(CMD, "hoop width (mm) > 1"))?;
             let ht = h.get("height").and_then(Value::as_f64).filter(|v| v.is_finite() && *v > 1.0).ok_or_else(|| bad(CMD, "hoop height (mm) > 1"))?;
             let shape = if str_param(h, "shape") == Some("oval") { sf_core::hoops::HoopShape::Oval } else { sf_core::hoops::HoopShape::Rect };
-            Some(sf_core::hoops::Hoop::new(str_param(h, "name").unwrap_or("Custom"), w, ht, shape))
+            let mut hoop = sf_core::hoops::Hoop::new(str_param(h, "name").unwrap_or("Custom"), w, ht, shape);
+            // a rounded corner and an outer frame, when given (as the hoop was made)
+            hoop.corner_radius =
+                h.get("cornerRadius").and_then(Value::as_f64).filter(|r| r.is_finite() && (0.0..=w.min(ht) / 2.0).contains(r)).unwrap_or(0.0);
+            hoop.frame = h
+                .get("frame")
+                .and_then(|f| serde_json::from_value::<[f64; 2]>(f.clone()).ok())
+                .filter(|f| f.iter().all(|v| v.is_finite() && *v >= 0.0));
+            Some(hoop)
         }
         _ => return Err(bad(CMD, "hoop is a name, {width, height, shape?} or null")),
     })
