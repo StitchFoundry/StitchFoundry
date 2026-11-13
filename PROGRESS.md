@@ -19,3 +19,5 @@
 - 2026-11-09 nightly sweep: no reports to triage; cargo audit finds no vulnerabilities (7 unmaintained/yanked notices). Filed #84 (satin split length has no lower bound).
 - Fix #79: run, zigzag, blanket, backstitch and stem lines stop at `run::MAX_RUN_STITCHES` (1,000,000 points per object, all passes), and satin sampling at `MAX_SATIN_PAIRS`. `polyline::points_at` walks a polyline once instead of once per point, so a long column is no longer quadratic.
 - Issue 83 (part): `embroidery.newDesign` with no hoop named takes the last hoop picked by name (pref `last_hoop`, kept across restarts; ignored if My Machine lacks it; samples and custom sizes don't change it). Still to do: Ctrl/Cmd+N opening Start a design, on-screen out-of-field warning at creation, screenshots.
+- 2026-11-13 nightly sweep: no reports to triage; no new findings filed (reviewed the Learn list loader, HUS decompressor, native unpack limits and the control server).
+- Fix #40: `sf_formats::Timestamp::from_unix` reads the date from chrono instead of its own calendar math; past 9999 it gives 9999-12-31 23:59:59.

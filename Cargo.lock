@@ -5201,6 +5201,7 @@ dependencies = [
 name = "sf-formats"
 version = "0.15.0-rc.1"
 dependencies = [
+ "chrono",
  "serde_json",
  "sf-core",
  "thiserror 2.0.21",
