@@ -8,7 +8,7 @@ version = "0.15.0-rc.1"
 edition = "2024"
 license = "MIT OR Apache-2.0"
 rust-version = "1.95"
-repository = "https://github.com/Stitchwright/StitchFoundry"
+repository = "https://github.com/StitchFoundry/StitchFoundry"
 
 [workspace.dependencies]
 craft-pdf = { git = "https://github.com/storytold/craft-libs", rev = "92d392cff132eaf53e13afff77f38b5c11b73aa0", default-features = false, features = ["interpret", "write"] }

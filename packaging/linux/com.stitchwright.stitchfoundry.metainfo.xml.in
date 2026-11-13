@@ -21,9 +21,9 @@
   <launchable type="desktop-id">com.stitchwright.stitchfoundry.desktop</launchable>
   <icon type="stock">com.stitchwright.stitchfoundry</icon>
   <!-- Only url types known to appstream 0.15 (Ubuntu 22.04, where CI validates): no vcs-browser. -->
-  <url type="homepage">https://github.com/Stitchwright/StitchFoundry</url>
-  <url type="bugtracker">https://github.com/Stitchwright/StitchFoundry/issues</url>
-  <url type="help">https://github.com/Stitchwright/StitchFoundry</url>
+  <url type="homepage">https://github.com/StitchFoundry/StitchFoundry</url>
+  <url type="bugtracker">https://github.com/StitchFoundry/StitchFoundry/issues</url>
+  <url type="help">https://github.com/StitchFoundry/StitchFoundry</url>
   <categories>
     <category>Graphics</category>
     <category>2DGraphics</category>
@@ -40,7 +40,7 @@
   <screenshots>
     <screenshot type="default">
       <caption>Digitizing: thirty satin petals and a fill vine sewn as one thread, with the Stitch Sequence panel</caption>
-      <image>https://raw.githubusercontent.com/Stitchwright/StitchFoundry/main/docs/images/stitchfoundry-branching.png</image>
+      <image>https://raw.githubusercontent.com/StitchFoundry/StitchFoundry/main/docs/images/stitchfoundry-branching.png</image>
     </screenshot>
   </screenshots>
   <branding>

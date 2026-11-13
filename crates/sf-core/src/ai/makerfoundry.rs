@@ -1,6 +1,6 @@
 //! Publish to MakerFoundry (PUB-01): the design sent to MakerFoundry (makerfoundry.app, the
 //! makers' marketplace that shares Foundry Accounts) as a draft, through its API for the apps
-//! (`docs/api.md` in SiteSentrix/makerfoundry). The request carries the Foundry Account's session
+//! (`docs/api.md` in StitchFoundry/makerfoundry). The request carries the Foundry Account's session
 //! token, which MakerFoundry checks with the account service for this one request and never
 //! keeps. The maker finishes and publishes the draft on the site, where they agree to its Seller
 //! Terms. As elsewhere in [`super`], no network code lives here.

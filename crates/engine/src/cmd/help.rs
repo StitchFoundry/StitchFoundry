@@ -7,7 +7,7 @@ use serde_json::{Value, json};
 use super::{CommandSpec, Result, Session, always, bad, cmd, str_param};
 
 /// This app's source repository.
-pub const GITHUB_URL: &str = "https://github.com/Stitchwright/StitchFoundry";
+pub const GITHUB_URL: &str = "https://github.com/StitchFoundry/StitchFoundry";
 
 /// Where bug reports and feature requests go: the hosted forms on StitchHub, one per kind
 /// (`/report/<product>/bug` and `/report/<product>/feature`). Never a `mailto:` link: most people have no
