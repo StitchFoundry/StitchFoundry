@@ -1373,7 +1373,7 @@ fn clipart_motifs_place_digitized() {
     let mut s = session();
     let list = s.execute("embroidery.clipart", &json!({})).unwrap();
     let names: Vec<String> = list["clipart"].as_array().unwrap().iter().map(|c| c["name"].as_str().unwrap().to_string()).collect();
-    assert!(names.len() >= 15, "{names:?}");
+    assert!(names.len() >= 36, "{names:?}");
     // every motif places and sews
     for name in &names {
         let r = s.execute("embroidery.clipart.insert", &json!({"name": name, "size": 30})).unwrap();
@@ -4737,6 +4737,35 @@ fn embroidery_fonts_open_to_edit_and_merge() {
 }
 
 #[test]
+fn embroidery_font_doc_opens_a_folder_and_removes_glyphs() {
+    let mut s = session();
+    s.execute("embroidery.font.load", &json!({"json": TEST_FONT_JSON, "svg": TEST_FONT_SVG})).unwrap();
+    // open by name -> save to a folder -> open that folder: the same glyphs
+    s.execute("embroidery.fontDoc.open", &json!({"font": "Test Script"})).unwrap();
+    let first = s.execute("embroidery.fontDoc.info", &json!({})).unwrap();
+    let dir = std::env::temp_dir().join(format!("sf-font-open-{}", std::process::id()));
+    let path = dir.to_string_lossy().to_string();
+    s.execute("embroidery.fontDoc.save", &json!({"folder": path})).unwrap();
+    let r = s.execute("embroidery.fontDoc.open", &json!({"folder": path})).unwrap();
+    assert_eq!(r["glyphs"].as_u64(), Some(3), "{r}");
+    let again = s.execute("embroidery.fontDoc.info", &json!({})).unwrap();
+    let names = |v: &Value| v["glyphs"].as_array().unwrap().iter().map(|g| g["name"].clone()).collect::<Vec<_>>();
+    assert_eq!(names(&first), names(&again));
+    assert_eq!(again["missing"].as_u64(), Some(0), "{again}");
+    // remove a glyph; the last one can't go
+    let r = s.execute("embroidery.fontDoc.removeGlyphs", &json!({"chars": "B"})).unwrap();
+    assert_eq!(r["removed"].as_u64(), Some(1));
+    let info = s.execute("embroidery.fontDoc.info", &json!({})).unwrap();
+    assert_eq!(names(&info), ["?", "A"]);
+    assert!(s.execute("embroidery.fontDoc.removeGlyphs", &json!({"chars": "B"})).is_err());
+    assert!(s.execute("embroidery.fontDoc.removeGlyphs", &json!({"chars": "?A"})).is_err());
+    assert!(s.execute("embroidery.fontDoc.open", &json!({})).is_err());
+    assert!(s.execute("embroidery.fontDoc.open", &json!({"font": "Nope"})).is_err());
+    assert!(s.execute("embroidery.fontDoc.open", &json!({"folder": "/nonexistent/sf-font"})).is_err());
+    std::fs::remove_dir_all(&dir).ok();
+}
+
+#[test]
 fn embroidery_fonts_start_from_type() {
     const PT: f64 = vectorcraft_embroidery::PT_PER_MM;
     let mut s = session();
@@ -5354,6 +5383,110 @@ fn lettering_aligns_and_follows_arcs() {
     assert!(s.execute("embroidery.lettering.edit", &json!({"spiral": 10})).is_err());
     assert!(s.execute("embroidery.lettering.edit", &json!({"arc": 40, "spiral": 5000})).is_err());
     assert!(s.execute("embroidery.lettering", &json!({"text": "A", "font": "Test Script", "spiral": 10})).is_err());
+}
+
+#[test]
+fn the_kiosk_justifies_spaces_and_sizes_its_lines() {
+    let mut s = session();
+    s.execute("embroidery.font.load", &json!({"json": TEST_FONT_JSON, "svg": TEST_FONT_SVG})).unwrap();
+    let lettering = |s: &Session, id: u64| match s.doc().unwrap().doc.node(NodeId(id)).unwrap().embroidery.as_deref().map(|e| e.stitch.clone()) {
+        Some(sf_core::attr::StitchType::Lettering(l)) => *l,
+        other => panic!("not lettering: {other:?}"),
+    };
+    // centre unless asked otherwise
+    let r = s.execute("embroidery.kiosk.order", &json!({"text": "A\nAAA", "font": "Test Script", "template": "name tape 100 × 30"})).unwrap();
+    let l = lettering(&s, r["id"].as_u64().unwrap());
+    assert_eq!(l.align, sf_core::attr::LetterAlign::Centre);
+    let r = s
+        .execute(
+            "embroidery.kiosk.order",
+            &json!({"text": "A\nAAA", "font": "Test Script", "template": "name tape 100 × 30", "align": "right", "leading": 1.5, "lineSizes": [8, 4], "size": 8}),
+        )
+        .unwrap();
+    let l = lettering(&s, r["id"].as_u64().unwrap());
+    assert_eq!((l.align, l.leading, l.line_sizes.clone()), (sf_core::attr::LetterAlign::Right, 1.5, vec![8.0, 4.0]));
+    assert!(s.execute("embroidery.kiosk.order", &json!({"text": "A", "font": "Test Script", "align": "middle"})).is_err());
+}
+
+#[test]
+fn font_preview_draws_text_without_touching_the_design() {
+    let mut s = session();
+    s.execute("embroidery.font.load", &json!({"json": TEST_FONT_JSON, "svg": TEST_FONT_SVG})).unwrap();
+    let two = TEST_FONT_JSON.replace("Test Script", "Test Two");
+    s.execute("embroidery.font.load", &json!({"json": two, "svg": TEST_FONT_SVG})).unwrap();
+    let before = s.doc().unwrap().doc.clone();
+    let one = s.execute("embroidery.font.preview", &json!({"font": "Test Script", "text": "AA", "size": 10})).unwrap();
+    let lines = one["lines"].as_array().unwrap();
+    assert!(!lines.is_empty() && one["width"].as_f64().unwrap() > 0.0, "{one}");
+    // another line: taller; another text: wider; another font: named as asked
+    let multi = s.execute("embroidery.font.preview", &json!({"font": "Test Script", "text": "AA\nAA", "size": 10})).unwrap();
+    assert!(multi["height"].as_f64().unwrap() > one["height"].as_f64().unwrap() + 1.0, "{multi}");
+    let wide = s.execute("embroidery.font.preview", &json!({"font": "Test Script", "text": "AAAA", "size": 10})).unwrap();
+    assert!(wide["width"].as_f64().unwrap() > one["width"].as_f64().unwrap() + 1.0);
+    let other = s.execute("embroidery.font.preview", &json!({"font": "Test Two", "text": "AA", "size": 10})).unwrap();
+    assert_eq!(other["font"], "Test Two");
+    // with no text, the font's name; bad calls are errors
+    assert!(s.execute("embroidery.font.preview", &json!({"font": "Test Script"})).is_ok());
+    assert!(s.execute("embroidery.font.preview", &json!({"font": "Nope"})).is_err());
+    assert!(s.execute("embroidery.font.preview", &json!({"font": "Test Script", "text": "AA", "size": 0})).is_err());
+    assert!(s.execute("embroidery.font.preview", &json!({})).is_err());
+    assert_eq!(s.doc().unwrap().doc.node_count(), before.node_count());
+}
+
+#[test]
+fn add_words_sets_lines_in_an_embroidery_font() {
+    let mut s = session();
+    s.execute("embroidery.font.load", &json!({"json": TEST_FONT_JSON, "svg": TEST_FONT_SVG})).unwrap();
+    let one = s.execute("embroidery.addWords", &json!({"text": "AA", "font": "Test Script", "height": 10})).unwrap();
+    let two = s.execute("embroidery.addWords", &json!({"text": "AA\nAA", "font": "Test Script", "height": 10, "align": "left"})).unwrap();
+    assert!(two["heightMm"].as_f64().unwrap() > one["heightMm"].as_f64().unwrap() + 1.0, "{one} {two}");
+    let id = NodeId(two["id"].as_u64().unwrap());
+    let st = s.doc().unwrap();
+    // remembered as lettering, so it can be edited with its lines
+    assert!(matches!(
+        st.doc.node(id).unwrap().embroidery.as_deref().map(|e| &e.stitch),
+        Some(sf_core::attr::StitchType::Lettering(l)) if l.text == "AA\nAA"
+    ));
+    assert!(s.execute("embroidery.addWords", &json!({"text": "A", "font": "Nope"})).is_err());
+    assert!(s.execute("embroidery.addWords", &json!({"text": "A", "font": "Test Script", "shape": "circle"})).is_err());
+}
+
+#[test]
+fn lettering_lines_have_their_own_sizes() {
+    let mut s = session();
+    s.execute("embroidery.font.load", &json!({"json": TEST_FONT_JSON, "svg": TEST_FONT_SVG})).unwrap();
+    let bounds = |s: &Session, id: NodeId| -> Vec<vectorcraft_geom::Rect> {
+        s.doc().unwrap().doc.node(id).unwrap().children().unwrap().iter().map(|g| g.geometric_bounds().unwrap()).collect()
+    };
+    let mk = |s: &mut Session, extra: serde_json::Value| {
+        let mut p = json!({"text": "A\nA", "font": "Test Script", "size": 10, "at": [300, 300], "align": "centre"});
+        p.as_object_mut().unwrap().extend(extra.as_object().unwrap().clone());
+        NodeId(s.execute("embroidery.lettering", &p).unwrap()["id"].as_u64().unwrap())
+    };
+    let plain = mk(&mut s, json!({}));
+    let p = bounds(&s, plain);
+    assert_eq!(p.len(), 2);
+    let (h, gap) = (p[0].height(), p[1].y0 - p[0].y0);
+    // the second line twice as big: twice the height, and the lines further apart
+    let big = mk(&mut s, json!({"lineSizes": [10, 20]}));
+    let b = bounds(&s, big);
+    assert!((b[0].height() - h).abs() < 0.01 && (b[1].height() - 2.0 * h).abs() < 0.01, "{b:?}");
+    assert!(b[1].y0 - b[0].y0 > gap, "{b:?} {gap}");
+    // 0 and missing lines follow the block's size; bad lists are errors
+    let same = mk(&mut s, json!({"lineSizes": [0]}));
+    let q = bounds(&s, same);
+    assert!((q[1].height() - h).abs() < 0.01);
+    assert!(s.execute("embroidery.lettering", &json!({"text": "A", "font": "Test Script", "lineSizes": [-3]})).is_err());
+    assert!(s.execute("embroidery.lettering", &json!({"text": "A", "font": "Test Script", "lineSizes": "x"})).is_err());
+    // set again, and cleared
+    s.execute("embroidery.lettering.edit", &json!({"lineSizes": [20, 10]})).unwrap();
+    let id = s.doc().unwrap().selection.objects[0];
+    let e = bounds(&s, id);
+    assert!((e[0].height() - 2.0 * e[1].height()).abs() < 0.01, "{e:?}");
+    s.execute("embroidery.lettering.edit", &json!({"lineSizes": null})).unwrap();
+    let id = s.doc().unwrap().selection.objects[0];
+    let e = bounds(&s, id);
+    assert!((e[0].height() - e[1].height()).abs() < 0.01);
 }
 
 #[test]
@@ -6461,4 +6594,57 @@ fn twenty_monogram_templates_pass_the_design_checks_at_three_sizes() {
     s.execute("file.new", &json!({"width": 600, "height": 600})).unwrap();
     s.execute("embroidery.monogram", &json!({"letters": "A", "font": "Test Script", "frame": "holly", "colors": ["#b3202a", "#1f6b3a"]})).unwrap();
     assert!(s.execute("embroidery.monogram", &json!({"letters": "A", "font": "Test Script", "frame": "nope"})).is_err());
+}
+
+#[test]
+fn clipart_library_has_sets_search_and_digitizable_motifs() {
+    let mut s = session();
+    let all = s.execute("embroidery.clipart.list", &json!({})).unwrap();
+    let sets: Vec<&str> = all["sets"].as_array().unwrap().iter().filter_map(|x| x["name"].as_str()).collect();
+    assert_eq!(sets, ["Holidays", "Sports", "Pets & animals", "Nature", "Kids", "Words & frames"]);
+    assert!(all["sets"].as_array().unwrap().iter().all(|x| x["count"].as_u64().unwrap() >= 2), "{all}");
+    assert!(all["clipart"].as_array().unwrap().len() >= 36);
+    // a set, a search (case-insensitive, by name or set) and both
+    let kids = s.execute("embroidery.clipart.list", &json!({"set": "kids"})).unwrap();
+    assert!(
+        kids["clipart"].as_array().unwrap().iter().all(|c| c["set"] == "Kids")
+            && kids["clipart"].as_array().unwrap().iter().any(|c| c["name"] == "Rocket")
+    );
+    let q = s.execute("embroidery.clipart.list", &json!({"q": "PUMP"})).unwrap();
+    assert_eq!(q["clipart"].as_array().unwrap().len(), 1);
+    let none = s.execute("embroidery.clipart.list", &json!({"set": "Holidays", "q": "rocket"})).unwrap();
+    assert!(none["clipart"].as_array().unwrap().is_empty());
+    assert!(s.execute("embroidery.clipart.list", &json!({"set": "Pirates"})).is_err());
+    // every one of the twenty new motifs inserts, sews and passes the design checks
+    let new = [
+        "Pumpkin",
+        "Christmas tree",
+        "Easter egg",
+        "Ghost",
+        "Gift box",
+        "Firework",
+        "Football",
+        "Baseball",
+        "Trophy",
+        "Fish",
+        "Bone",
+        "Cat face",
+        "Butterfly",
+        "Pine tree",
+        "Raindrop",
+        "Balloon",
+        "Rocket",
+        "Ice cream",
+        "Banner",
+        "Round frame",
+    ];
+    for name in new {
+        let mut s = session();
+        let r = s.execute("embroidery.clipart.insert", &json!({"name": name, "size": 40})).unwrap_or_else(|e| panic!("{name}: {e:?}"));
+        assert!(r["objects"].as_u64().unwrap() >= 1, "{name}");
+        assert!(s.embroidery_plan().unwrap().pattern().stitch_count() > 200, "{name} sews");
+        let check = s.execute("embroidery.check", &json!({})).unwrap();
+        let errors: Vec<&Value> = check["findings"].as_array().map(|f| f.iter().filter(|x| x["severity"] == "error").collect()).unwrap_or_default();
+        assert!(errors.is_empty(), "{name}: {errors:?}");
+    }
 }

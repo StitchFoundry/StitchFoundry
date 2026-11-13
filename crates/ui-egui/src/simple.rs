@@ -7,6 +7,7 @@
 use egui::{Color32, RichText, Ui, vec2};
 use serde_json::{Value, json};
 use vectorcraft_doc::NodeKind;
+use vectorcraft_embroidery::sf_core::attr::LetterAlign;
 
 use crate::VectorcraftApp;
 use crate::state::Experience;
@@ -34,6 +35,14 @@ pub struct SimpleState {
     pub words_along: Option<(u64, bool)>,
     /// The shape Add Words sets the words in without a line: straight, arcUp, arcDown or circle.
     pub words_shape: &'static str,
+    /// The embroidery font Add Words sets the words in, by name (empty: the built-in font), kept
+    /// from one opening to the next.
+    pub words_font: String,
+    /// Justification across the lines (None: centre) and the gap between them (None: the font's
+    /// own), and each line's own height (mm; 0: the height of the whole).
+    pub words_align: Option<LetterAlign>,
+    pub words_leading: Option<f64>,
+    pub words_line_sizes: Vec<f64>,
     /// The shape picker is open, for appliqué or not.
     pub shapes: Option<bool>,
     /// Start Over is asking to be sure.
@@ -523,6 +532,7 @@ pub fn keeps(id: &str, _p: &Value) -> bool {
         "file.place",
         "ui.saveForMyMachine",
         "ui.saveForMemoryCard",
+        "ui.startDesign",
         "ui.myMachine",
         "edit.undo",
         "edit.redo",
@@ -570,9 +580,11 @@ pub fn words_window(app: &mut VectorcraftApp, ctx: &egui::Context) {
     egui::Window::new(tl!("Add Words")).open(&mut open).collapsible(false).resizable(false).show(ctx, |ui| {
         ui.set_width(380.0);
         ui.label(RichText::new(tl!("What should it say?")).size(15.0));
-        let r = ui.add(egui::TextEdit::singleline(&mut text).font(egui::FontId::proportional(18.0)).desired_width(360.0));
+        // (Enter starts a new line; Ctrl or Cmd+Enter adds)
+        let r = ui.add(egui::TextEdit::multiline(&mut text).font(egui::FontId::proportional(18.0)).desired_rows(2).desired_width(360.0));
         r.request_focus();
         ui.add_space(6.0);
+        words_font_rows(app, ui, &text, height);
         ui.horizontal(|ui| {
             ui.label(RichText::new(tl!("How tall")).size(15.0));
             // a long slider with its filled part shown, so it reads as one in every theme
@@ -601,8 +613,9 @@ pub fn words_window(app: &mut VectorcraftApp, ctx: &egui::Context) {
         }
         ui.add_space(8.0);
         ui.horizontal(|ui| {
-            // (Enter adds: the text field keeps the keyboard, so its losing focus can't say so)
-            if crate::widgets::primary_button(ui, tl!("Add")).clicked() || ui.input(|i| i.key_pressed(egui::Key::Enter)) {
+            // (Ctrl or Cmd+Enter adds: the text field keeps the keyboard, so its losing focus can't
+            // say so, and plain Enter starts a new line)
+            if crate::widgets::primary_button(ui, tl!("Add")).clicked() || ui.input(|i| i.key_pressed(egui::Key::Enter) && i.modifiers.command) {
                 action = Some(true);
             }
             if ui.button(tl!("Cancel")).clicked() {
@@ -614,6 +627,7 @@ pub fn words_window(app: &mut VectorcraftApp, ctx: &egui::Context) {
     match action {
         Some(true) if !text.trim().is_empty() => {
             let mut p = json!({ "text": text, "height": height });
+            add_font_params(app, &mut p, along);
             if let Some((line, true)) = along {
                 p["path"] = json!(line);
             } else if app.simple.words_shape != "straight" {
@@ -627,5 +641,88 @@ pub fn words_window(app: &mut VectorcraftApp, ctx: &egui::Context) {
         Some(false) => app.simple.words = None,
         _ if !open => app.simple.words = None,
         _ => app.simple.words = Some((text, height)),
+    }
+}
+
+/// Add Words' font picker (the built-in font, or any embroidery font, each shown in itself and the
+/// text previewed in it) and how the lines sit: justification, spacing, and a height for each.
+fn words_font_rows(app: &mut VectorcraftApp, ui: &mut Ui, text: &str, height: f64) {
+    if !std::mem::replace(&mut app.embroidery.fonts_listed, true) {
+        app.run("embroidery.fonts", json!({})).ok();
+    }
+    let fonts: Vec<String> = app.session.embroidery_fonts.iter().map(|f| f.info.name.clone()).collect();
+    if fonts.is_empty() {
+        return;
+    }
+    let lines = text.lines().count().clamp(1, 12);
+    let cur = fonts.iter().position(|n| n.eq_ignore_ascii_case(&app.simple.words_font)).unwrap_or(0);
+    let line_sizes = app.simple.words_line_sizes.clone();
+    let sample = crate::embroidery::font_picker::Sample {
+        text,
+        align: app.simple.words_align.unwrap_or(LetterAlign::Centre),
+        leading: app.simple.words_leading.unwrap_or(1.0),
+        size: height,
+        line_sizes: &line_sizes,
+    };
+    if let Some(i) = crate::embroidery::font_picker::font_picker(app, ui, "words-font", tl!("Font"), &fonts, cur, &sample)
+        && let Some(n) = fonts.get(i)
+    {
+        app.simple.words_font = n.clone();
+    }
+    // an embroidery font is chosen unless a font was never picked: the first one
+    if app.simple.words_font.is_empty()
+        && let Some(n) = fonts.get(cur)
+    {
+        app.simple.words_font = n.clone();
+    }
+    ui.horizontal(|ui| {
+        ui.label(RichText::new(tl!("Justify")).size(15.0));
+        let now = app.simple.words_align.unwrap_or(LetterAlign::Centre);
+        for (a, label) in [(LetterAlign::Left, tl!("Left")), (LetterAlign::Centre, tl!("Centre")), (LetterAlign::Right, tl!("Right"))] {
+            if ui.selectable_label(now == a, RichText::new(label).size(15.0)).clicked() {
+                app.simple.words_align = Some(a);
+            }
+        }
+    });
+    if lines <= 1 {
+        app.simple.words_line_sizes.clear();
+        return;
+    }
+    ui.horizontal(|ui| {
+        ui.label(RichText::new(tl!("Line spacing")).size(15.0));
+        let mut pct = app.simple.words_leading.unwrap_or(1.0) * 100.0;
+        if ui.add(egui::DragValue::new(&mut pct).range(20.0..=500.0).suffix(" %").speed(1.0)).changed() {
+            app.simple.words_leading = Some(pct / 100.0);
+        }
+    });
+    let sizes = &mut app.simple.words_line_sizes;
+    sizes.resize(lines, 0.0);
+    for (n, s) in sizes.iter_mut().enumerate() {
+        ui.horizontal(|ui| {
+            ui.label(RichText::new(format!("{} {}", tl!("Height of line"), n + 1)).size(13.0));
+            let mut v = if *s > 0.0 { *s } else { height };
+            if ui.add(egui::DragValue::new(&mut v).range(5.0..=150.0).suffix(" mm").speed(0.5)).changed() {
+                *s = v;
+            }
+        });
+    }
+}
+
+/// The `addWords` parameters for an embroidery font: set straight as lettering, with its lines.
+fn add_font_params(app: &VectorcraftApp, p: &mut Value, along: Option<(u64, bool)>) {
+    let in_font =
+        !app.simple.words_font.is_empty() && app.session.embroidery_fonts.iter().any(|f| f.info.name.eq_ignore_ascii_case(&app.simple.words_font));
+    if !in_font || matches!(along, Some((_, true))) || app.simple.words_shape != "straight" {
+        return;
+    }
+    p["font"] = json!(app.simple.words_font);
+    p["align"] = json!(match app.simple.words_align.unwrap_or(LetterAlign::Centre) {
+        LetterAlign::Left => "left",
+        LetterAlign::Centre => "centre",
+        LetterAlign::Right => "right",
+    });
+    p["leading"] = json!(app.simple.words_leading.unwrap_or(1.0));
+    if app.simple.words_line_sizes.iter().any(|s| *s > 0.0) {
+        p["lineSizes"] = json!(app.simple.words_line_sizes);
     }
 }

@@ -34,6 +34,7 @@ pub mod embroidery_card;
 pub mod embroidery_charts;
 pub mod embroidery_chenille;
 pub mod embroidery_clipart;
+pub mod embroidery_clipart_sets;
 pub mod embroidery_colorways;
 pub mod embroidery_compare;
 pub mod embroidery_crosschart;

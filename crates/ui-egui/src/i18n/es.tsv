@@ -5053,16 +5053,12 @@ machine	Stop	Parada
 	Generate	Generar
 	Describe the design:	Describe el diseño:
 	Size (longest side):	Tamaño (lado más largo):
-	Anthropic API key:	Clave de API de Anthropic:
-	Remember the key on this computer	Recordar la clave en este equipo
-	Claude draws the artwork with your own Anthropic API key, billed to your Anthropic account; StitchFoundry then digitizes it. Check the stitches before you sew.	Claude dibuja la ilustración con tu propia clave de API de Anthropic y el uso se factura a tu cuenta de Anthropic; luego StitchFoundry la digitaliza. Comprueba las puntadas antes de bordar.
 	Get a key	Obtener una clave
 	Drawing the design…	Dibujando el diseño…
 	Describe a design and Claude draws artwork for it, then StitchFoundry digitizes it	Describe un diseño y Claude dibuja una ilustración para él; luego StitchFoundry la digitaliza
 	Place Artwork as Embroidery	Colocar ilustración como bordado
 	Place Artwork	Colocar ilustración
 @plural	Design placed: {n} stitched object|Design placed: {n} stitched objects	Diseño colocado: {n} objeto bordado|Diseño colocado: {n} objetos bordados
-@msg	Enter your Anthropic API key first.	Introduce primero tu clave de API de Anthropic.
 @msg	The API key isn't valid: paste it again from the Anthropic Console.	La clave de API no es válida: vuelve a pegarla desde Anthropic Console.
 @msg	Describe the design first.	Describe primero el diseño.
 @msg	The description is too long: keep it under 2,000 characters.	La descripción es demasiado larga: debe tener menos de 2000 caracteres.
@@ -5087,7 +5083,6 @@ machine	Stop	Parada
 	Redraw Image with Claude	Redibujar imagen con Claude
 	What to change (optional):	Qué cambiar (opcional):
 	Only redraw artwork you own or have permission to use.	Redibuja solo ilustraciones que te pertenezcan o que tengas permiso para usar.
-	Claude redraws the image as flat-colour art with your own Anthropic API key, billed to your Anthropic account; StitchFoundry then digitizes it. Check the stitches before you sew.	Claude redibuja la imagen como una ilustración de colores planos con tu propia clave de API de Anthropic y el uso se factura a tu cuenta de Anthropic; luego StitchFoundry la digitaliza. Comprueba las puntadas antes de bordar.
 	Redraw with Claude…	Redibujar con Claude…
 	Claude redraws the image as clean flat-colour art, then StitchFoundry digitizes it	Claude redibuja la imagen como una ilustración limpia de colores planos; luego StitchFoundry la digitaliza
 @msg	select an image to redraw	selecciona una imagen para redibujar
@@ -6567,8 +6562,6 @@ mark-style	Japanese	Japonesas
 	Ask	Preguntar
 	New Conversation	Nueva conversación
 	Include my design	Incluir mi diseño
-	Answers come from Claude with your own Anthropic API key, billed to your Anthropic account. They can be wrong: try a test sew before an important piece.	Las respuestas vienen de Claude con su propia clave de API de Anthropic, facturada a su cuenta de Anthropic. Pueden ser incorrectas: haga una prueba antes de una pieza importante.
-	Change key	Cambiar clave
 @msg	Type a question first.	Escriba primero una pregunta.
 @msg	The question is too long: keep it under 2,000 characters.	La pregunta es demasiado larga: no supere los 2000 caracteres.
 @msg	The AI declined to answer this: ask another way.	La IA se negó a responder: pregunte de otra manera.
@@ -6625,7 +6618,6 @@ mark-style	Japanese	Japonesas
 	Anything else? For example: a gap above the bumper	¿Algo más? Por ejemplo: un hueco encima del parachoques
 	As the design has it	Como lo tiene el diseño
 	Choose the photos in the browser's window…	Elija las fotos en la ventana del navegador…
-	Claude looks at the photos with your own Anthropic API key, billed to your Anthropic account. It can be wrong: try a fix on a scrap of the same fabric first.	Claude mira las fotos con su propia clave de API de Anthropic, cobrada en su cuenta de Anthropic. Puede equivocarse: pruebe un arreglo primero en un retal de la misma tela.
 	Include the design that was sewn (open now), so it can be fixed	Incluir el diseño que se bordó (abierto ahora), para poder arreglarlo
 	My sew-out ({n} photos)	Mi bordado ({n} fotos)
 	Needle	Aguja
@@ -6660,8 +6652,6 @@ mark-style	Japanese	Japonesas
 	Leave it empty for StitchFoundry's own service.	Déjelo vacío para el servicio propio de StitchFoundry.
 	Paid with Foundry credits ({n} left).	Pagado con créditos de Foundry (quedan {n}).
 	Paid with Foundry credits.	Pagado con créditos de Foundry.
-	Pay for the AI features with my Foundry credits	Pagar las funciones de IA con mis créditos de Foundry
-	Pay with Foundry credits instead	Pagar con créditos de Foundry
 	Payment is on Stripe's secure page, in your browser; your card never reaches StitchFoundry.	El pago se hace en la página segura de Stripe, en su navegador; su tarjeta nunca llega a StitchFoundry.
 	Reading your credits…	Leyendo sus créditos…
 	Server	Servidor
@@ -6672,7 +6662,6 @@ mark-style	Japanese	Japonesas
 	Signed in as {email}	Sesión iniciada como {email}
 	Foundry Account	Cuenta de Foundry
 	Foundry Account…	Cuenta de Foundry…
-	Foundry accounts aren't open yet. Until then, the AI features work with your own Anthropic API key.	Las cuentas de Foundry aún no están abiertas. Hasta entonces, las funciones de IA usan su propia clave de API de Anthropic.
 	This is the sew-out after the fix from my last check	Este es el bordado hecho tras el arreglo de mi última revisión
 	{n} credits for {price}	{n} créditos por {price}
 	{n} credits	{n} créditos
@@ -6897,9 +6886,7 @@ mark-style	Japanese	Japonesas
 	Quick	Rápido
 	Thorough	A fondo
 	About {typical} credits a drawing, at most {most}.	Unos {typical} créditos por dibujo, como máximo {most}.
-	About {typical} a drawing on your Anthropic account, at most {most}.	Unos {typical} por dibujo en su cuenta de Anthropic, como máximo {most}.
 	{tokens} tokens	{tokens} tokens
-	{tokens} tokens, about {cost}	{tokens} tokens, unos {cost}
 # AI research and check
 	Thorough looks up what it draws, thinks longest and checks its stitches once: it costs several times as much as Normal. Use it for real things, like a dog breed or a truck model, and for detailed designs.	A fondo investiga lo que dibuja, piensa más tiempo y revisa sus puntadas una vez: cuesta varias veces más que Normal. Úselo para cosas reales, como una raza de perro o un modelo de camioneta, y para diseños detallados.
 	Checking the stitches…	Revisando las puntadas…
