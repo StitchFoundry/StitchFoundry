@@ -109,7 +109,11 @@ fn load(app: &mut VectorcraftApp) {
 }
 
 /// The address the design goes to: the one typed, else `MAKERFOUNDRY_URL`, else makerfoundry.app.
-fn server(app: &VectorcraftApp) -> Result<String, ArtError> {
+pub(crate) fn server(app: &VectorcraftApp) -> Result<String, ArtError> {
+    // the web page's staging switch: the compiled-in staging MakerFoundry, whatever is typed
+    if app.staging {
+        return makerfoundry::server(crate::staging::MAKERFOUNDRY);
+    }
     let typed = app.embroidery.publish.server.trim();
     #[cfg(not(target_arch = "wasm32"))]
     if typed.is_empty()

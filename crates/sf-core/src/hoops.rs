@@ -23,11 +23,24 @@ pub struct Hoop {
     /// frame's centre); the fabric is hooped once and the machine sews one position at a time.
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub positions: Vec<[f64; 2]>,
+    /// Corner radius of a rectangular sewing field (mm); 0 for square corners.
+    #[serde(default, skip_serializing_if = "is_zero")]
+    pub corner_radius: f64,
+    /// Outer frame size (width, height in mm), when known; display only.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub frame: Option<[f64; 2]>,
+    /// Machines (by name) a hoop of one's own is attached to; empty for every standard hoop.
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub machines: Vec<String>,
+}
+
+fn is_zero(v: &f64) -> bool {
+    *v == 0.0
 }
 
 impl Hoop {
     pub fn new(name: &str, width: f64, height: f64, shape: HoopShape) -> Self {
-        Hoop { name: name.into(), width, height, shape, positions: Vec::new() }
+        Hoop { name: name.into(), width, height, shape, positions: Vec::new(), corner_radius: 0.0, frame: None, machines: Vec::new() }
     }
 
     /// A multi-position hoop: a `width` × `height` field at each of `positions`.
@@ -44,7 +57,15 @@ impl Hoop {
     pub fn contains(&self, p: Point) -> bool {
         let (hw, hh) = (self.width / 2.0, self.height / 2.0);
         match self.shape {
-            HoopShape::Rect => p.x.abs() <= hw && p.y.abs() <= hh,
+            HoopShape::Rect => {
+                if p.x.abs() > hw || p.y.abs() > hh {
+                    return false;
+                }
+                let r = self.corner_radius.clamp(0.0, hw.min(hh));
+                // distance past the inner box into the corner arc
+                let (dx, dy) = ((p.x.abs() - (hw - r)).max(0.0), (p.y.abs() - (hh - r)).max(0.0));
+                dx * dx + dy * dy <= r * r + 1e-9
+            }
             HoopShape::Oval => (p.x / hw).powi(2) + (p.y / hh).powi(2) <= 1.0,
         }
     }
@@ -59,7 +80,19 @@ impl Hoop {
         let (hw, hh) = (self.width / 2.0, self.height / 2.0);
         match self.shape {
             HoopShape::Rect => {
-                vec![Point::new(-hw, -hh), Point::new(hw, -hh), Point::new(hw, hh), Point::new(-hw, hh)]
+                let r = self.corner_radius.clamp(0.0, hw.min(hh));
+                if r <= 0.0 {
+                    return vec![Point::new(-hw, -hh), Point::new(hw, -hh), Point::new(hw, hh), Point::new(-hw, hh)];
+                }
+                // four corner arcs about the inner box's corners, 12 steps each
+                let mut v = Vec::with_capacity(52);
+                for (cx, cy, a0) in [(hw - r, hh - r, 0.0), (-(hw - r), hh - r, 0.25), (-(hw - r), -(hh - r), 0.5), (hw - r, -(hh - r), 0.75)] {
+                    for i in 0..=12 {
+                        let a = (a0 + 0.25 * f64::from(i) / 12.0) * std::f64::consts::TAU;
+                        v.push(Point::new(cx + r * a.cos(), cy + r * a.sin()));
+                    }
+                }
+                v
             }
             HoopShape::Oval => (0..96)
                 .map(|i| {

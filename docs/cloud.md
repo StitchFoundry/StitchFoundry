@@ -14,8 +14,8 @@
 > staging copy only: a QA bot makes and deletes verified test accounts (CLOUD-13).
 
 StitchFoundry's AI features (Design from Prompt, Redraw Image with Claude, Ask About Embroidery,
-Check My Sew-out) work with the user's own Anthropic API key. The cloud service is the other way:
-people make a Foundry account, buy credits, and the app sends their AI requests through the
+Check My Sew-out) are paid through the Foundry Account (the app has no option for a user's own
+Anthropic API key). The cloud service is how: people make a Foundry account, buy credits, and the app sends their AI requests through the
 service, which pays Anthropic with its own key and takes credits for what each request used. It is
 open source like the app (`apps/stitchfoundry-cloud`, MIT OR Apache-2.0), and whoever runs it sets
 its keys and prices; nothing secret is in the repository.

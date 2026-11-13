@@ -16,7 +16,9 @@ use vectorcraft_embroidery::fonts::{EmbFont, Glyph};
 use vectorcraft_geom::path::PathData;
 use vectorcraft_geom::{Affine, Rect};
 
-use super::embroidery_lettering::{GLYPHS_FILE, add_font, describe, ensure_fonts, loaded, not_loaded, ranged, remember_folder};
+use super::embroidery_lettering::{
+    GLYPHS_FILE, add_font, describe, ensure_fonts, font_from, loaded, not_loaded, ranged, read_folder, remember_folder,
+};
 use super::{CommandSpec, EngineError, Result, Session, always, bad, cmd, has_doc, str_param, targets};
 
 const NEW: &str = "embroidery.fontDoc.new";
@@ -103,6 +105,24 @@ pub fn specs() -> Vec<CommandSpec> {
             "{name: a loaded embroidery font (Ink/Stitch's or one made here)} open the font as a font document to refine its glyphs, add missing ones and change its properties and kerning; saving it (embroidery.fontDoc.save) replaces the loaded font of that name; opens a new document → {glyphs}",
             always,
             edit_font
+        ),
+        cmd!(
+            "embroidery.fontDoc.open",
+            "Open Embroidery Font",
+            [],
+            None,
+            "{font?: a loaded embroidery font's name | folder?: a font folder (desktop)} open an existing font as a font document (the reverse of embroidery.fontDoc.save): one artboard per glyph with its stitching, its advance, baseline and capitals' height guides; a folder's font is read, not loaded for lettering until saved → {glyphs, name, folder}",
+            always,
+            open_font
+        ),
+        cmd!(
+            "embroidery.fontDoc.removeGlyphs",
+            "Remove Glyphs",
+            [],
+            None,
+            "{chars: one glyph a character | names: [glyph, …]} remove the glyphs' artboards, guides and art from the font document → {removed}",
+            has_doc,
+            remove_glyphs
         ),
         cmd!(
             "embroidery.fontDoc.merge",
@@ -583,6 +603,57 @@ fn edit_font(s: &mut Session, p: &Value) -> Result<Value> {
     let name = str_param(p, "name").ok_or_else(|| bad(CMD, "missing `name`"))?;
     let _ = ensure_fonts(s);
     let font = loaded(s, name).ok_or_else(|| not_loaded(CMD, name))?;
+    let count = font_to_doc(s, &font);
+    Ok(json!({ "glyphs": count }))
+}
+
+/// Open: a loaded font by name, or a font folder, as a font document.
+fn open_font(s: &mut Session, p: &Value) -> Result<Value> {
+    const CMD: &str = "embroidery.fontDoc.open";
+    let pick = |k: &str| str_param(p, k).map(str::trim).filter(|v| !v.is_empty());
+    let font = match (pick("font"), pick("folder")) {
+        (Some(name), _) => {
+            let _ = ensure_fonts(s);
+            loaded(s, name).ok_or_else(|| not_loaded(CMD, name))?
+        }
+        (None, Some(dir)) => {
+            let (json, arts) = read_folder(dir)?;
+            let mut font = font_from(&json, &arts)?;
+            font.folder = Some(dir.to_string());
+            Arc::new(font)
+        }
+        _ => return Err(bad(CMD, "give a loaded font's name (`font`) or a font `folder`")),
+    };
+    let glyphs = font_to_doc(s, &font);
+    Ok(json!({ "glyphs": glyphs, "name": font.info.name, "folder": font.folder }))
+}
+
+fn remove_glyphs(s: &mut Session, p: &Value) -> Result<Value> {
+    const CMD: &str = "embroidery.fontDoc.removeGlyphs";
+    design(s, CMD)?;
+    let names = glyph_names(p, CMD)?;
+    let d = &s.doc()?.doc;
+    let gone: Vec<u32> = d.artboards.iter().filter(|a| names.contains(&a.name)).map(|a| a.id).collect();
+    if gone.is_empty() {
+        return Err(bad(CMD, "the font document has none of those glyphs"));
+    }
+    if gone.len() == d.artboards.len() {
+        return Err(bad(CMD, "a font keeps at least one glyph"));
+    }
+    let doomed: Vec<_> = glyph_art(d).into_iter().filter(|(a, _)| gone.contains(&a.id)).flat_map(|(_, art)| art.into_iter().map(|n| n.id)).collect();
+    s.edit("Remove Glyphs", |d, _| {
+        for id in &doomed {
+            d.remove(*id)?;
+        }
+        d.artboards.retain(|a| !gone.contains(&a.id));
+        d.guides.retain(|g| g.artboard.is_none_or(|a| !gone.contains(&a)));
+        Ok(())
+    })?;
+    Ok(json!({ "removed": gone.len() }))
+}
+
+/// Opens `font` as a new font document → its glyph count.
+fn font_to_doc(s: &mut Session, font: &EmbFont) -> usize {
     let i = &font.info;
     let unit = font.glyphs.values().next().map_or(1.0, |g| g.unit);
     let size = if i.size > 0.0 { i.size } else { 20.0 };
@@ -591,7 +662,7 @@ fn edit_font(s: &mut Session, p: &Value) -> Result<Value> {
     let f = FontDesign {
         name: i.name.clone(),
         size,
-        descent: depth(&font, 1.0).max(size * 0.4) + 2.0,
+        descent: depth(font, 1.0).max(size * 0.4) + 2.0,
         leading: if i.leading > 0.0 { mm(i.leading) / size } else { 1.4 },
         space: i.horiz_adv_x_space.map_or(size * 0.3, mm),
         letter_case: i.letter_case.clone(),
@@ -603,7 +674,7 @@ fn edit_font(s: &mut Session, p: &Value) -> Result<Value> {
         description: i.description.clone(),
         license: i.font_license.clone(),
     };
-    let glyphs = font_glyphs(&font, None, 1.0);
+    let glyphs = font_glyphs(font, None, 1.0);
     let widths: Vec<(String, f64)> = glyphs.iter().map(|(n, _, w)| (n.clone(), *w)).collect();
     let (boards, guides) = glyph_boards(&widths, &f, 0.0, 1);
     let mut doc = Document::new(100.0, 100.0);
@@ -623,7 +694,7 @@ fn edit_font(s: &mut Session, p: &Value) -> Result<Value> {
     doc.embroidery = Some(Box::new(DocEmbroidery { font: Some(f), ..DocEmbroidery::default() }));
     let count = doc.artboards.len();
     s.add_document(doc, None);
-    Ok(json!({ "glyphs": count }))
+    count
 }
 
 fn merge_font(s: &mut Session, p: &Value) -> Result<Value> {
