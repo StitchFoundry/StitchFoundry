@@ -14,6 +14,7 @@
 - Issue 61: customer-facing text names StitchFoundry instead of SiteSentrix (About, consent checkbox, README, website, installers, docs). Legal lines (LICENSE, NOTICE, copyright, ASSETS) untouched, waiting for Bruce. Consent-box translations dropped (English shows until retranslated).
 - 2026-11-07 nightly sweep: no reports to triage; filed #74 (plain fill has no stitch cap). `cargo xtask ci` run on main; cargo audit attempted.
 - Fix #66: decoration stitches (cord, sequins, beads, boring) stop at `decor::MAX_STITCHES` (200,000) per object, and a cord segment with a non-finite length is skipped.
+- Issue 65: org move to StitchFoundry: links, workflow refs, update check, AppImage/packaging URLs and the fonts repo owner now say `StitchFoundry`; the Pages URL is `stitchfoundry.github.io`. App ids `com.stitchwright.*` and CHANGELOG history unchanged.
 - Issue 62: workflows check out the font library from `StitchFoundry/stitchfoundry-fonts` (new org); pinned commit unchanged.
 - 2026-11-08 nightly sweep: no reports to triage; `cargo xtask ci` on main green through fmt, clippy, tests and doctests (later steps stopped to save disk); cargo audit: no vulnerabilities (6 unmaintained, 1 yanked = #48). Filed #79 (run/zigzag/satin have no stitch cap).
 - Fix #74: a fill piece stops at `fill::MAX_FILL_STITCHES` (1,000,000), and evenly or changing spaced fills have at most 200,000 rows (spread wider on a taller shape).
