@@ -1,5 +1,5 @@
 //! Updates (UPD-01): once a day the desktop app asks GitHub for StitchFoundry's releases
-//! (`api.github.com/repos/Stitchwright/StitchFoundry/releases`, nothing about the user sent but the
+//! (`api.github.com/repos/StitchFoundry/StitchFoundry/releases`, nothing about the user sent but the
 //! request itself) and, when one is newer than the running version, the Home screen says so with a
 //! Download button that opens the release page. A release candidate is offered only to someone
 //! running one; drafts and the unsigned "Latest build" are never offered. Help › Check for Updates
@@ -13,8 +13,8 @@ use serde_json::{Value, json};
 use crate::VectorcraftApp;
 
 /// Where the releases are listed (newest first) and where a release's page lives.
-const RELEASES_API: &str = "https://api.github.com/repos/Stitchwright/StitchFoundry/releases?per_page=20";
-const RELEASES_PAGE: &str = "https://github.com/Stitchwright/StitchFoundry/releases/tag/";
+const RELEASES_API: &str = "https://api.github.com/repos/StitchFoundry/StitchFoundry/releases?per_page=20";
+const RELEASES_PAGE: &str = "https://github.com/StitchFoundry/StitchFoundry/releases/tag/";
 /// The most of the answer read (the API's list is a few tens of kilobytes).
 const MAX_ANSWER: u64 = 4_000_000;
 /// How long between automatic checks (seconds).
@@ -228,7 +228,7 @@ mod tests {
         // a release candidate sees the next candidate and the release; the draft is never offered
         let n = newest(&body, "0.14.0-rc.1").unwrap().unwrap();
         assert_eq!(n.version, "0.15.0-rc.1");
-        assert_eq!(n.url, "https://github.com/Stitchwright/StitchFoundry/releases/tag/v0.15.0-rc.1", "built from the tag, not the answer");
+        assert_eq!(n.url, "https://github.com/StitchFoundry/StitchFoundry/releases/tag/v0.15.0-rc.1", "built from the tag, not the answer");
         // a release sees only releases: 0.14.0 is the newest, so nothing for it
         assert_eq!(newest(&body, "0.14.0").unwrap(), None);
         assert_eq!(newest(&body, "0.13.0").unwrap().unwrap().version, "0.14.0");
@@ -246,7 +246,7 @@ mod tests {
     fn the_check_runs_in_the_background_and_the_home_card_offers_the_download() {
         let services = crate::Services {
             http_get: Some(std::sync::Arc::new(|url: &str, _: u64| {
-                assert!(url.starts_with("https://api.github.com/repos/Stitchwright/StitchFoundry/releases"));
+                assert!(url.starts_with("https://api.github.com/repos/StitchFoundry/StitchFoundry/releases"));
                 Ok((200, serde_json::to_vec(&json!([release("v99.0.0", false, false)])).unwrap()))
             })),
             ..Default::default()

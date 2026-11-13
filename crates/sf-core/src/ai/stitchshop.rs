@@ -1,5 +1,5 @@
 //! Send to StitchShop (SHOP-01): the design sent to the shop that will sew it, through the
-//! StitchHub inbox (the README's "StitchFoundry inbox" in Stitchwright/stitchhub; the plan is
+//! StitchHub inbox (the README's "StitchFoundry inbox" in StitchFoundry/stitchhub; the plan is
 //! `docs/stitchshop.md`). The requests carry the Foundry Account's session token, which the hub
 //! checks with the account service and never keeps. The file and its preview go straight to the
 //! hub's file store at the addresses it signs; the hub only sees their sizes and hashes. As

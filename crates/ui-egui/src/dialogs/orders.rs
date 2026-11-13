@@ -20,7 +20,7 @@ use crate::theme::{self, Tokens};
 /// Shopify's GraphQL Admin API version asked for (its quarterly releases; the newest at writing).
 const SHOPIFY_API: &str = "2026-10";
 /// How the setup guide and each shop's own instructions are reached.
-pub const GUIDE_URL: &str = "https://github.com/Stitchwright/StitchFoundry/blob/main/docs/online-orders.md";
+pub const GUIDE_URL: &str = "https://github.com/StitchFoundry/StitchFoundry/blob/main/docs/online-orders.md";
 const SHOPIFY_DASHBOARD: &str = "https://dev.shopify.com/dashboard/";
 const SHOPIFY_HELP: &str = "https://shopify.dev/docs/apps/build/authentication-authorization/access-tokens/client-credentials-grant";
 const WOO_HELP: &str = "https://woocommerce.com/document/woocommerce-rest-api/";
