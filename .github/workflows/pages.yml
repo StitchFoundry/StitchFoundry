@@ -56,7 +56,7 @@ jobs:
       # only their fonts/ folder. Bump the commit deliberately.
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
-          repository: Stitchwright/stitchfoundry-fonts
+          repository: StitchFoundry/stitchfoundry-fonts
           ref: 857ca33ffab22a3bfb976a0a301880b74dc57050
           path: stitchfoundry-fonts
           sparse-checkout: fonts
