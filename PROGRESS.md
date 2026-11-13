@@ -14,10 +14,13 @@
 - Issue 61: customer-facing text names StitchFoundry instead of SiteSentrix (About, consent checkbox, README, website, installers, docs). Legal lines (LICENSE, NOTICE, copyright, ASSETS) untouched, waiting for Bruce. Consent-box translations dropped (English shows until retranslated).
 - 2026-11-07 nightly sweep: no reports to triage; filed #74 (plain fill has no stitch cap). `cargo xtask ci` run on main; cargo audit attempted.
 - Fix #66: decoration stitches (cord, sequins, beads, boring) stop at `decor::MAX_STITCHES` (200,000) per object, and a cord segment with a non-finite length is skipped.
+- Issue 62: workflows check out the font library from `StitchFoundry/stitchfoundry-fonts` (new org); pinned commit unchanged.
 - 2026-11-08 nightly sweep: no reports to triage; `cargo xtask ci` on main green through fmt, clippy, tests and doctests (later steps stopped to save disk); cargo audit: no vulnerabilities (6 unmaintained, 1 yanked = #48). Filed #79 (run/zigzag/satin have no stitch cap).
 - Fix #74: a fill piece stops at `fill::MAX_FILL_STITCHES` (1,000,000), and evenly or changing spaced fills have at most 200,000 rows (spread wider on a taller shape).
 - 2026-11-09 nightly sweep: no reports to triage; cargo audit finds no vulnerabilities (7 unmaintained/yanked notices). Filed #84 (satin split length has no lower bound).
 - Fix #79: run, zigzag, blanket, backstitch and stem lines stop at `run::MAX_RUN_STITCHES` (1,000,000 points per object, all passes), and satin sampling at `MAX_SATIN_PAIRS`. `polyline::points_at` walks a polyline once instead of once per point, so a long column is no longer quadratic.
+- Fix #39: the XXX reader checks the end-record pointer with `checked_add`, so a pointer near `u32::MAX` can't overflow on 32-bit (wasm) builds.
+- 2026-11-11 nightly sweep: no reports to triage; clippy + workspace tests run on main; fix PR for #39.
 - 2026-11-10 nightly sweep: no reports to triage; cargo audit finds no vulnerabilities (7 unmaintained/yanked notices); no new findings filed (the radial fill's split length, same bug as #84, is fixed with it).
 - Fix #84: auto split and tatami pieces are at least `MIN_SPLIT_LENGTH` (0.5 mm) in satin columns, satin fills and radial fills, and one stitch is cut into at most 10,000 pieces.
 - Issue 83 (part): `embroidery.newDesign` with no hoop named takes the last hoop picked by name (pref `last_hoop`, kept across restarts; ignored if My Machine lacks it; samples and custom sizes don't change it). Still to do: Ctrl/Cmd+N opening Start a design, on-screen out-of-field warning at creation, screenshots.
