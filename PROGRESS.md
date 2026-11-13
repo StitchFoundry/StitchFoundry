@@ -20,6 +20,9 @@
 - Fix #74: a fill piece stops at `fill::MAX_FILL_STITCHES` (1,000,000), and evenly or changing spaced fills have at most 200,000 rows (spread wider on a taller shape).
 - 2026-11-09 nightly sweep: no reports to triage; cargo audit finds no vulnerabilities (7 unmaintained/yanked notices). Filed #84 (satin split length has no lower bound).
 - Fix #79: run, zigzag, blanket, backstitch and stem lines stop at `run::MAX_RUN_STITCHES` (1,000,000 points per object, all passes), and satin sampling at `MAX_SATIN_PAIRS`. `polyline::points_at` walks a polyline once instead of once per point, so a long column is no longer quadratic.
+- 2026-11-12 nightly sweep: no reports to triage; filed #137 (scaled lettering keeps its old per-line sizes). `cargo xtask ci` and cargo audit run on main.
+- Fix #137: scaling lettering scales each line's own size with it, so a line set twice the block's size stays twice it when the lettering is set again.
+- Part of #91 (Send to my phone): cloud service side. `POST /v1/phone` keeps a design file for 24 hours under a private link, `GET /v1/phone/<link>` downloads it, `GET /v1/phone/list` shows the last ten; tests for expiry, privacy and bad names. Still to do: the app button, the QR code, the web list.
 - Fix #39: the XXX reader checks the end-record pointer with `checked_add`, so a pointer near `u32::MAX` can't overflow on 32-bit (wasm) builds.
 - 2026-11-11 nightly sweep: no reports to triage; clippy + workspace tests run on main; fix PR for #39.
 - 2026-11-10 nightly sweep: no reports to triage; cargo audit finds no vulnerabilities (7 unmaintained/yanked notices); no new findings filed (the radial fill's split length, same bug as #84, is fixed with it).
