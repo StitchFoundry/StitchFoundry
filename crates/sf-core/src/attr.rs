@@ -185,6 +185,9 @@ pub struct Lettering {
     pub font: String,
     /// The capitals' height (mm).
     pub size: f64,
+    /// Each line's own capitals' height (mm), by line; a line past the end (or with 0) has `size`.
+    #[serde(default, rename = "lineSizes", skip_serializing_if = "Vec::is_empty")]
+    pub line_sizes: Vec<f64>,
     /// Lines apart, × the font's own line spacing.
     #[serde(default = "one")]
     pub leading: f64,
@@ -1112,6 +1115,7 @@ mod tests {
             text: "Hi".into(),
             font: "F".into(),
             size: 10.0,
+            line_sizes: Vec::new(),
             leading: 1.0,
             arc: 30.0,
             spiral: 5.0,

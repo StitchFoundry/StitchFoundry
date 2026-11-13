@@ -13,14 +13,17 @@ const MAX_ADDRESS: usize = 2000;
 
 /// The address in `raw` (the `open=` value, percent-encoded) when it may be fetched: HTTPS, on an
 /// allowed site, with no user name, port or spaces; else why not.
-pub fn allowed(raw: &str) -> Result<String, &'static str> {
+pub fn allowed(raw: &str, staging: bool) -> Result<String, &'static str> {
     let url = percent_decode(raw).ok_or("the link to the design isn't a valid address")?;
     if url.len() > MAX_ADDRESS || url.chars().any(|c| c.is_whitespace() || c.is_control()) {
         return Err("the link to the design isn't a valid address");
     }
     let rest = url.strip_prefix("https://").ok_or("designs open only from https:// addresses")?;
     let host = rest.split(['/', '?', '#']).next().unwrap_or_default();
-    if host.contains(['@', ':']) || !ALLOWED_HOSTS.contains(&host.to_ascii_lowercase().as_str()) {
+    let lower = host.to_ascii_lowercase();
+    // the staging MakerFoundry only while the tab is in staging mode (`?services=staging`)
+    let staging_host = staging && lower == vectorcraft_ui_egui::staging::MAKERFOUNDRY_HOST;
+    if host.contains(['@', ':']) || !(ALLOWED_HOSTS.contains(&lower.as_str()) || staging_host) {
         return Err("designs open only from MakerFoundry");
     }
     Ok(url)
@@ -220,9 +223,9 @@ mod tests {
     #[test]
     fn only_makerfoundry_over_https() {
         let ok = "https%3A%2F%2Fmakerfoundry.app%2Fapi%2Fv1%2Fdesigns%2F42%2Ffile%2Frose.pes";
-        assert_eq!(allowed(ok).unwrap(), "https://makerfoundry.app/api/v1/designs/42/file/rose.pes");
-        assert!(allowed("https://www.makerfoundry.app/x.dst").is_ok());
-        assert!(allowed("https://MakerFoundry.app/x.dst").is_ok());
+        assert_eq!(allowed(ok, false).unwrap(), "https://makerfoundry.app/api/v1/designs/42/file/rose.pes");
+        assert!(allowed("https://www.makerfoundry.app/x.dst", false).is_ok());
+        assert!(allowed("https://MakerFoundry.app/x.dst", false).is_ok());
         for bad in [
             "http://makerfoundry.app/x.pes",
             "https://makerfoundry.app.evil.example/x.pes",
@@ -234,9 +237,25 @@ mod tests {
             "https%3A%2F%2Fmakerfoundry.app%2F%ZZ",
             "",
         ] {
-            assert!(allowed(bad).is_err(), "{bad}");
+            assert!(allowed(bad, false).is_err(), "{bad}");
+            assert!(allowed(bad, true).is_err(), "{bad} (staging)");
         }
-        assert!(allowed(&format!("https://makerfoundry.app/{}", "a".repeat(3000))).is_err());
+        assert!(allowed(&format!("https://makerfoundry.app/{}", "a".repeat(3000)), false).is_err());
+        // the staging MakerFoundry opens only while in staging mode, and only exactly
+        let staging = format!("https://{}/api/v1/designs/1/file/a.pes", vectorcraft_ui_egui::staging::MAKERFOUNDRY_HOST);
+        assert!(allowed(&staging, false).is_err());
+        assert_eq!(allowed(&staging, true).unwrap(), staging);
+        for look_alike in [
+            "https://makerfoundry-test-test.up.railway.app.evil.example/a.pes",
+            "https://evil-makerfoundry-test-test.up.railway.app/a.pes",
+            "https://makerfoundry-test-test.up.railway.app:8443/a.pes",
+            "http://makerfoundry-test-test.up.railway.app/a.pes",
+            "https://cloud-staging-staging.up.railway.app/a.pes",
+        ] {
+            assert!(allowed(look_alike, true).is_err(), "{look_alike}");
+        }
+        // production still opens in staging mode
+        assert!(allowed("https://makerfoundry.app/x.pes", true).is_ok());
         assert!(fits(MAX_BYTES) && !fits(MAX_BYTES + 1));
     }
 
