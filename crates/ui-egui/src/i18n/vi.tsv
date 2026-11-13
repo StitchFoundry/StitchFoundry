@@ -5307,16 +5307,12 @@ machine	Stop	Dừng máy
 	Generate	Tạo
 	Describe the design:	Mô tả mẫu thêu:
 	Size (longest side):	Kích thước (cạnh dài nhất):
-	Anthropic API key:	Khóa API Anthropic:
-	Remember the key on this computer	Ghi nhớ khóa trên máy tính này
-	Claude draws the artwork with your own Anthropic API key, billed to your Anthropic account; StitchFoundry then digitizes it. Check the stitches before you sew.	Claude vẽ tác phẩm bằng khóa API Anthropic của riêng bạn, tính phí vào tài khoản Anthropic của bạn; sau đó StitchFoundry số hóa nó. Hãy kiểm tra mũi thêu trước khi thêu.
 	Get a key	Lấy khóa
 	Drawing the design…	Đang vẽ mẫu thêu…
 	Describe a design and Claude draws artwork for it, then StitchFoundry digitizes it	Mô tả một mẫu thêu và Claude sẽ vẽ tác phẩm cho nó, rồi StitchFoundry số hóa nó
 	Place Artwork as Embroidery	Đặt tác phẩm thành mẫu thêu
 	Place Artwork	Đặt tác phẩm
 @plural	Design placed: {n} stitched object|Design placed: {n} stitched objects	Đã đặt mẫu thêu: {n} đối tượng thêu
-@msg	Enter your Anthropic API key first.	Hãy nhập khóa API Anthropic trước.
 @msg	The API key isn't valid: paste it again from the Anthropic Console.	Khóa API không hợp lệ: hãy dán lại từ Anthropic Console.
 @msg	Describe the design first.	Hãy mô tả mẫu thêu trước.
 @msg	The description is too long: keep it under 2,000 characters.	Mô tả quá dài: hãy giữ dưới 2.000 ký tự.
@@ -5339,7 +5335,6 @@ machine	Stop	Dừng máy
 	Redraw Image with Claude	Vẽ lại ảnh bằng Claude
 	What to change (optional):	Điều cần thay đổi (tùy chọn):
 	Only redraw artwork you own or have permission to use.	Chỉ vẽ lại tác phẩm bạn sở hữu hoặc được phép sử dụng.
-	Claude redraws the image as flat-colour art with your own Anthropic API key, billed to your Anthropic account; StitchFoundry then digitizes it. Check the stitches before you sew.	Claude vẽ lại ảnh thành tranh màu phẳng bằng khóa API Anthropic của riêng bạn, tính phí vào tài khoản Anthropic của bạn; sau đó StitchFoundry số hóa nó. Hãy kiểm tra mũi thêu trước khi thêu.
 	Redraw with Claude…	Vẽ lại bằng Claude…
 	Claude redraws the image as clean flat-colour art, then StitchFoundry digitizes it	Claude vẽ lại ảnh thành tranh màu phẳng gọn gàng, rồi StitchFoundry số hóa nó
 @msg	select an image to redraw	hãy chọn một ảnh để vẽ lại
@@ -6238,8 +6233,6 @@ machine	Stop	Dừng máy
 	Ask	Hỏi
 	New Conversation	Cuộc trò chuyện mới
 	Include my design	Kèm mẫu thêu của tôi
-	Answers come from Claude with your own Anthropic API key, billed to your Anthropic account. They can be wrong: try a test sew before an important piece.	Câu trả lời đến từ Claude bằng khóa API Anthropic của riêng bạn, tính phí vào tài khoản Anthropic của bạn. Chúng có thể sai: hãy thêu thử trước một sản phẩm quan trọng.
-	Change key	Đổi khóa
 @msg	Type a question first.	Hãy gõ câu hỏi trước.
 @msg	The question is too long: keep it under 2,000 characters.	Câu hỏi quá dài: hãy giữ dưới 2.000 ký tự.
 @msg	The AI declined to answer this: ask another way.	AI từ chối trả lời câu này: hãy hỏi theo cách khác.
@@ -6295,7 +6288,6 @@ machine	Stop	Dừng máy
 	Anything else? For example: a gap above the bumper	Còn gì khác? Ví dụ: có khe hở phía trên cản xe
 	As the design has it	Như trong mẫu thêu
 	Choose the photos in the browser's window…	Hãy chọn ảnh trong cửa sổ trình duyệt…
-	Claude looks at the photos with your own Anthropic API key, billed to your Anthropic account. It can be wrong: try a fix on a scrap of the same fabric first.	Claude xem ảnh bằng khóa API Anthropic của bạn, tính phí vào tài khoản Anthropic của bạn. Nó có thể sai: hãy thử cách sửa trên mảnh vải vụn cùng loại trước.
 	Include the design that was sewn (open now), so it can be fixed	Gửi kèm mẫu đã thêu (đang mở) để có thể sửa
 	My sew-out ({n} photos)	Bản thêu của tôi ({n} ảnh)
 	Needle	Kim
@@ -6324,8 +6316,6 @@ machine	Stop	Dừng máy
 	Leave it empty for StitchFoundry's own service.	Để trống để dùng dịch vụ của chính StitchFoundry.
 	Paid with Foundry credits ({n} left).	Trả bằng tín dụng Foundry (còn {n}).
 	Paid with Foundry credits.	Trả bằng tín dụng Foundry.
-	Pay for the AI features with my Foundry credits	Trả tiền tính năng AI bằng tín dụng Foundry của tôi
-	Pay with Foundry credits instead	Trả bằng tín dụng Foundry thay vào đó
 	Payment is on Stripe's secure page, in your browser; your card never reaches StitchFoundry.	Thanh toán diễn ra trên trang bảo mật của Stripe trong trình duyệt; thẻ của bạn không bao giờ đến StitchFoundry.
 	Reading your credits…	Đang đọc tín dụng…
 	Server	Máy chủ
@@ -6336,7 +6326,6 @@ machine	Stop	Dừng máy
 	Signed in as {email}	Đã đăng nhập: {email}
 	Foundry Account	Tài khoản Foundry
 	Foundry Account…	Tài khoản Foundry…
-	Foundry accounts aren't open yet. Until then, the AI features work with your own Anthropic API key.	Tài khoản Foundry chưa mở. Cho đến lúc đó, tính năng AI dùng khóa API Anthropic của riêng bạn.
 	This is the sew-out after the fix from my last check	Đây là bản thêu sau khi sửa theo lần kiểm tra trước của tôi
 	{n} credits for {price}	{n} tín dụng giá {price}
 	{n} credits	{n} tín dụng
@@ -6540,9 +6529,7 @@ machine	Stop	Dừng máy
 	Quick	Nhanh
 	Thorough	Kỹ lưỡng
 	About {typical} credits a drawing, at most {most}.	Khoảng {typical} tín dụng mỗi bản vẽ, tối đa {most}.
-	About {typical} a drawing on your Anthropic account, at most {most}.	Khoảng {typical} mỗi bản vẽ trên tài khoản Anthropic của bạn, tối đa {most}.
 	{tokens} tokens	{tokens} token
-	{tokens} tokens, about {cost}	{tokens} token, khoảng {cost}
 # AI research and check
 	Thorough looks up what it draws, thinks longest and checks its stitches once: it costs several times as much as Normal. Use it for real things, like a dog breed or a truck model, and for detailed designs.	Kỹ lưỡng tìm hiểu thứ nó vẽ, suy nghĩ lâu nhất và kiểm tra mũi thêu một lần: tốn gấp vài lần Bình thường. Dùng cho vật có thật, như một giống chó hay một mẫu xe tải, và cho thiết kế nhiều chi tiết.
 	Checking the stitches…	Đang kiểm tra mũi thêu…

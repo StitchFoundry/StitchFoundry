@@ -5661,16 +5661,12 @@ machine	Stop	Stopp
 	Generate	Generera
 	Describe the design:	Beskriv designen:
 	Size (longest side):	Storlek (längsta sida):
-	Anthropic API key:	Anthropic API-nyckel:
-	Remember the key on this computer	Kom ihåg nyckeln på den här datorn
-	Claude draws the artwork with your own Anthropic API key, billed to your Anthropic account; StitchFoundry then digitizes it. Check the stitches before you sew.	Claude ritar teckningen med din egen Anthropic API-nyckel, debiterat ditt Anthropic-konto; sedan digitaliserar StitchFoundry den. Kontrollera stygnen innan du syr.
 	Get a key	Skaffa en nyckel
 	Drawing the design…	Ritar designen…
 	Describe a design and Claude draws artwork for it, then StitchFoundry digitizes it	Beskriv en design så ritar Claude en teckning till den, och sedan digitaliserar StitchFoundry den
 	Place Artwork as Embroidery	Placera teckning som broderi
 	Place Artwork	Placera teckning
 @plural	Design placed: {n} stitched object|Design placed: {n} stitched objects	Design placerad: {n} sytt objekt|Design placerad: {n} sydda objekt
-@msg	Enter your Anthropic API key first.	Ange din Anthropic API-nyckel först.
 @msg	The API key isn't valid: paste it again from the Anthropic Console.	API-nyckeln är ogiltig: klistra in den igen från Anthropic Console.
 @msg	Describe the design first.	Beskriv designen först.
 @msg	The description is too long: keep it under 2,000 characters.	Beskrivningen är för lång: håll den under 2 000 tecken.
@@ -5693,7 +5689,6 @@ machine	Stop	Stopp
 	Redraw Image with Claude	Rita om bilden med Claude
 	What to change (optional):	Vad som ska ändras (valfritt):
 	Only redraw artwork you own or have permission to use.	Rita bara om teckningar som du äger eller har tillstånd att använda.
-	Claude redraws the image as flat-colour art with your own Anthropic API key, billed to your Anthropic account; StitchFoundry then digitizes it. Check the stitches before you sew.	Claude ritar om bilden som plana färgfält med din egen Anthropic API-nyckel, debiterat ditt Anthropic-konto; sedan digitaliserar StitchFoundry den. Kontrollera stygnen innan du syr.
 	Redraw with Claude…	Rita om med Claude…
 	Claude redraws the image as clean flat-colour art, then StitchFoundry digitizes it	Claude ritar om bilden som ren teckning i plana färger, och sedan digitaliserar StitchFoundry den
 @msg	select an image to redraw	markera en bild att rita om
@@ -6597,8 +6592,6 @@ machine	Stop	Stopp
 	Ask	Fråga
 	New Conversation	Ny konversation
 	Include my design	Inkludera min design
-	Answers come from Claude with your own Anthropic API key, billed to your Anthropic account. They can be wrong: try a test sew before an important piece.	Svaren kommer från Claude med din egen Anthropic API-nyckel, debiterat ditt Anthropic-konto. De kan vara fel: provsy innan ett viktigt arbete.
-	Change key	Byt nyckel
 @msg	Type a question first.	Skriv en fråga först.
 @msg	The question is too long: keep it under 2,000 characters.	Frågan är för lång: håll den under 2 000 tecken.
 @msg	The AI declined to answer this: ask another way.	AI:n avböjde att svara på detta: fråga på ett annat sätt.
@@ -6654,7 +6647,6 @@ machine	Stop	Stopp
 	Anything else? For example: a gap above the bumper	Något annat? Till exempel: en glipa ovanför stötfångaren
 	As the design has it	Som i mönstret
 	Choose the photos in the browser's window…	Välj fotona i webbläsarens fönster…
-	Claude looks at the photos with your own Anthropic API key, billed to your Anthropic account. It can be wrong: try a fix on a scrap of the same fabric first.	Claude tittar på fotona med din egen API-nyckel från Anthropic, som debiteras ditt Anthropic-konto. Den kan ha fel: prova en rättelse på en bit av samma tyg först.
 	Include the design that was sewn (open now), so it can be fixed	Skicka med det broderade mönstret (öppet nu), så att det kan rättas
 	My sew-out ({n} photos)	Mitt broderi ({n} foton)
 	Needle	Nål
@@ -6683,8 +6675,6 @@ machine	Stop	Stopp
 	Leave it empty for StitchFoundry's own service.	Lämna tomt för StitchFoundrys egen tjänst.
 	Paid with Foundry credits ({n} left).	Betalt med Foundry-krediter ({n} kvar).
 	Paid with Foundry credits.	Betalt med Foundry-krediter.
-	Pay for the AI features with my Foundry credits	Betala AI-funktionerna med mina Foundry-krediter
-	Pay with Foundry credits instead	Betala med Foundry-krediter i stället
 	Payment is on Stripe's secure page, in your browser; your card never reaches StitchFoundry.	Betalningen sker på Stripes säkra sida i din webbläsare; ditt kort når aldrig StitchFoundry.
 	Reading your credits…	Läser dina krediter…
 	Server	Server
@@ -6695,7 +6685,6 @@ machine	Stop	Stopp
 	Signed in as {email}	Inloggad som {email}
 	Foundry Account	Foundry-konto
 	Foundry Account…	Foundry-konto…
-	Foundry accounts aren't open yet. Until then, the AI features work with your own Anthropic API key.	Foundry-konton har inte öppnat än. Tills dess fungerar AI-funktionerna med din egen API-nyckel från Anthropic.
 	This is the sew-out after the fix from my last check	Det här är broderiet efter rättelsen från min senaste kontroll
 	{n} credits for {price}	{n} krediter för {price}
 	{n} credits	{n} krediter
@@ -6951,9 +6940,7 @@ swatch	Yellow Green	Gulgrön
 	Quick	Snabb
 	Thorough	Grundlig
 	About {typical} credits a drawing, at most {most}.	Ungefär {typical} krediter per teckning, högst {most}.
-	About {typical} a drawing on your Anthropic account, at most {most}.	Ungefär {typical} per teckning på ditt Anthropic-konto, högst {most}.
 	{tokens} tokens	{tokens} tokens
-	{tokens} tokens, about {cost}	{tokens} tokens, ungefär {cost}
 # AI research and check
 	Thorough looks up what it draws, thinks longest and checks its stitches once: it costs several times as much as Normal. Use it for real things, like a dog breed or a truck model, and for detailed designs.	Grundlig tar reda på vad den tecknar, tänker längst och kontrollerar sina stygn en gång: den kostar flera gånger så mycket som Normal. Använd den för verkliga saker, som en hundras eller en lastbilsmodell, och för detaljerade motiv.
 	Checking the stitches…	Kontrollerar stygnen…

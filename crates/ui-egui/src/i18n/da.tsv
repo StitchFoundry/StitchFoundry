@@ -5437,8 +5437,6 @@ swatch	Bright Violet	Kraftig violet
 	An in-the-hoop project	Et projekt syet i rammen
 	Another fabric, or not sure: leave it as it is	Et andet stof, eller ikke sikker: lad det være, som det er
 	Another machine (DST)	En anden maskine (DST)
-	Answers come from Claude with your own Anthropic API key, billed to your Anthropic account. They can be wrong: try a test sew before an important piece.	Svarene kommer fra Claude med din egen Anthropic API-nøgle og faktureres til din Anthropic-konto. De kan være forkerte: lav en prøvesyning før et vigtigt stykke.
-	Anthropic API key:	Anthropic API-nøgle:
 	Anything else? For example: a gap above the bumper	Andet? For eksempel: et mellemrum over kofangeren
 	Applies the next time StitchFoundry starts.	Træder i kraft næste gang StitchFoundry starter.
 	Appliqué	Applikation
@@ -5543,7 +5541,6 @@ swatch	Bright Violet	Kraftig violet
 	Centred	Centreret
 	Chain	Kædesting
 	Change It Anyway	Ændr alligevel
-	Change key	Skift nøgle
 	Change the Size?	Ændre størrelsen?
 	Changed:	Ændret:
 	Check	Tern
@@ -5572,10 +5569,7 @@ swatch	Bright Violet	Kraftig violet
 	Choose the photos in the browser's window…	Vælg fotoene i browserens vindue…
 	Chord length	Kordelængde
 	Circles	Cirkler
-	Claude draws the artwork with your own Anthropic API key, billed to your Anthropic account; StitchFoundry then digitizes it. Check the stitches before you sew.	Claude tegner grafikken med din egen Anthropic API-nøgle, faktureret til din Anthropic-konto; derefter digitaliserer StitchFoundry den. Tjek stingene, før du syr.
-	Claude looks at the photos with your own Anthropic API key, billed to your Anthropic account. It can be wrong: try a fix on a scrap of the same fabric first.	Claude ser på fotoene med din egen Anthropic API-nøgle, faktureret til din Anthropic-konto. Det kan tage fejl: prøv en rettelse på en stofrest af samme stof først.
 	Claude redraws the image as clean flat-colour art, then StitchFoundry digitizes it	Claude tegner billedet om som ren grafik i flade farver, og derefter digitaliserer StitchFoundry det
-	Claude redraws the image as flat-colour art with your own Anthropic API key, billed to your Anthropic account; StitchFoundry then digitizes it. Check the stitches before you sew.	Claude tegner billedet om som grafik i flade farver med din egen Anthropic API-nøgle, faktureret til din Anthropic-konto; derefter digitaliserer StitchFoundry det. Tjek stingene, før du syr.
 	Claude wants to change your design:	Claude vil ændre dit design:
 	Clear Default	Ryd standard
 	Clear Export History	Ryd eksporthistorik
@@ -6120,8 +6114,6 @@ swatch	Bright Violet	Kraftig violet
 	Pause	Pause
 	Paw	Pote
 	Paw Print	Poteaftryk
-	Pay for the AI features with my Foundry credits	Betal for AI-funktionerne med mine Foundry-kreditter
-	Pay with Foundry credits instead	Betal med Foundry-kreditter i stedet
 	Payment is on Stripe's secure page, in your browser; your card never reaches StitchFoundry.	Betalingen sker på Stripes sikre side i din browser; dit kort når aldrig StitchFoundry.
 	Pebbles	Småsten
 	Per 1000 stitches	Pr. 1000 sting
@@ -6197,7 +6189,6 @@ swatch	Bright Violet	Kraftig violet
 	Redraw with Claude…	Tegn om med Claude…
 	Redwork	Redwork
 	Regenerate Stitches	Generér sting igen
-	Remember the key on this computer	Husk nøglen på denne computer
 	Remove Blend	Fjern blanding
 	Remove Holes	Fjern huller
 	Remove background	Fjern baggrund
@@ -6417,7 +6408,6 @@ swatch	Bright Violet	Kraftig violet
 	Foundry Account…	Foundry-konto…
 	StitchFoundry Help	StitchFoundry Hjælp
 	StitchFoundry Help…	StitchFoundry Hjælp…
-	Foundry accounts aren't open yet. Until then, the AI features work with your own Anthropic API key.	Foundry-konti er ikke åbnet endnu. Indtil da virker AI-funktionerne med din egen Anthropic API-nøgle.
 	StitchFoundry copies the fonts to {folder}.	StitchFoundry kopierer skrifttyperne til {folder}.
 	StitchFoundry didn't quit normally last time. These documents had unsaved changes:	StitchFoundry blev ikke afsluttet normalt sidste gang. Disse dokumenter havde ændringer, der ikke var gemt:
 	StitchFoundry on GitHub	StitchFoundry på GitHub
@@ -6804,9 +6794,7 @@ swatch	Bright Violet	Kraftig violet
 	Quick	Hurtig
 	Thorough	Grundig
 	About {typical} credits a drawing, at most {most}.	Omkring {typical} kreditter pr. tegning, højst {most}.
-	About {typical} a drawing on your Anthropic account, at most {most}.	Omkring {typical} pr. tegning på din Anthropic-konto, højst {most}.
 	{tokens} tokens	{tokens} tokens
-	{tokens} tokens, about {cost}	{tokens} tokens, omkring {cost}
 # AI research and check
 	Thorough looks up what it draws, thinks longest and checks its stitches once: it costs several times as much as Normal. Use it for real things, like a dog breed or a truck model, and for detailed designs.	Grundig slår op, hvad den tegner, tænker længst og tjekker sine sting én gang: den koster flere gange så meget som Normal. Brug den til virkelige ting, som en hunderace eller en lastbilmodel, og til detaljerede design.
 	Checking the stitches…	Tjekker stingene…

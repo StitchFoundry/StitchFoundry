@@ -6,6 +6,7 @@
 
 use egui::{RichText, Ui, vec2};
 use serde_json::{Value, json};
+use vectorcraft_embroidery::sf_core::attr::LetterAlign;
 
 use crate::VectorcraftApp;
 use crate::theme::{self, Tokens};
@@ -58,6 +59,14 @@ pub struct GuideState {
     pub text: String,
     /// How tall the words are (mm).
     pub height: f64,
+    /// The embroidery font for the words (empty: the first loaded), their justification, line
+    /// spacing (1.0 = the font's own), a height for each line (0 = the words' height), and whether
+    /// those line options are shown.
+    pub font: String,
+    pub align: Option<LetterAlign>,
+    pub leading: f64,
+    pub line_sizes: Vec<f64>,
+    pub more_options: bool,
     pub shape: Option<&'static str>,
     pub sample: Option<String>,
     pub picture: Option<String>,
@@ -107,6 +116,11 @@ impl Default for GuideState {
             fabric: None,
             text: String::new(),
             height: 25.0,
+            font: String::new(),
+            align: None,
+            leading: 1.0,
+            line_sizes: Vec::new(),
+            more_options: false,
             shape: None,
             sample: None,
             picture: None,
@@ -292,6 +306,95 @@ fn hoop(app: &mut VectorcraftApp, ui: &mut Ui, t: &Tokens) {
     });
 }
 
+/// The words step's font picker (each font drawn in itself, the typed text previewed in the one
+/// chosen) and, under More options, how the lines sit: justification, spacing, a height for each.
+fn words_font_rows(app: &mut VectorcraftApp, ui: &mut Ui) {
+    if !std::mem::replace(&mut app.embroidery.fonts_listed, true) {
+        app.run("embroidery.fonts", json!({})).ok();
+    }
+    let fonts: Vec<String> = app.session.embroidery_fonts.iter().map(|f| f.info.name.clone()).collect();
+    if fonts.is_empty() {
+        return;
+    }
+    let text = app.guide.text.clone();
+    let lines = text.lines().count().clamp(1, 12);
+    let cur = fonts.iter().position(|n| n.eq_ignore_ascii_case(&app.guide.font)).unwrap_or(0);
+    let line_sizes = app.guide.line_sizes.clone();
+    let sample = crate::embroidery::font_picker::Sample {
+        text: &text,
+        align: app.guide.align.unwrap_or(LetterAlign::Centre),
+        leading: app.guide.leading,
+        size: app.guide.height,
+        line_sizes: &line_sizes,
+    };
+    if let Some(i) = crate::embroidery::font_picker::font_picker(app, ui, "guide-font", tl!("Font"), &fonts, cur, &sample)
+        && let Some(n) = fonts.get(i)
+    {
+        app.guide.font = n.clone();
+    }
+    if app.guide.font.is_empty()
+        && let Some(n) = fonts.get(cur)
+    {
+        app.guide.font = n.clone();
+    }
+    if lines <= 1 {
+        app.guide.line_sizes.clear();
+    }
+    ui.checkbox(&mut app.guide.more_options, tl!("More options"));
+    if !app.guide.more_options {
+        return;
+    }
+    ui.horizontal(|ui| {
+        ui.label(RichText::new(tl!("Justify")).size(15.0));
+        let now = app.guide.align.unwrap_or(LetterAlign::Centre);
+        for (a, label) in [(LetterAlign::Left, tl!("Left")), (LetterAlign::Centre, tl!("Centre")), (LetterAlign::Right, tl!("Right"))] {
+            if ui.selectable_label(now == a, RichText::new(label).size(15.0)).clicked() {
+                app.guide.align = Some(a);
+            }
+        }
+    });
+    if lines <= 1 {
+        return;
+    }
+    ui.horizontal(|ui| {
+        ui.label(RichText::new(tl!("Line spacing")).size(15.0));
+        let mut pct = app.guide.leading * 100.0;
+        if ui.add(egui::DragValue::new(&mut pct).range(20.0..=500.0).suffix(" %").speed(1.0)).changed() {
+            app.guide.leading = pct / 100.0;
+        }
+    });
+    let height = app.guide.height;
+    app.guide.line_sizes.resize(lines, 0.0);
+    for (n, s) in app.guide.line_sizes.iter_mut().enumerate() {
+        ui.horizontal(|ui| {
+            ui.label(RichText::new(format!("{} {}", tl!("Height of line"), n + 1)).size(13.0));
+            let mut v = if *s > 0.0 { *s } else { height };
+            if ui.add(egui::DragValue::new(&mut v).range(5.0..=150.0).suffix(" mm").speed(0.5)).changed() {
+                *s = v;
+            }
+        });
+    }
+}
+
+/// `embroidery.makeDesign` for the words typed: in the chosen embroidery font, with its lines.
+pub(crate) fn words_params(app: &VectorcraftApp) -> Value {
+    let g = &app.guide;
+    let mut p = json!({ "what": "words", "text": g.text, "height": g.height });
+    if !g.font.is_empty() && app.session.embroidery_fonts.iter().any(|f| f.info.name.eq_ignore_ascii_case(&g.font)) {
+        p["font"] = json!(g.font);
+        p["align"] = json!(match g.align.unwrap_or(LetterAlign::Centre) {
+            LetterAlign::Left => "left",
+            LetterAlign::Centre => "centre",
+            LetterAlign::Right => "right",
+        });
+        p["leading"] = json!(g.leading);
+        if g.line_sizes.iter().any(|s| *s > 0.0) {
+            p["lineSizes"] = json!(g.line_sizes);
+        }
+    }
+    p
+}
+
 /// Step 3: the words, the shape, the picture or the sample; then the design is made.
 fn details(app: &mut VectorcraftApp, ui: &mut Ui, t: &Tokens) {
     let what = app.guide.what.unwrap_or("words");
@@ -299,7 +402,9 @@ fn details(app: &mut VectorcraftApp, ui: &mut Ui, t: &Tokens) {
     match what {
         "words" => {
             ui.label(RichText::new(tl!("What should it say?")).font(theme::semibold(18.0)).color(t.text));
-            ui.add(egui::TextEdit::singleline(&mut app.guide.text).font(egui::FontId::proportional(20.0)).desired_width(500.0));
+            // (Enter starts a new line)
+            ui.add(egui::TextEdit::multiline(&mut app.guide.text).font(egui::FontId::proportional(20.0)).desired_rows(2).desired_width(500.0));
+            words_font_rows(app, ui);
             ui.horizontal(|ui| {
                 ui.label(RichText::new(tl!("How tall")).size(15.0));
                 ui.add(egui::Slider::new(&mut app.guide.height, 8.0..=80.0).suffix(" mm").fixed_decimals(0));
@@ -309,7 +414,7 @@ fn details(app: &mut VectorcraftApp, ui: &mut Ui, t: &Tokens) {
                 RichText::new(tl!("Capital letters are this tall. 20 to 30 mm suits a towel; 10 to 15 mm a shirt.")).size(13.0).color(t.text_dim),
             );
             if crate::widgets::primary_button(ui, tl!("Make It")).clicked() {
-                make = Some(json!({ "what": "words", "text": app.guide.text, "height": app.guide.height }));
+                make = Some(words_params(app));
             }
         }
         "shape" | "applique" => {
