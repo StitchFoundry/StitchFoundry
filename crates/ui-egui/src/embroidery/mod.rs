@@ -5,6 +5,7 @@ pub mod account;
 pub mod ask;
 pub mod family;
 pub mod hoop_editor;
+pub mod font_picker;
 pub mod kiosk;
 pub mod overlay;
 pub mod panel;
@@ -215,6 +216,15 @@ pub struct EmbroideryUi {
     pub lettering_font: String,
     pub lettering_text: String,
     pub lettering_size: f64,
+    /// How the lettering's lines sit on each other (centre unless the lettering says otherwise).
+    pub lettering_align: vectorcraft_embroidery::sf_core::attr::LetterAlign,
+    /// Lines apart, × the font's own line height.
+    pub lettering_leading: f64,
+    /// Each line's own capitals' height (mm); 0 or missing: `lettering_size`.
+    pub lettering_line_sizes: Vec<f64>,
+    /// The font pickers' drawings of text in each font (`embroidery.font.preview`), by font and
+    /// text.
+    pub font_previews: std::collections::HashMap<String, Option<font_picker::Preview>>,
     /// The selected lettering whose text, font and size fill the section (to change it).
     pub lettering_for: Option<u64>,
     /// The lettering's baseline round a circle of this radius (mm; positive arched, negative
@@ -259,6 +269,9 @@ pub struct EmbroideryUi {
     pub monogram_ornament: usize,
     /// The monogram template picked or being named.
     pub monogram_template: String,
+    /// The Clipart section's set tab (empty: all) and search text.
+    pub clipart_set: String,
+    pub clipart_query: String,
     pub monogram_rings: usize,
     /// The Font Creator section: the font name as typed (and whether it is being typed), glyphs
     /// to add, a kerning pair to add, text to try the font with, and the type family and loaded
@@ -393,6 +406,10 @@ impl Default for EmbroideryUi {
             lettering_font: String::new(),
             lettering_text: String::new(),
             lettering_size: 0.0,
+            lettering_align: vectorcraft_embroidery::sf_core::attr::LetterAlign::Centre,
+            lettering_leading: 1.0,
+            lettering_line_sizes: Vec::new(),
+            font_previews: std::collections::HashMap::new(),
             lettering_for: None,
             lettering_arc: 0.0,
             lettering_spiral: 0.0,
@@ -417,6 +434,8 @@ impl Default for EmbroideryUi {
             monogram_size: 0.0,
             monogram_ornament: 0,
             monogram_template: String::new(),
+            clipart_set: String::new(),
+            clipart_query: String::new(),
             monogram_rings: 1,
             font_name: String::new(),
             font_name_editing: false,

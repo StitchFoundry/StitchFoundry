@@ -131,7 +131,7 @@ pub enum Checked {
 /// Why no artwork came back. The messages are for the user; the UI shows them translated.
 #[derive(Clone, Debug, PartialEq, thiserror::Error)]
 pub enum ArtError {
-    #[error("Enter your Anthropic API key first.")]
+    #[error("Sign in to your Foundry Account to use the AI features.")]
     NoKey,
     #[error("The API key isn't valid: paste it again from the Anthropic Console.")]
     BadKey,

@@ -85,6 +85,11 @@ impl Default for ScanConfig {
 /// Most rows one fill sews along a spacing profile.
 const MAX_PROFILE_ROWS: usize = 200_000;
 
+/// The most stitches one fill piece sews (a 1 m square of plain tatami is about 770,000).
+/// Document coordinates reach kilometres, so a mistyped or hostile size would otherwise ask
+/// for billions of stitches and exhaust memory; sewing stops here instead (issue #74).
+pub const MAX_FILL_STITCHES: usize = 1_000_000;
+
 /// A spacing profile ready to read: its points that are numbers as `(t, rows per mm)`, in
 /// order across the shape.
 struct Profile(Vec<(f64, f64)>);
@@ -649,17 +654,23 @@ fn row_heights(y0: f64, y1: f64, cfg: &ScanConfig) -> Option<Vec<f64>> {
             y += dy;
         }
     } else if (s1 - s0).abs() < 1e-12 {
-        // Centre the rows so both edges get the same margin.
-        let n = (height / s0).floor() as usize + 1;
-        let used = (n - 1) as f64 * s0;
+        // Centre the rows so both edges get the same margin. A shape too tall for that many
+        // rows gets them spread wider instead.
+        let mut s = s0;
+        let mut n = (height / s0).floor() as usize + 1;
+        if n > MAX_PROFILE_ROWS {
+            n = MAX_PROFILE_ROWS;
+            s = height / (n - 1) as f64;
+        }
+        let used = (n - 1) as f64 * s;
         let start = y0 + (height - used) * 0.5;
         for k in 0..n {
-            ys.push(start + k as f64 * s0);
+            ys.push(start + k as f64 * s);
         }
     } else {
         let spacing_at = |y: f64| s0 + (s1 - s0) * ((y - y0) / height.max(1e-9)).clamp(0.0, 1.0);
         let mut y = y0 + spacing_at(y0) * 0.5;
-        while y < y1 {
+        while y < y1 && ys.len() < MAX_PROFILE_ROWS {
             ys.push(y);
             y += spacing_at(y);
         }
@@ -857,8 +868,11 @@ fn row_points(xa: f64, xb: f64, (row, y): (usize, f64), cfg: &ScanConfig, splits
     let len = hi - lo;
     let (step, offset) = if cfg.stitch_length.is_finite() {
         (cfg.stitch_length.max(0.3), cfg.offset)
-    } else if cfg.split_length > 0.0 && len > cfg.split_length {
-        (cfg.split_length * 0.75, 0.37)
+    } else if let split = crate::model::effective_split_length(cfg.split_length)
+        && split > 0.0
+        && len > split
+    {
+        (split * 0.75, 0.37)
     } else {
         out.push(xa);
         out.push(xb);
@@ -995,7 +1009,7 @@ pub(crate) fn scan_fill(polygon: &Polygon, cfg: &ScanConfig, hint: Option<Point>
             if d < 1e-9 {
                 return;
             }
-            let n = ((d / step).ceil() as usize).max(1);
+            let n = ((d / step).ceil() as usize).clamp(1, MAX_FILL_STITCHES);
             for k in 1..=n {
                 pts.push(from.lerp(to, k as f64 / n as f64));
             }
@@ -1004,7 +1018,10 @@ pub(crate) fn scan_fill(polygon: &Polygon, cfg: &ScanConfig, hint: Option<Point>
         }
     };
 
-    while remaining > 0 {
+    'sections: while remaining > 0 {
+        if pts.len() >= MAX_FILL_STITCHES {
+            break;
+        }
         let entry = match cur {
             None => {
                 // First section: the entry closest to the hint, or the top-left one.
@@ -1116,14 +1133,19 @@ pub(crate) fn scan_fill(polygon: &Polygon, cfg: &ScanConfig, hint: Option<Point>
             }
             sewn[si] = true;
             left_to_right = !left_to_right;
+            if pts.len() >= MAX_FILL_STITCHES {
+                break 'sections;
+            }
         }
         done[entry.section] = true;
         remaining -= 1;
         cur = Some(plan.exit_node(entry));
     }
 
-    // Finish near the requested exit point.
-    if let (Some(node), Some(ex)) = (cur, exit) {
+    // Finish near the requested exit point (not when sewing stopped at the cap).
+    let capped = pts.len() >= MAX_FILL_STITCHES;
+    pts.truncate(MAX_FILL_STITCHES);
+    if let (false, Some(node), Some(ex)) = (capped, cur, exit) {
         let ex_rs = fwd.apply(ex);
         let (_, prev) = dijkstra(&plan.graph, node, &sewn, cfg.trapunto);
         let target = (0..plan.graph.pts.len()).min_by(|&a, &b| plan.graph.pts[a].distance(ex_rs).total_cmp(&plan.graph.pts[b].distance(ex_rs)));
@@ -1378,6 +1400,22 @@ mod tests {
     }
 
     #[test]
+    fn a_huge_plain_fill_stops_at_the_stitch_cap() {
+        // issue #74: a 1 km square asked for ~770 million stitches
+        let poly = Polygon::from_ring(rect(0.0, 0.0, 1_000_000.0, 1_000_000.0));
+        for cfg in [ScanConfig::default(), ScanConfig { row_spacing_end: 2.0, ..Default::default() }] {
+            let pts = scan_fill(&poly, &cfg, Some(Point::new(0.0, 0.0)), Some(Point::new(1_000_000.0, 1_000_000.0)));
+            assert!(!pts.is_empty() && pts.len() <= MAX_FILL_STITCHES, "{}", pts.len());
+            assert!(pts.iter().all(|p| p.x.is_finite() && p.y.is_finite()));
+        }
+        // a 1 m square is still sewn whole
+        let poly = Polygon::from_ring(rect(0.0, 0.0, 1000.0, 1000.0));
+        let rows = row_heights(0.0, 1000.0, &ScanConfig::default()).unwrap();
+        assert!(rows.len() > 2000 && rows.len() < MAX_PROFILE_ROWS, "{}", rows.len());
+        assert!(scan_fill(&poly, &ScanConfig::default(), None, None).len() < MAX_FILL_STITCHES);
+    }
+
+    #[test]
     fn square_tatami() {
         let poly = Polygon::from_ring(rect(0.0, 0.0, 20.0, 20.0));
         let cfg = ScanConfig { angle: 0.0, ..Default::default() };
@@ -1466,6 +1504,17 @@ mod tests {
         let cfg = ScanConfig { stitch_length: f64::INFINITY, split_length: 7.0, ..Default::default() };
         let pts = scan_fill(&poly, &cfg, None, None);
         assert!(max_stitch(&pts) <= 7.0 + 1e-6, "{}", max_stitch(&pts));
+    }
+
+    #[test]
+    fn satin_split_length_has_a_minimum() {
+        // #84: a tiny split length is raised to MIN_SPLIT_LENGTH instead of making millions of stitches.
+        let poly = Polygon::from_ring(rect(0.0, 0.0, 20.0, 10.0));
+        let tiny = ScanConfig { stitch_length: f64::INFINITY, split_length: 1e-6, ..Default::default() };
+        let at_min = ScanConfig { split_length: crate::model::MIN_SPLIT_LENGTH, ..tiny.clone() };
+        let pts = scan_fill(&poly, &tiny, None, None);
+        assert_eq!(pts.len(), scan_fill(&poly, &at_min, None, None).len());
+        assert!(pts.len() < 50_000, "{}", pts.len());
     }
 
     #[test]

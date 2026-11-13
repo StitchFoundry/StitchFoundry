@@ -185,6 +185,9 @@ pub struct Lettering {
     pub font: String,
     /// The capitals' height (mm).
     pub size: f64,
+    /// Each line's own capitals' height (mm), by line; a line past the end (or with 0) has `size`.
+    #[serde(default, rename = "lineSizes", skip_serializing_if = "Vec::is_empty")]
+    pub line_sizes: Vec<f64>,
     /// Lines apart, × the font's own line spacing.
     #[serde(default = "one")]
     pub leading: f64,
@@ -485,6 +488,10 @@ impl Lettering {
         let [a, b, c, d, e, g] = f.0;
         self.frame = Affine([a / k, b / k, c / k, d / k, e, g]);
         self.size *= k;
+        // a line's own size grows with the rest (0 stays "the block's size")
+        for s in &mut self.line_sizes {
+            *s *= k;
+        }
         self.arc *= k;
         self.spiral *= k;
         for q in &mut self.path {
@@ -1106,12 +1113,40 @@ mod tests {
     }
 
     #[test]
+    fn lettering_lines_with_a_size_of_their_own_scale_with_it() {
+        let mut l = Lettering {
+            text: "Hi\nthere".into(),
+            font: "F".into(),
+            size: 10.0,
+            line_sizes: vec![0.0, 20.0],
+            leading: 1.0,
+            arc: 0.0,
+            spiral: 0.0,
+            align: LetterAlign::Centre,
+            sew: LetterSewing::default(),
+            letters: Vec::new(),
+            puff: None,
+            applique: None,
+            stitch: LetterStitch::Font,
+            small: SmallText::Auto,
+            vertical: false,
+            path: Vec::new(),
+            frame: Affine::IDENTITY,
+        };
+        l.transform(&Affine::scale(2.0, 2.0));
+        // the block doubled; the line twice the block's size stays twice it (0 stays "the block's")
+        assert!((l.size - 20.0).abs() < 1e-9, "{l:?}");
+        assert_eq!(l.line_sizes, vec![0.0, 40.0]);
+    }
+
+    #[test]
     fn lettering_follows_its_group_its_scale_going_into_its_size() {
         let at = Affine::translate(Point::new(100.0, 50.0));
         let mut l = Lettering {
             text: "Hi".into(),
             font: "F".into(),
             size: 10.0,
+            line_sizes: Vec::new(),
             leading: 1.0,
             arc: 30.0,
             spiral: 5.0,

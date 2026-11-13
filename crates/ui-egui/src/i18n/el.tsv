@@ -5654,16 +5654,12 @@ machine	Stop	Στάση
 	Generate	Δημιουργία
 	Describe the design:	Περιγράψτε το σχέδιο:
 	Size (longest side):	Μέγεθος (μεγαλύτερη πλευρά):
-	Anthropic API key:	Κλειδί API της Anthropic:
-	Remember the key on this computer	Απομνημόνευση του κλειδιού σε αυτόν τον υπολογιστή
-	Claude draws the artwork with your own Anthropic API key, billed to your Anthropic account; StitchFoundry then digitizes it. Check the stitches before you sew.	Ο Claude σχεδιάζει το σχέδιο με το δικό σας κλειδί API της Anthropic, με χρέωση στον λογαριασμό σας στην Anthropic· έπειτα το StitchFoundry το ψηφιοποιεί. Ελέγξτε τις βελονιές πριν ράψετε.
 	Get a key	Λήψη κλειδιού
 	Drawing the design…	Σχεδίαση του σχεδίου…
 	Describe a design and Claude draws artwork for it, then StitchFoundry digitizes it	Περιγράψτε ένα σχέδιο και ο Claude το σχεδιάζει· έπειτα το StitchFoundry το ψηφιοποιεί
 	Place Artwork as Embroidery	Τοποθέτηση σχεδίου ως κέντημα
 	Place Artwork	Τοποθέτηση σχεδίου
 @plural	Design placed: {n} stitched object|Design placed: {n} stitched objects	Το σχέδιο τοποθετήθηκε: {n} κεντημένο αντικείμενο|Το σχέδιο τοποθετήθηκε: {n} κεντημένα αντικείμενα
-@msg	Enter your Anthropic API key first.	Εισαγάγετε πρώτα το κλειδί API της Anthropic.
 @msg	The API key isn't valid: paste it again from the Anthropic Console.	Το κλειδί API δεν είναι έγκυρο: επικολλήστε το ξανά από το Anthropic Console.
 @msg	Describe the design first.	Περιγράψτε πρώτα το σχέδιο.
 @msg	The description is too long: keep it under 2,000 characters.	Η περιγραφή είναι πολύ μεγάλη: κρατήστε την κάτω από 2.000 χαρακτήρες.
@@ -5686,7 +5682,6 @@ machine	Stop	Στάση
 	Redraw Image with Claude	Επανασχεδίαση εικόνας με τον Claude
 	What to change (optional):	Τι να αλλάξει (προαιρετικό):
 	Only redraw artwork you own or have permission to use.	Επανασχεδιάζετε μόνο σχέδια που σας ανήκουν ή έχετε άδεια να χρησιμοποιήσετε.
-	Claude redraws the image as flat-colour art with your own Anthropic API key, billed to your Anthropic account; StitchFoundry then digitizes it. Check the stitches before you sew.	Ο Claude επανασχεδιάζει την εικόνα με επίπεδα χρώματα, με το δικό σας κλειδί API της Anthropic, με χρέωση στον λογαριασμό σας στην Anthropic· έπειτα το StitchFoundry την ψηφιοποιεί. Ελέγξτε τις βελονιές πριν ράψετε.
 	Redraw with Claude…	Επανασχεδίαση με τον Claude…
 	Claude redraws the image as clean flat-colour art, then StitchFoundry digitizes it	Ο Claude επανασχεδιάζει την εικόνα με καθαρά επίπεδα χρώματα· έπειτα το StitchFoundry την ψηφιοποιεί
 @msg	select an image to redraw	επιλέξτε μια εικόνα για επανασχεδίαση
@@ -6590,8 +6585,6 @@ machine	Stop	Στάση
 	Ask	Ερώτηση
 	New Conversation	Νέα συνομιλία
 	Include my design	Συμπερίληψη του σχεδίου μου
-	Answers come from Claude with your own Anthropic API key, billed to your Anthropic account. They can be wrong: try a test sew before an important piece.	Οι απαντήσεις προέρχονται από τον Claude με το δικό σας κλειδί API της Anthropic, με χρέωση στον λογαριασμό σας στην Anthropic. Μπορεί να είναι λανθασμένες: κάντε ένα δοκιμαστικό ράψιμο πριν από ένα σημαντικό κομμάτι.
-	Change key	Αλλαγή κλειδιού
 @msg	Type a question first.	Πληκτρολογήστε πρώτα μια ερώτηση.
 @msg	The question is too long: keep it under 2,000 characters.	Η ερώτηση είναι πολύ μεγάλη: κρατήστε την κάτω από 2.000 χαρακτήρες.
 @msg	The AI declined to answer this: ask another way.	Η AI αρνήθηκε να απαντήσει: ρωτήστε με άλλο τρόπο.
@@ -6647,7 +6640,6 @@ machine	Stop	Στάση
 	Anything else? For example: a gap above the bumper	Κάτι άλλο; Για παράδειγμα: ένα κενό πάνω από τον προφυλακτήρα
 	As the design has it	Όπως στο σχέδιο
 	Choose the photos in the browser's window…	Επιλέξτε τις φωτογραφίες στο παράθυρο του προγράμματος περιήγησης…
-	Claude looks at the photos with your own Anthropic API key, billed to your Anthropic account. It can be wrong: try a fix on a scrap of the same fabric first.	Το Claude βλέπει τις φωτογραφίες με το δικό σας κλειδί API της Anthropic, με χρέωση στον λογαριασμό σας στην Anthropic. Μπορεί να κάνει λάθος: δοκιμάστε πρώτα μια διόρθωση σε ένα κομμάτι από το ίδιο ύφασμα.
 	Include the design that was sewn (open now), so it can be fixed	Να συμπεριληφθεί το σχέδιο που κεντήθηκε (ανοιχτό τώρα), ώστε να μπορεί να διορθωθεί
 	My sew-out ({n} photos)	Το κέντημά μου ({n} φωτογραφίες)
 	Needle	Βελόνα
@@ -6676,8 +6668,6 @@ machine	Stop	Στάση
 	Leave it empty for StitchFoundry's own service.	Αφήστε το κενό για την υπηρεσία του StitchFoundry.
 	Paid with Foundry credits ({n} left).	Πληρωμή με μονάδες Foundry (απομένουν {n}).
 	Paid with Foundry credits.	Πληρωμή με μονάδες Foundry.
-	Pay for the AI features with my Foundry credits	Πληρωμή των λειτουργιών ΤΝ με τις μονάδες Foundry μου
-	Pay with Foundry credits instead	Πληρωμή με μονάδες Foundry αντί γι' αυτό
 	Payment is on Stripe's secure page, in your browser; your card never reaches StitchFoundry.	Η πληρωμή γίνεται στην ασφαλή σελίδα της Stripe, στο πρόγραμμα περιήγησής σας· η κάρτα σας δεν φτάνει ποτέ στο StitchFoundry.
 	Reading your credits…	Ανάγνωση των μονάδων σας…
 	Server	Διακομιστής
@@ -6688,7 +6678,6 @@ machine	Stop	Στάση
 	Signed in as {email}	Συνδεδεμένος ως {email}
 	Foundry Account	Λογαριασμός Foundry
 	Foundry Account…	Λογαριασμός Foundry…
-	Foundry accounts aren't open yet. Until then, the AI features work with your own Anthropic API key.	Οι λογαριασμοί Foundry δεν έχουν ανοίξει ακόμα. Ως τότε, οι λειτουργίες ΤΝ δουλεύουν με το δικό σας κλειδί API της Anthropic.
 	This is the sew-out after the fix from my last check	Αυτό είναι το κέντημα μετά τη διόρθωση από τον τελευταίο έλεγχό μου
 	{n} credits for {price}	{n} μονάδες για {price}
 	{n} credits	{n} μονάδες
@@ -6891,9 +6880,7 @@ machine	Stop	Στάση
 	Quick	Γρήγορη
 	Thorough	Ενδελεχής
 	About {typical} credits a drawing, at most {most}.	Περίπου {typical} μονάδες ανά σχέδιο, το πολύ {most}.
-	About {typical} a drawing on your Anthropic account, at most {most}.	Περίπου {typical} ανά σχέδιο στον λογαριασμό σας Anthropic, το πολύ {most}.
 	{tokens} tokens	{tokens} tokens
-	{tokens} tokens, about {cost}	{tokens} tokens, περίπου {cost}
 # AI research and check
 	Thorough looks up what it draws, thinks longest and checks its stitches once: it costs several times as much as Normal. Use it for real things, like a dog breed or a truck model, and for detailed designs.	Η Ενδελεχής ψάχνει τι σχεδιάζει, σκέφτεται περισσότερο και ελέγχει μία φορά τις βελονιές της: κοστίζει πολλαπλάσια από την Κανονική. Χρησιμοποιήστε τη για πραγματικά πράγματα, όπως μια ράτσα σκύλου ή ένα μοντέλο φορτηγού, και για λεπτομερή σχέδια.
 	Checking the stitches…	Έλεγχος των βελονιών…

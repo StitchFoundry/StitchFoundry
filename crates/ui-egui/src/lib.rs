@@ -40,6 +40,7 @@ pub(crate) mod ime;
 pub mod io;
 pub mod keymap;
 pub mod layout_migration;
+pub mod learn;
 pub mod menus;
 pub mod native_menu;
 pub mod opening;
@@ -59,6 +60,7 @@ mod scrub;
 pub mod shortcut_editor;
 pub mod shortcuts;
 pub mod simple;
+pub mod staging;
 pub mod state;
 pub mod stylus;
 pub mod sysclip;
@@ -119,6 +121,8 @@ pub struct VectorcraftApp {
     pub ui: UiState,
     pub views: Vec<View>,
     pub services: Services,
+    /// The web page asked for the staging services (`?services=staging`, [`staging`]).
+    pub staging: bool,
     pub canvas: CanvasCache,
     /// Embroidery mode: stitch overlay settings, the stitch player and its mesh.
     pub embroidery: embroidery::EmbroideryUi,
@@ -128,6 +132,8 @@ pub struct VectorcraftApp {
     pub guide: guide::GuideState,
     /// The update check: running, and a newer release when it found one (desktop).
     pub updates: updates::UpdateState,
+    /// Help › Learn….
+    pub learn: learn::LearnState,
     pub perf: Perf,
     /// Docking state that lives for the session only.
     pub(crate) dock_rt: panel_docking::Runtime,

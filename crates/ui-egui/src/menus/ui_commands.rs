@@ -188,7 +188,7 @@ pub const UI_COMMANDS: &[(&str, &str, &str, &str)] = &[
         "{} opens the dialog (on the document's last settings; while the Artboard tool is in use, with the artboards it has selected chosen); with params = document.exportForScreens (no folder on the web: downloads the files or the zip; openLocation: shows the first file in the file manager; a folder on the desktop with Background Export on: the files are written in the background → {background: true, status})",
     ),
     ("file.documentSetup", "Document Setup…", "Cmd+Alt+P", "{}"),
-    ("file.newDialog", "New…", "Cmd+N", "{} opens the New Document dialog"),
+    ("file.newDialog", "New…", "Cmd+N", "{} opens the New Document dialog (a blank page of any size; Start a Design begins in the hoop instead)"),
     (
         "file.newWithoutDialog",
         "New Without Dialog",
@@ -690,6 +690,32 @@ pub const UI_COMMANDS: &[(&str, &str, &str, &str)] = &[
         "Get Embroidery Fonts…",
         "",
         "{} opens Get Embroidery Fonts (desktop): the fonts of an embroidery font library (Ink/Stitch's, the project's own once published), each downloaded with a click into the Embroidery Fonts folder and loaded for lettering; not in the web demo → {open}",
+    ),
+    (
+        "ui.learn",
+        "Learn…",
+        "",
+        "{} opens Learn: short video lessons (title, length, thumbnail) listed in one small file on stitchfoundry.app, each with its YouTube video, its guide page and, for some, a Try it that opens a sample; offline or before the first videos exist the planned lessons show as coming soon → {open}",
+    ),
+    (
+        "ui.learn.watch",
+        "Learn: Watch a Lesson",
+        "",
+        "{index} open lesson `index`'s video in the browser (a YouTube or stitchfoundry.app link only) → {opened}",
+    ),
+    ("ui.learn.docs", "Learn: Read a Lesson's Guide Page", "", "{index} open the guide page of lesson `index`"),
+    ("ui.learn.try", "Learn: Try a Lesson", "", "{index} open lesson `index`'s sample design → as embroidery.sample"),
+    (
+        "ui.startDesign",
+        "Start a Design…",
+        "",
+        "{} opens Start a Design: your machine (asked once, then remembered), the hoop (only the hoops that machine has) and the fabric (optional); the design opens the size of the hoop's sewing field → {open, step: machine|hoop}",
+    ),
+    (
+        "ui.startDesign.create",
+        "Create Design in Hoop",
+        "",
+        "{hoop: a hoop's name (embroidery.hoops), fabric?: a fabric from embroidery.info} makes the design in the hoop (embroidery.newDesign) and applies the fabric when named, then closes Start a Design → as embroidery.newDesign",
     ),
     (
         "ui.myMachine",
