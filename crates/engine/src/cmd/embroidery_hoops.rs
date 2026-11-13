@@ -7,6 +7,10 @@ use sf_core::hoops::{Hoop, HoopShape};
 
 use super::{CommandSpec, Result, Session, always, bad, bool_or, cmd, has_doc, str_param};
 
+#[cfg(test)]
+#[path = "embroidery_hoops_tests.rs"]
+mod tests;
+
 /// Hoops of one's own kept, at most.
 const MAX_CUSTOM: usize = 100;
 
@@ -44,9 +48,36 @@ pub fn specs() -> Vec<CommandSpec> {
             "Save Custom Hoop",
             [],
             None,
-            "{name, width, height: mm (20–2000), shape?: rect|oval (rect)} a hoop of one's own, listed with the standard ones (a standard hoop's name can't be taken); 100 at most → {name}",
+            "{name, width, height?: 20–2000 mm (a round or square hoop needs just width), unit?: mm|in (mm), shape?: rect|oval|round|square (rect), cornerRadius?: rectangle corners, frameWidth?, frameHeight?: the outer frame, was?: the name of the hoop being renamed} a hoop of one's own (a new one, or the one of that name edited), listed with the standard ones (a standard hoop's name can't be taken); 100 at most → {name}",
             always,
             save_custom
+        ),
+        cmd!(
+            "embroidery.hoop.attach",
+            "Add Hoop to Machine",
+            [],
+            None,
+            "{name, machine: a name from embroidery.myMachine's machines, attach?: bool (true; false takes it off)} put a hoop of one's own in that machine's hoop list; a hoop can be on several machines, and one on none is on every machine's list → {name, machines}",
+            always,
+            attach
+        ),
+        cmd!(
+            "embroidery.hoop.export",
+            "Export Hoop",
+            [],
+            None,
+            "{name, path?: file to write} a hoop of one's own as a small JSON file to keep or share → {name, path | text}",
+            always,
+            export
+        ),
+        cmd!(
+            "embroidery.hoop.import",
+            "Import Hoop",
+            [],
+            None,
+            "{path | text} a hoop file made by Export Hoop, added to one's own hoops (the one of that name replaced) → {name}",
+            always,
+            import
         ),
         cmd!("embroidery.hoop.deleteCustom", "Delete Custom Hoop", [], None, "{name} forget a hoop of one's own → {name}", always, delete_custom),
     ]
@@ -82,13 +113,20 @@ fn fits(h: &Hoop, (w, ht): (f64, f64)) -> bool {
 }
 
 fn turn(h: &Hoop) -> Hoop {
-    Hoop { width: h.height, height: h.width, positions: h.positions.iter().map(|[x, y]| [*y, *x]).collect(), ..h.clone() }
+    Hoop {
+        width: h.height,
+        height: h.width,
+        positions: h.positions.iter().map(|[x, y]| [*y, *x]).collect(),
+        frame: h.frame.map(|[w, ht]| [ht, w]),
+        ..h.clone()
+    }
 }
 
 fn set_hoop(s: &mut Session, h: &Hoop) -> Result<()> {
     // the hoop as it is (turned, one's own), set whole
     let shape = if h.shape == HoopShape::Oval { "oval" } else { "rect" };
-    s.execute("embroidery.settings", &json!({ "hoop": { "name": h.name, "width": h.width, "height": h.height, "shape": shape } }))?;
+    let hoop = json!({ "name": h.name, "width": h.width, "height": h.height, "shape": shape, "cornerRadius": h.corner_radius, "frame": h.frame });
+    s.execute("embroidery.settings", &json!({ "hoop": hoop }))?;
     Ok(())
 }
 
@@ -108,6 +146,9 @@ fn list(s: &mut Session, _: &Value) -> Result<Value> {
                 "height": h.height,
                 "shape": if h.shape == HoopShape::Oval { "oval" } else { "rect" },
                 "custom": custom.iter().any(|c| c.name == h.name),
+                "cornerRadius": h.corner_radius,
+                "frame": h.frame,
+                "machines": h.machines,
                 "fits": size.is_some_and(|d| fits(h, d) || fits(&turn(h), d)),
             })
         })
@@ -155,29 +196,180 @@ fn rotate(s: &mut Session, _: &Value) -> Result<Value> {
     Ok(answer(s, &h))
 }
 
-fn save_custom(s: &mut Session, p: &Value) -> Result<Value> {
-    const CMD: &str = "embroidery.hoop.saveCustom";
+/// The hoop `p` describes, checked: name, shape (rect, oval, round, square), sewing field,
+/// optional corner radius and outer frame, in mm or inches (`unit`).
+fn hoop_from(p: &Value, cmd: &str) -> Result<Hoop> {
     let name: String =
-        str_param(p, "name").map(str::trim).filter(|n| !n.is_empty()).ok_or_else(|| bad(CMD, "missing `name`"))?.chars().take(80).collect();
-    if sf_core::hoops::standard_hoops().iter().any(|h| h.name.eq_ignore_ascii_case(&name)) {
-        return Err(bad(CMD, format!("`{name}` is a standard hoop: give yours another name")));
+        str_param(p, "name").map(str::trim).filter(|n| !n.is_empty()).ok_or_else(|| bad(cmd, "missing `name`"))?.chars().take(80).collect();
+    if name.chars().any(char::is_control) {
+        return Err(bad(cmd, "the name can't hold control characters"));
     }
-    let mm =
-        |k: &str| p.get(k).and_then(Value::as_f64).filter(|v| (20.0..=2000.0).contains(v)).ok_or_else(|| bad(CMD, format!("`{k}` is 20 to 2000 mm")));
-    let (w, h) = (mm("width")?, mm("height")?);
-    let shape = match str_param(p, "shape").unwrap_or("rect") {
-        "rect" => HoopShape::Rect,
-        "oval" => HoopShape::Oval,
-        _ => return Err(bad(CMD, "`shape` is rect or oval")),
+    if sf_core::hoops::standard_hoops().iter().any(|h| h.name.eq_ignore_ascii_case(&name)) {
+        return Err(bad(cmd, format!("`{name}` is a standard hoop: give yours another name")));
+    }
+    let k = match str_param(p, "unit").unwrap_or("mm") {
+        "mm" => 1.0,
+        "in" => 25.4,
+        _ => return Err(bad(cmd, "`unit` is mm or in")),
     };
-    let hoop = Hoop::new(&name, w, h, shape);
+    // a number in the hoop's unit, in mm; None when absent
+    let num = |key: &str| -> Result<Option<f64>> {
+        match p.get(key) {
+            None | Some(Value::Null) => Ok(None),
+            Some(v) => v.as_f64().filter(|v| v.is_finite()).map(|v| Some(v * k)).ok_or_else(|| bad(cmd, format!("`{key}` is a number"))),
+        }
+    };
+    let shape_name = str_param(p, "shape").unwrap_or("rect");
+    let (shape, same) = match shape_name {
+        "rect" => (HoopShape::Rect, false),
+        "oval" => (HoopShape::Oval, false),
+        "square" => (HoopShape::Rect, true),
+        "round" => (HoopShape::Oval, true),
+        _ => return Err(bad(cmd, "`shape` is rect, oval, round or square")),
+    };
+    let (w, h) = match (num("width")?, num("height")?) {
+        (Some(w), None) if same => (w, w),
+        (Some(w), Some(h)) => (w, h),
+        _ => return Err(bad(cmd, "give `width` and `height` (a round or square hoop needs just `width`)")),
+    };
+    if !(20.0..=2000.0).contains(&w) || !(20.0..=2000.0).contains(&h) {
+        return Err(bad(cmd, "the sewing field is 20 to 2000 mm (0.8 to 78.7 in) each way"));
+    }
+    if same && (w - h).abs() > 1e-6 {
+        return Err(bad(cmd, format!("a {shape_name} hoop has the same width and height")));
+    }
+    let mut hoop = Hoop::new(&name, w, h, shape);
+    if let Some(r) = num("cornerRadius")?.filter(|r| *r != 0.0) {
+        if shape != HoopShape::Rect || !(0.0..=w.min(h) / 2.0).contains(&r) {
+            return Err(bad(cmd, "`cornerRadius` is for a rectangle or square, at most half its shorter side"));
+        }
+        hoop.corner_radius = r;
+    }
+    if let (fw, fh) = (num("frameWidth")?, num("frameHeight")?)
+        && (fw.is_some() || fh.is_some())
+    {
+        let (Some(fw), Some(fh)) = (fw, fh) else { return Err(bad(cmd, "give both `frameWidth` and `frameHeight`")) };
+        if fw < w || fh < h || fw > 3000.0 || fh > 3000.0 {
+            return Err(bad(cmd, "the outer frame holds the sewing field and is 3000 mm at most"));
+        }
+        hoop.frame = Some([fw, fh]);
+    }
+    Ok(hoop)
+}
+
+/// Keeps `hoop` among one's own: replaces the one of that name (keeping its machines), else adds it.
+fn keep(s: &mut Session, mut hoop: Hoop, cmd: &str) -> Result<()> {
     let own = &mut s.prefs.embroidery_custom_hoops;
     let full = own.len() >= MAX_CUSTOM;
-    match own.iter_mut().find(|o| o.name.eq_ignore_ascii_case(&name)) {
-        Some(o) => *o = hoop,
-        None if full => return Err(bad(CMD, format!("{MAX_CUSTOM} hoops of your own at most: delete one first"))),
+    match own.iter_mut().find(|o| o.name.eq_ignore_ascii_case(&hoop.name)) {
+        Some(o) => {
+            if hoop.machines.is_empty() {
+                hoop.machines = std::mem::take(&mut o.machines);
+            }
+            *o = hoop;
+        }
+        None if full => return Err(bad(cmd, format!("{MAX_CUSTOM} hoops of your own at most: delete one first"))),
         None => own.push(hoop),
     }
+    Ok(())
+}
+
+fn save_custom(s: &mut Session, p: &Value) -> Result<Value> {
+    const CMD: &str = "embroidery.hoop.saveCustom";
+    let hoop = hoop_from(p, CMD)?;
+    let name = hoop.name.clone();
+    // rename: `was` names the hoop being edited
+    let was = str_param(p, "was").map(str::trim).filter(|w| !w.is_empty() && !w.eq_ignore_ascii_case(&name));
+    if let Some(was) = was
+        && !s.prefs.embroidery_custom_hoops.iter().any(|h| h.name.eq_ignore_ascii_case(was))
+    {
+        return Err(bad(CMD, format!("no hoop of yours is named `{was}`")));
+    }
+    let mut hoop = hoop;
+    if let Some(was) = was
+        && let Some(i) = s.prefs.embroidery_custom_hoops.iter().position(|h| h.name.eq_ignore_ascii_case(was))
+    {
+        hoop.machines = s.prefs.embroidery_custom_hoops.remove(i).machines;
+    }
+    keep(s, hoop, CMD)?;
+    Ok(json!({ "name": name }))
+}
+
+fn attach(s: &mut Session, p: &Value) -> Result<Value> {
+    const CMD: &str = "embroidery.hoop.attach";
+    let name = str_param(p, "name").map(str::trim).ok_or_else(|| bad(CMD, "missing `name`"))?;
+    let machine = str_param(p, "machine").ok_or_else(|| bad(CMD, "missing `machine`: a name from embroidery.myMachine"))?;
+    let machine = sf_core::machines::home_machine(machine).ok_or_else(|| bad(CMD, format!("unknown machine `{machine}`")))?.name.to_string();
+    let on = bool_or(p, "attach", true);
+    let h = s
+        .prefs
+        .embroidery_custom_hoops
+        .iter_mut()
+        .find(|h| h.name.eq_ignore_ascii_case(name))
+        .ok_or_else(|| bad(CMD, format!("no hoop of yours is named `{name}`")))?;
+    h.machines.retain(|m| *m != machine);
+    if on {
+        h.machines.push(machine);
+    }
+    Ok(json!({ "name": h.name, "machines": h.machines }))
+}
+
+/// Export file marker.
+const FILE_KIND: &str = "stitchfoundry-hoop";
+const MAX_FILE: usize = 64 * 1024;
+
+fn export(s: &mut Session, p: &Value) -> Result<Value> {
+    const CMD: &str = "embroidery.hoop.export";
+    let name = str_param(p, "name").map(str::trim).ok_or_else(|| bad(CMD, "missing `name`"))?;
+    let mut h = s
+        .prefs
+        .embroidery_custom_hoops
+        .iter()
+        .find(|h| h.name.eq_ignore_ascii_case(name))
+        .cloned()
+        .ok_or_else(|| bad(CMD, format!("no hoop of yours is named `{name}`")))?;
+    // machines are this PC's: the file carries the hoop only
+    h.machines.clear();
+    let text = serde_json::to_string_pretty(&json!({ "format": FILE_KIND, "version": 1, "hoop": h })).map_err(|e| bad(CMD, e.to_string()))?;
+    match str_param(p, "path").map(str::trim).filter(|p| !p.is_empty()) {
+        Some(path) => {
+            super::fileio::write_file(path, text.as_bytes())?;
+            Ok(json!({ "name": h.name, "path": path }))
+        }
+        None => Ok(json!({ "name": h.name, "text": text })),
+    }
+}
+
+fn import(s: &mut Session, p: &Value) -> Result<Value> {
+    const CMD: &str = "embroidery.hoop.import";
+    let text = match (str_param(p, "text"), str_param(p, "path")) {
+        (Some(t), _) => t.to_string(),
+        (None, Some(path)) => String::from_utf8_lossy(&super::fileio::read_file(path)?).into_owned(),
+        (None, None) => return Err(bad(CMD, "give `path` or `text`")),
+    };
+    if text.len() > MAX_FILE {
+        return Err(bad(CMD, "a hoop file is under 64 KB"));
+    }
+    let v: Value = serde_json::from_str(&text).map_err(|e| bad(CMD, format!("not a hoop file: {e}")))?;
+    if v.get("format").and_then(Value::as_str) != Some(FILE_KIND) {
+        return Err(bad(CMD, "not a StitchFoundry hoop file"));
+    }
+    let h = v.get("hoop").ok_or_else(|| bad(CMD, "the file holds no hoop"))?;
+    let mut hoop: Hoop = serde_json::from_value(h.clone()).map_err(|e| bad(CMD, format!("the hoop is damaged: {e}")))?;
+    // the same checks as making one by hand (an oval or round field is told by its shape)
+    let shape = if hoop.shape == HoopShape::Oval { "oval" } else { "rect" };
+    let mut q = json!({ "name": hoop.name, "width": hoop.width, "height": hoop.height, "shape": shape });
+    if hoop.corner_radius != 0.0 {
+        q["cornerRadius"] = json!(hoop.corner_radius);
+    }
+    if let Some([fw, fh]) = hoop.frame {
+        q["frameWidth"] = json!(fw);
+        q["frameHeight"] = json!(fh);
+    }
+    let checked = hoop_from(&q, CMD)?;
+    hoop = Hoop { machines: Vec::new(), positions: Vec::new(), ..checked };
+    let name = hoop.name.clone();
+    keep(s, hoop, CMD)?;
     Ok(json!({ "name": name }))
 }
 

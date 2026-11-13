@@ -5063,16 +5063,12 @@ machine	Stop	Arrêt
 	Generate	Générer
 	Describe the design:	Décrivez le dessin :
 	Size (longest side):	Taille (côté le plus long) :
-	Anthropic API key:	Clé API Anthropic :
-	Remember the key on this computer	Mémoriser la clé sur cet ordinateur
-	Claude draws the artwork with your own Anthropic API key, billed to your Anthropic account; StitchFoundry then digitizes it. Check the stitches before you sew.	Claude dessine l’illustration avec votre propre clé API Anthropic et l’utilisation est facturée sur votre compte Anthropic ; StitchFoundry la digitalise ensuite. Vérifiez les points avant de broder.
 	Get a key	Obtenir une clé
 	Drawing the design…	Dessin en cours…
 	Describe a design and Claude draws artwork for it, then StitchFoundry digitizes it	Décrivez un dessin et Claude crée l’illustration correspondante, puis StitchFoundry la digitalise
 	Place Artwork as Embroidery	Importer l’illustration comme broderie
 	Place Artwork	Importer l’illustration
 @plural	Design placed: {n} stitched object|Design placed: {n} stitched objects	Dessin importé : {n} objet brodé|Dessin importé : {n} objets brodés
-@msg	Enter your Anthropic API key first.	Saisissez d’abord votre clé API Anthropic.
 @msg	The API key isn't valid: paste it again from the Anthropic Console.	La clé API n’est pas valide : collez-la de nouveau depuis l’Anthropic Console.
 @msg	Describe the design first.	Décrivez d’abord le dessin.
 @msg	The description is too long: keep it under 2,000 characters.	La description est trop longue : limitez-la à moins de 2000 caractères.
@@ -5097,7 +5093,6 @@ machine	Stop	Arrêt
 	Redraw Image with Claude	Redessiner l’image avec Claude
 	What to change (optional):	Modifications souhaitées (facultatif) :
 	Only redraw artwork you own or have permission to use.	Ne redessinez que des illustrations qui vous appartiennent ou que vous avez l’autorisation d’utiliser.
-	Claude redraws the image as flat-colour art with your own Anthropic API key, billed to your Anthropic account; StitchFoundry then digitizes it. Check the stitches before you sew.	Claude redessine l’image en illustration à aplats de couleur avec votre propre clé API Anthropic et l’utilisation est facturée sur votre compte Anthropic ; StitchFoundry la digitalise ensuite. Vérifiez les points avant de broder.
 	Redraw with Claude…	Redessiner avec Claude…
 	Claude redraws the image as clean flat-colour art, then StitchFoundry digitizes it	Claude redessine l’image en illustration nette à aplats de couleur, puis StitchFoundry la digitalise
 @msg	select an image to redraw	sélectionnez une image à redessiner
@@ -6626,8 +6621,6 @@ theme	Appearance	Apparence
 	Ask	Demander
 	New Conversation	Nouvelle conversation
 	Include my design	Inclure mon motif
-	Answers come from Claude with your own Anthropic API key, billed to your Anthropic account. They can be wrong: try a test sew before an important piece.	Les réponses viennent de Claude avec votre propre clé API Anthropic, facturée sur votre compte Anthropic. Elles peuvent être fausses : faites un essai avant une pièce importante.
-	Change key	Changer de clé
 @msg	Type a question first.	Tapez d'abord une question.
 @msg	The question is too long: keep it under 2,000 characters.	La question est trop longue : restez sous 2 000 caractères.
 @msg	The AI declined to answer this: ask another way.	L'IA a refusé de répondre : posez la question autrement.
@@ -6684,7 +6677,6 @@ theme	Appearance	Apparence
 	Anything else? For example: a gap above the bumper	Autre chose ? Par exemple : un espace au-dessus du pare-chocs
 	As the design has it	Comme dans le motif
 	Choose the photos in the browser's window…	Choisissez les photos dans la fenêtre du navigateur…
-	Claude looks at the photos with your own Anthropic API key, billed to your Anthropic account. It can be wrong: try a fix on a scrap of the same fabric first.	Claude examine les photos avec votre propre clé API Anthropic, facturée sur votre compte Anthropic. Il peut se tromper : essayez une correction sur une chute du même tissu d’abord.
 	Include the design that was sewn (open now), so it can be fixed	Joindre le motif brodé (ouvert maintenant), pour qu’il puisse être corrigé
 	My sew-out ({n} photos)	Ma broderie ({n} photos)
 	Needle	Aiguille
@@ -6719,8 +6711,6 @@ theme	Appearance	Apparence
 	Leave it empty for StitchFoundry's own service.	Laissez vide pour le service de StitchFoundry.
 	Paid with Foundry credits ({n} left).	Payé en crédits Foundry ({n} restants).
 	Paid with Foundry credits.	Payé en crédits Foundry.
-	Pay for the AI features with my Foundry credits	Payer les fonctions d’IA avec mes crédits Foundry
-	Pay with Foundry credits instead	Payer plutôt en crédits Foundry
 	Payment is on Stripe's secure page, in your browser; your card never reaches StitchFoundry.	Le paiement se fait sur la page sécurisée de Stripe, dans votre navigateur ; votre carte n’atteint jamais StitchFoundry.
 	Reading your credits…	Lecture de vos crédits…
 	Server	Serveur
@@ -6731,7 +6721,6 @@ theme	Appearance	Apparence
 	Signed in as {email}	Connecté en tant que {email}
 	Foundry Account	Compte Foundry
 	Foundry Account…	Compte Foundry…
-	Foundry accounts aren't open yet. Until then, the AI features work with your own Anthropic API key.	Les comptes Foundry ne sont pas encore ouverts. D’ici là, les fonctions d’IA marchent avec votre propre clé API Anthropic.
 	This is the sew-out after the fix from my last check	C’est la broderie faite après la correction de ma dernière vérification
 	{n} credits for {price}	{n} crédits pour {price}
 	{n} credits	{n} crédits
@@ -6956,9 +6945,7 @@ theme	Appearance	Apparence
 	Quick	Rapide
 	Thorough	Approfondi
 	About {typical} credits a drawing, at most {most}.	Environ {typical} crédits par dessin, au plus {most}.
-	About {typical} a drawing on your Anthropic account, at most {most}.	Environ {typical} par dessin sur votre compte Anthropic, au plus {most}.
 	{tokens} tokens	{tokens} jetons
-	{tokens} tokens, about {cost}	{tokens} jetons, environ {cost}
 # AI research and check
 	Thorough looks up what it draws, thinks longest and checks its stitches once: it costs several times as much as Normal. Use it for real things, like a dog breed or a truck model, and for detailed designs.	Approfondi se renseigne sur ce qu’il dessine, réfléchit le plus longtemps et vérifie ses points une fois : il coûte plusieurs fois plus que Normal. À utiliser pour des choses réelles, comme une race de chien ou un modèle de camion, et pour les motifs détaillés.
 	Checking the stitches…	Vérification des points…
