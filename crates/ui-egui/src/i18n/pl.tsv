@@ -5554,16 +5554,12 @@ machine	Stop	Zatrzymanie
 	Generate	Generuj
 	Describe the design:	Opisz projekt:
 	Size (longest side):	Rozmiar (dłuższy bok):
-	Anthropic API key:	Klucz API Anthropic:
-	Remember the key on this computer	Zapamiętaj klucz na tym komputerze
-	Claude draws the artwork with your own Anthropic API key, billed to your Anthropic account; StitchFoundry then digitizes it. Check the stitches before you sew.	Claude rysuje kompozycję przy użyciu Twojego własnego klucza API Anthropic, a opłaty obciążają Twoje konto Anthropic; następnie StitchFoundry ją digitalizuje. Sprawdź ściegi przed szyciem.
 	Get a key	Uzyskaj klucz
 	Drawing the design…	Rysowanie projektu…
 	Describe a design and Claude draws artwork for it, then StitchFoundry digitizes it	Opisz projekt, a Claude narysuje do niego kompozycję, którą StitchFoundry następnie zdigitalizuje
 	Place Artwork as Embroidery	Umieść kompozycję jako haft
 	Place Artwork	Umieść kompozycję
 @plural	Design placed: {n} stitched object|Design placed: {n} stitched objects	Umieszczono projekt: {n} haftowany obiekt|Umieszczono projekt: {n} haftowane obiekty|Umieszczono projekt: {n} haftowanych obiektów
-@msg	Enter your Anthropic API key first.	Najpierw wprowadź klucz API Anthropic.
 @msg	The API key isn't valid: paste it again from the Anthropic Console.	Klucz API jest nieprawidłowy: wklej go ponownie z Anthropic Console.
 @msg	Describe the design first.	Najpierw opisz projekt.
 @msg	The description is too long: keep it under 2,000 characters.	Opis jest za długi: zmieść się w 2000 znaków.
@@ -5586,7 +5582,6 @@ machine	Stop	Zatrzymanie
 	Redraw Image with Claude	Przerysuj obraz za pomocą Claude
 	What to change (optional):	Co zmienić (opcjonalnie):
 	Only redraw artwork you own or have permission to use.	Przerysowuj tylko kompozycje, które są Twoją własnością lub na których użycie masz zgodę.
-	Claude redraws the image as flat-colour art with your own Anthropic API key, billed to your Anthropic account; StitchFoundry then digitizes it. Check the stitches before you sew.	Claude przerysowuje obraz jako grafikę w płaskich kolorach przy użyciu Twojego własnego klucza API Anthropic, a opłaty obciążają Twoje konto Anthropic; następnie StitchFoundry ją digitalizuje. Sprawdź ściegi przed szyciem.
 	Redraw with Claude…	Przerysuj za pomocą Claude…
 	Claude redraws the image as clean flat-colour art, then StitchFoundry digitizes it	Claude przerysowuje obraz jako czystą grafikę w płaskich kolorach, a następnie StitchFoundry ją digitalizuje
 @msg	select an image to redraw	zaznacz obraz do przerysowania
@@ -6482,8 +6477,6 @@ machine	Stop	Zatrzymanie
 	Ask	Zapytaj
 	New Conversation	Nowa rozmowa
 	Include my design	Dołącz mój projekt
-	Answers come from Claude with your own Anthropic API key, billed to your Anthropic account. They can be wrong: try a test sew before an important piece.	Odpowiedzi pochodzą od Claude i używają Twojego własnego klucza API Anthropic, a opłaty obciążają Twoje konto Anthropic. Mogą być błędne: przed ważną pracą wykonaj próbne wyszycie.
-	Change key	Zmień klucz
 @msg	Type a question first.	Najpierw wpisz pytanie.
 @msg	The question is too long: keep it under 2,000 characters.	Pytanie jest za długie: zmieść się w 2000 znaków.
 @msg	The AI declined to answer this: ask another way.	AI odmówiła odpowiedzi na to: zapytaj inaczej.
@@ -6539,7 +6532,6 @@ machine	Stop	Zatrzymanie
 	Anything else? For example: a gap above the bumper	Coś jeszcze? Na przykład: szpara nad zderzakiem
 	As the design has it	Jak w projekcie
 	Choose the photos in the browser's window…	Wybierz zdjęcia w oknie przeglądarki…
-	Claude looks at the photos with your own Anthropic API key, billed to your Anthropic account. It can be wrong: try a fix on a scrap of the same fabric first.	Claude ogląda zdjęcia z Twoim własnym kluczem API Anthropic, rozliczanym na Twoim koncie Anthropic. Może się mylić: poprawkę wypróbuj najpierw na skrawku tej samej tkaniny.
 	Include the design that was sewn (open now), so it can be fixed	Dołącz wyhaftowany projekt (teraz otwarty), aby można go było poprawić
 	My sew-out ({n} photos)	Mój haft (zdjęcia: {n})
 	Needle	Igła
@@ -6568,8 +6560,6 @@ machine	Stop	Zatrzymanie
 	Leave it empty for StitchFoundry's own service.	Zostaw puste dla własnej usługi StitchFoundry.
 	Paid with Foundry credits ({n} left).	Opłacone kredytami Foundry (zostało {n}).
 	Paid with Foundry credits.	Opłacone kredytami Foundry.
-	Pay for the AI features with my Foundry credits	Płać za funkcje AI moimi kredytami Foundry
-	Pay with Foundry credits instead	Zapłać zamiast tego kredytami Foundry
 	Payment is on Stripe's secure page, in your browser; your card never reaches StitchFoundry.	Płatność odbywa się na bezpiecznej stronie Stripe w Twojej przeglądarce; Twoja karta nigdy nie trafia do StitchFoundry.
 	Reading your credits…	Wczytywanie kredytów…
 	Server	Serwer
@@ -6580,7 +6570,6 @@ machine	Stop	Zatrzymanie
 	Signed in as {email}	Zalogowano jako {email}
 	Foundry Account	Konto Foundry
 	Foundry Account…	Konto Foundry…
-	Foundry accounts aren't open yet. Until then, the AI features work with your own Anthropic API key.	Konta Foundry nie są jeszcze otwarte. Do tego czasu funkcje AI działają z Twoim własnym kluczem API Anthropic.
 	This is the sew-out after the fix from my last check	To haft po poprawce z mojego ostatniego sprawdzenia
 	{n} credits for {price}	{n} kredytów za {price}
 	{n} credits	Kredyty: {n}
@@ -6783,9 +6772,7 @@ machine	Stop	Zatrzymanie
 	Quick	Szybki
 	Thorough	Dokładny
 	About {typical} credits a drawing, at most {most}.	Około {typical} kredytów za rysunek, najwyżej {most}.
-	About {typical} a drawing on your Anthropic account, at most {most}.	Około {typical} za rysunek na Twoim koncie Anthropic, najwyżej {most}.
 	{tokens} tokens	{tokens} tokenów
-	{tokens} tokens, about {cost}	{tokens} tokenów, około {cost}
 # AI research and check
 	Thorough looks up what it draws, thinks longest and checks its stitches once: it costs several times as much as Normal. Use it for real things, like a dog breed or a truck model, and for detailed designs.	Dokładny sprawdza, co rysuje, myśli najdłużej i raz sprawdza swoje ściegi: kosztuje kilka razy więcej niż Normalny. Używaj go do prawdziwych rzeczy, jak rasa psa czy model ciężarówki, i do szczegółowych projektów.
 	Checking the stitches…	Sprawdzanie ściegów…

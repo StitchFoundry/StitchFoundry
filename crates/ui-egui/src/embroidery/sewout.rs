@@ -323,7 +323,9 @@ pub fn window(app: &mut VectorcraftApp, ctx: &egui::Context) {
             ui.horizontal_wrapped(|ui| {
                 for (i, p) in st.photos.iter_mut().enumerate() {
                     ui.vertical(|ui| {
-                        let tex = p.texture.get_or_insert_with(|| ui.ctx().load_texture(format!("sewout-{i}-{}", p.name), p.thumb.clone(), Default::default()));
+                        let tex = p
+                            .texture
+                            .get_or_insert_with(|| ui.ctx().load_texture(format!("sewout-{i}-{}", p.name), p.thumb.clone(), Default::default()));
                         ui.image((tex.id(), tex.size_vec2()));
                         if ui.small_button(tl!("Remove")).clicked() {
                             remove = Some(i);
@@ -354,7 +356,9 @@ pub fn window(app: &mut VectorcraftApp, ctx: &egui::Context) {
                 ui.label(tl!("Stabilizer"));
                 let stab = stabilizers();
                 let shown: Vec<&str> = stab.iter().map(|s| s.1).collect();
-                if let Some(i) = crate::widgets::dropdown_names(ui, "sewout-stabilizer", shown.get(st.stabilizer).copied().unwrap_or_default(), &shown, 240.0) {
+                if let Some(i) =
+                    crate::widgets::dropdown_names(ui, "sewout-stabilizer", shown.get(st.stabilizer).copied().unwrap_or_default(), &shown, 240.0)
+                {
                     st.stabilizer = i;
                 }
                 ui.end_row();
@@ -367,12 +371,20 @@ pub fn window(app: &mut VectorcraftApp, ctx: &egui::Context) {
             for ((_, label), on) in happened().iter().zip(st.happened.iter_mut()) {
                 ui.checkbox(on, *label);
             }
-            ui.add(egui::TextEdit::multiline(&mut st.notes).desired_rows(2).desired_width(f32::INFINITY).hint_text(tl!("Anything else? For example: a gap above the bumper")));
+            ui.add(
+                egui::TextEdit::multiline(&mut st.notes)
+                    .desired_rows(2)
+                    .desired_width(f32::INFINITY)
+                    .hint_text(tl!("Anything else? For example: a gap above the bumper")),
+            );
             ui.add_enabled_ui(has_doc, |ui| {
                 ui.checkbox(&mut st.include_design, tl!("Include the design that was sewn (open now), so it can be fixed"));
             });
             if credits {
-                ui.checkbox(&mut st.share, tl!("Share this check to help improve StitchFoundry (kept private; delete it any time in Foundry Account)"));
+                ui.checkbox(
+                    &mut st.share,
+                    tl!("Share this check to help improve StitchFoundry (kept private; delete it any time in Foundry Account)"),
+                );
             }
             if st.last_check.is_some() {
                 ui.checkbox(&mut st.follow_up, tl!("This is the sew-out after the fix from my last check"));
@@ -388,9 +400,11 @@ pub fn window(app: &mut VectorcraftApp, ctx: &egui::Context) {
             let paid_by_credits = super::account::paid_line(app, ui, &t);
             if !paid_by_credits {
                 ui.label(
-                    RichText::new(tl!("Claude looks at the photos with your own Anthropic API key, billed to your Anthropic account. It can be wrong: try a fix on a scrap of the same fabric first."))
-                        .size(11.0)
-                        .color(t.text_dim),
+                    RichText::new(tl!(
+                        "Claude looks at the photos through your Foundry Account. It can be wrong: try a fix on a scrap of the same fabric first."
+                    ))
+                    .size(11.0)
+                    .color(t.text_dim),
                 );
             } else if let Some(n) = app.embroidery.account.info.as_ref().and_then(|i| i["freeChecks"].as_u64()) {
                 let line = if n > 0 {

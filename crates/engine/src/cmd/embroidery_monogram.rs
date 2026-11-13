@@ -13,6 +13,7 @@ use vectorcraft_geom::Rect;
 use vectorcraft_geom::path::{PathData, SubPath};
 
 use super::embroidery_lettering::{ensure_fonts, glyphs, lettering_name, loaded, not_loaded, own_size, ranged, size_warnings};
+use super::embroidery_monogram_frames::{FRAMES, How, frame_parts};
 use super::{CommandSpec, Point, Result, Session, always, bad, cmd, has_doc, point_param, str_param};
 
 const CMD: &str = "embroidery.monogram";
@@ -40,12 +41,22 @@ pub struct MonogramTemplate {
     pub ornament: String,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub size: Option<f64>,
+    /// A decorative frame (`embroidery_monogram_frames::FRAMES`) round the letters; empty: none.
+    #[serde(default, skip_serializing_if = "String::is_empty")]
+    pub frame: String,
+    /// The embroidery font the template suggests (used when the request names none).
+    #[serde(default, skip_serializing_if = "String::is_empty")]
+    pub font: String,
+    /// Suggested thread colours (`#rrggbb`): the main one, the accent, a third.
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub colors: Vec<String>,
 }
 
 impl MonogramTemplate {
     fn json(&self, builtin: bool) -> Value {
         json!({ "name": self.name, "style": self.style, "border": self.border, "rings": self.rings,
-            "ornament": self.ornament, "size": self.size, "builtin": builtin })
+            "ornament": self.ornament, "size": self.size, "builtin": builtin, "frame": self.frame,
+            "font": self.font, "colors": self.colors })
     }
 }
 
@@ -58,6 +69,16 @@ pub fn builtin_templates() -> Vec<MonogramTemplate> {
         rings,
         ornament: ornament.into(),
         size: None,
+        frame: String::new(),
+        font: String::new(),
+        colors: Vec::new(),
+    };
+    // a decorative frame template: its letter layout, frame art, suggested font and threads
+    let d = |name: &str, style: &str, frame: &str, font: &str, colors: [&str; 3]| MonogramTemplate {
+        frame: frame.into(),
+        font: font.into(),
+        colors: colors.iter().map(|c| (*c).to_string()).collect(),
+        ..t(name, style, "none", 1, "none")
     };
     vec![
         t("Classic circle", "classic", "circle", 1, "none"),
@@ -69,6 +90,17 @@ pub fn builtin_templates() -> Vec<MonogramTemplate> {
         t("Starry oval", "line", "oval", 1, "stars"),
         t("Square block", "line", "square", 2, "none"),
         t("Stacked crest", "stacked", "octagon", 3, "none"),
+        d("Vine", "classic", "vine", "Script", ["#2f5d3a", "#6aa84f", "#2f5d3a"]),
+        d("Floral wreath", "classic", "floralWreath", "Script", ["#c2185b", "#3b7d3a", "#f4c542"]),
+        d("Scroll flourish", "line", "scroll", "Serif", ["#1a3e8c", "#8c6d1a", "#1a3e8c"]),
+        d("Diamond with corner leaves", "classic", "cornerLeaves", "Serif", ["#2b2b6b", "#3b7d3a", "#2b2b6b"]),
+        d("Nautical rope", "line", "rope", "Block", ["#1d3557", "#c9a66b", "#1d3557"]),
+        d("Western", "line", "western", "Block", ["#6b3e1f", "#c9a66b", "#6b3e1f"]),
+        d("Varsity patch", "line", "varsity", "Block", ["#7a1020", "#f2f2f2", "#7a1020"]),
+        d("Wedding script with hearts", "classic", "weddingHearts", "Script", ["#7a1a3a", "#d94f6f", "#d94f6f"]),
+        d("Baby", "classic", "baby", "Rounded", ["#5aa9e6", "#f7c6d0", "#f4d35e"]),
+        d("Holly", "classic", "holly", "Serif", ["#b3202a", "#1f6b3a", "#b3202a"]),
+        d("Pumpkin", "line", "pumpkin", "Rounded", ["#e8791d", "#4a8a2a", "#6b4a1f"]),
     ]
 }
 
@@ -117,7 +149,7 @@ pub fn specs() -> Vec<CommandSpec> {
             "Monogram",
             [],
             None,
-            "{letters: 1 to 3 characters, font: a loaded embroidery font, template?: a monogram template's name (its style, border, rings, ornament and size, unless given here), size?: mm (the letters' height, the middle one of three larger in a classic monogram; default: the font's own), style?: classic|line|stacked (classic: the middle of three letters larger, each centred on the monogram's middle; line: all one size on one baseline; stacked: one above the other), border?: none|circle|diamond|square|scallop|oval|octagon|heart|shield (none), rings?: 1–4 borders (3 mm apart; 1), ornament?: none|hearts|stars|dots|swirls (none: either side of the letters, mirrored), at?: [x, y] (its middle; default: the first artboard's centre)} a monogram: each letter lettering in the font (set again with embroidery.lettering.edit), round them and the ornaments a satin border (a scalloped one a scallop motif run), in a group → {id, letters, warnings}",
+            "{letters: 1 to 3 characters, font: a loaded embroidery font, template?: a monogram template's name (its style, border, rings, ornament and size, unless given here), size?: mm (the letters' height, the middle one of three larger in a classic monogram; default: the font's own), style?: classic|line|stacked (classic: the middle of three letters larger, each centred on the monogram's middle; line: all one size on one baseline; stacked: one above the other), border?: none|circle|diamond|square|scallop|oval|octagon|heart|shield (none), rings?: 1–4 borders (3 mm apart; 1), ornament?: none|hearts|stars|dots|swirls (none: either side of the letters, mirrored), frame?: none|vine|floralWreath|scroll|cornerLeaves|rope|western|varsity|weddingHearts|baby|holly|pumpkin (none: decorative frame art drawn round them, scaled to the letters), colors?: [#rrggbb, ...] (the frame's main, accent and third thread colours; a template gives its own), at?: [x, y] (its middle; default: the first artboard's centre)} a monogram: each letter lettering in the font (set again with embroidery.lettering.edit), round them and the ornaments a satin border (a scalloped one a scallop motif run), in a group → {id, letters, warnings}",
             has_doc,
             monogram
         ),
@@ -279,6 +311,10 @@ fn save_template(s: &mut Session, p: &Value) -> Result<Value> {
         },
         ornament: pick("ornament", &ORNAMENTS, "none")?,
         size: ranged(p, "size", 1.0..=300.0, SAVE, "`size` is 1 to 300 mm")?,
+        frame: pick("frame", &[&["none"][..], &super::embroidery_monogram_frames::FRAMES[..]].concat(), "none")
+            .map(|f| if f == "none" { String::new() } else { f })?,
+        font: String::new(),
+        colors: Vec::new(),
     };
     let own = &mut s.prefs.embroidery_monogram_templates;
     let full = own.len() >= MAX_TEMPLATES;
@@ -310,6 +346,15 @@ fn monogram(s: &mut Session, p: &Value) -> Result<Value> {
         Some(name) => {
             let t = template_named(s, name).ok_or_else(|| bad(CMD, format!("no monogram template `{name}`")))?;
             let mut m = json!({ "style": t.style, "border": t.border, "rings": t.rings, "ornament": t.ornament });
+            if !t.frame.is_empty() {
+                m["frame"] = json!(t.frame);
+            }
+            if !t.font.is_empty() {
+                m["suggestedFont"] = json!(t.font);
+            }
+            if !t.colors.is_empty() {
+                m["colors"] = json!(t.colors);
+            }
             if let Some(size) = t.size {
                 m["size"] = json!(size);
             }
@@ -352,6 +397,15 @@ fn monogram(s: &mut Session, p: &Value) -> Result<Value> {
             BORDERS.iter().copied().find(|k| *k == b).ok_or_else(|| bad(CMD, format!("unknown border `{b}`: one of {}", BORDERS.join(", "))))?
         }
     };
+    let frame = match str_param(p, "frame") {
+        None | Some("none") => "",
+        Some(f) => FRAMES.iter().copied().find(|k| *k == f).ok_or_else(|| bad(CMD, format!("unknown frame `{f}`: one of {}", FRAMES.join(", "))))?,
+    };
+    let colors: Vec<Paint> = p
+        .get("colors")
+        .and_then(Value::as_array)
+        .map(|a| a.iter().filter_map(|c| c.as_str().and_then(Color::from_hex)).map(Paint::solid).collect())
+        .unwrap_or_default();
     let at = match p.get("at") {
         None | Some(Value::Null) => s.doc()?.doc.artboards.first().map_or(Point::new(0.0, 0.0), |a| a.rect.center()),
         Some(_) => point_param(p, "at").filter(|q| q.x.is_finite() && q.y.is_finite()).ok_or_else(|| bad(CMD, "`at` is [x, y]"))?,
@@ -389,6 +443,7 @@ fn monogram(s: &mut Session, p: &Value) -> Result<Value> {
             text: c.to_string(),
             font: font.info.name.clone(),
             size: *h,
+            line_sizes: Vec::new(),
             leading: 1.0,
             arc: 0.0,
             spiral: 0.0,
@@ -447,6 +502,30 @@ fn monogram(s: &mut Session, p: &Value) -> Result<Value> {
                 } else {
                     Embroidery::new(StitchType::Run(RunParams { kind: RunKind::Triple, ..RunParams::default() }))
                 }));
+                parts.push(Arc::new(n));
+            }
+        }
+        // the decorative frame round the letters and ornaments
+        if !frame.is_empty()
+            && let Some(b) = parts.iter().filter_map(|n| n.geometric_bounds()).reduce(|a, b| a.union(b))
+        {
+            for fp in frame_parts(frame, b, (MARGIN + 2.0) * PT_PER_MM) {
+                let paint_of = colors.get(fp.color).or_else(|| colors.first()).cloned().unwrap_or_else(|| paint.clone());
+                let (look, e) = match fp.how {
+                    How::Fill => (Appearance::basic(paint_of, Paint::None, 0.0), Embroidery::new(StitchType::Fill(Default::default()))),
+                    How::Satin(w) => {
+                        let mut e = Embroidery::new(StitchType::Satin(SatinParams::default()));
+                        e.width = Some((w / PT_PER_MM).clamp(1.2, 6.0));
+                        (Appearance::basic(Paint::None, paint_of, w.max(1.0)), e)
+                    }
+                    How::Run => (
+                        Appearance::basic(Paint::None, paint_of, 1.0),
+                        Embroidery::new(StitchType::Run(RunParams { kind: RunKind::Triple, ..RunParams::default() })),
+                    ),
+                };
+                let mut n = Node::path(d.alloc_id(), PathData::single(SubPath::polyline(&fp.pts, fp.closed)), look);
+                n.name = Some(fp.name.into());
+                n.embroidery = Some(Box::new(e));
                 parts.push(Arc::new(n));
             }
         }

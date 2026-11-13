@@ -30,7 +30,7 @@ pub fn specs() -> Vec<CommandSpec> {
             "New Design for Hoop",
             [],
             None,
-            "{hoop?: a hoop's name (embroidery.hoops) | {width, height, shape?: rect|oval} (mm) (default: My Machine's everyday hoop, else 130 × 180 mm, the 5×7)} a new document whose page is the hoop's sewing field, the hoop set, and My Machine's settings when one is chosen; opens a new document → {hoop, width, height} (mm)",
+            "{remember?: false to not remember the hoop, hoop?: a hoop's name (embroidery.hoops) | {width, height, shape?: rect|oval} (mm) (default: the last hoop picked by name, else My Machine's everyday hoop, else 130 × 180 mm, the 5×7)} a new document whose page is the hoop's sewing field, the hoop set, and My Machine's settings when one is chosen; opens a new document → {hoop, width, height} (mm)",
             always,
             new_design
         ),
@@ -51,7 +51,10 @@ fn new_design(s: &mut Session, p: &Value) -> Result<Value> {
     const CMD: &str = "embroidery.newDesign";
     // no hoop: My Machine's everyday one, else the 5×7 most machines take
     let mine = super::embroidery_my_machine::mine(s);
-    let fallback = Some(Value::String(mine.and_then(|m| m.hoops.first()).map_or(EVERYDAY_HOOP, |h| *h).to_string()));
+    // no hoop named: the last one used (if this machine has it), else the machine's first
+    let last = Some(s.prefs.last_hoop.as_str())
+        .filter(|n| !n.is_empty() && mine.is_none_or(|m| m.hoops.contains(n)) && super::embroidery_hoops::find_hoop(s, n).is_some());
+    let fallback = Some(Value::String(last.or_else(|| mine.and_then(|m| m.hoops.first()).copied()).unwrap_or(EVERYDAY_HOOP).to_string()));
     let hoop_param = p.get("hoop").cloned().or(fallback);
     let (name, w, h) = match &hoop_param {
         Some(Value::String(name)) => {
@@ -65,6 +68,10 @@ fn new_design(s: &mut Session, p: &Value) -> Result<Value> {
         }
         _ => return Err(bad(CMD, "`hoop` is a hoop's name or {width, height, shape?} (or choose My Machine)")),
     };
+    // a hoop picked by name is the next design's default (samples don't count as a pick)
+    if matches!(p.get("hoop"), Some(Value::String(_))) && p.get("remember") != Some(&json!(false)) {
+        s.prefs.last_hoop = name.clone();
+    }
     s.execute("file.new", &json!({ "width": w * PT_PER_MM, "height": h * PT_PER_MM }))?;
     s.execute("embroidery.settings", &json!({ "hoop": hoop_param }))?;
     if let Some(m) = mine {
@@ -98,7 +105,7 @@ fn sample(s: &mut Session, p: &Value) -> Result<Value> {
         }
         _ => {}
     }
-    let r = s.execute("embroidery.newDesign", &json!({ "hoop": hoop }))?;
+    let r = s.execute("embroidery.newDesign", &json!({ "hoop": hoop, "remember": false }))?;
     let (w, h) = (r["width"].as_f64().unwrap_or(100.0), r["height"].as_f64().unwrap_or(100.0));
     let at = |x: f64, y: f64| json!([x * PT_PER_MM, y * PT_PER_MM]);
     match id {
@@ -185,5 +192,23 @@ mod tests {
             }
         }
         assert!(s.execute("embroidery.sample", &json!({"id": "nope"})).is_err());
+    }
+
+    #[test]
+    fn the_last_hoop_picked_is_the_next_default() {
+        let mut s = Session::new();
+        s.execute("embroidery.newDesign", &json!({"hoop": "Brother 100 × 100 (4×4)"})).unwrap();
+        assert_eq!(s.execute("embroidery.newDesign", &json!({})).unwrap()["hoop"], "Brother 100 × 100 (4×4)");
+        // a sample (it names its hoop) and a custom size don't change it
+        s.execute("embroidery.sample", &json!({"id": "sun-and-moon"})).unwrap();
+        s.execute("embroidery.newDesign", &json!({"hoop": {"width": 150, "height": 150}})).unwrap();
+        assert_eq!(s.execute("embroidery.newDesign", &json!({})).unwrap()["hoop"], "Brother 100 × 100 (4×4)");
+        // a machine that lacks that hoop uses its own first one
+        s.execute("embroidery.myMachine.set", &json!({"machine": "Husqvarna Viking Designer Diamond deLuxe"})).unwrap();
+        let r = s.execute("embroidery.newDesign", &json!({})).unwrap();
+        assert_ne!(r["hoop"], "Brother 100 × 100 (4×4)");
+        // a stale name is ignored
+        s.prefs.last_hoop = "Gone".into();
+        assert!(s.execute("embroidery.newDesign", &json!({})).is_ok());
     }
 }
