@@ -57,6 +57,16 @@ The design opens the size of the hoop's sewing field and Save for My Machine wor
 **Blank canvas (page size)** on Home and File › New… (Ctrl/Cmd+N) still open the New Document
 dialog with its page presets.
 
+**Learn** (a button on Home, and Help › Learn…; `ui.learn`) lists short video lessons: title, length
+and thumbnail, each with a **Watch** button (the YouTube video, channel @MakerFoundryApp, opened in
+your browser), a link to the matching page of this guide and, for some, **Try it**, which opens a
+sample design. The list is one small JSON file on stitchfoundry.app
+(`https://stitchfoundry.app/learn/lessons.json`: `{"lessons": [{"title", "minutes"?, "thumbnail"?,
+"video"?, "docs"?, "try"?}]}`), so lessons can be added without a release; only YouTube and
+stitchfoundry.app links are opened, `docs` must be a guide topic and `try` a `sample:<id>`. Offline,
+or before the first videos exist, the planned lessons show as "Lessons coming soon": your first design
+in Simple mode, lettering a name, photo to stitches, appliqué and saving to your machine.
+
 The **Home screen** (shown when no design is open, or with the Home button) starts a design the
 size of your hoop (4×4, 5×7, 6×10, 8×8 or 8×12; `embroidery.newDesign {hoop}`), opens a sample
 design to look at and sew, each shown as a picture of its stitches with what it shows when you
@@ -2518,6 +2528,15 @@ your own; *Save as Template* keeps the look now set (style, border, rings, ornam
 name, kept with your preferences for any design, and *Delete Template* removes one of yours
 (`embroidery.monogram.templates`, `.saveTemplate`, `.deleteTemplate`; `embroidery.monogram
 {template}`, anything given with it winning).
+
+**Decorative frames**: eleven more gallery templates add frame art drawn round the letters, all
+original and made in code from plain geometry: *Vine*, *Floral wreath*, *Scroll flourish*,
+*Diamond with corner leaves*, *Nautical rope*, *Western*, *Varsity patch*, *Wedding script with
+hearts*, *Baby*, *Holly* and *Pumpkin*. Each template carries a letter layout, a frame
+(`frame: vine|floralWreath|scroll|cornerLeaves|rope|western|varsity|weddingHearts|baby|holly|pumpkin`),
+a suggested font family and three thread colours (`colors`, which can also be given on their own);
+the frame scales with the letters, which stay editable lettering. A test places every gallery
+template at 2, 3 and 4 inches and runs the design checks.
 
 ## Team names
 
