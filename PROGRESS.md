@@ -21,3 +21,4 @@
 - Issue 83 (part): `embroidery.newDesign` with no hoop named takes the last hoop picked by name (pref `last_hoop`, kept across restarts; ignored if My Machine lacks it; samples and custom sizes don't change it). Still to do: Ctrl/Cmd+N opening Start a design, on-screen out-of-field warning at creation, screenshots.
 - 2026-11-13 nightly sweep: no reports to triage; no new findings filed (reviewed the Learn list loader, HUS decompressor, native unpack limits and the control server).
 - Fix #40: `sf_formats::Timestamp::from_unix` reads the date from chrono instead of its own calendar math; past 9999 it gives 9999-12-31 23:59:59.
+- Issue 94: Help → Report a Bug… / Suggest a Feature… open the hub forms `/report/stitchfoundry/bug` and `/feature` with `?v=<version>&system=`; no feature/bug `mailto:` links remain (test `no_report_link_is_a_mailto`). Only `support@stitchfoundry.app` text in cloud service emails/errors (apps/stitchfoundry-cloud/src/api.rs) stays.
