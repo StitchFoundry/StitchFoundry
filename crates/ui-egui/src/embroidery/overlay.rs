@@ -420,10 +420,19 @@ pub fn paint(app: &mut crate::VectorcraftApp, painter: &Painter, xf: &Xf) {
         return;
     }
     let Some(plan) = app.session.embroidery_plan() else { return };
+    let Some(st) = app.session.active() else { return };
     if plan.is_empty() {
+        // A new design, nothing drawn yet: still show the hoop, round the middle of the page.
+        if let Some(e) = st.doc.embroidery.as_deref()
+            && let Some(hoop) = e.hoop.as_ref()
+            && let Some(ab) = st.doc.artboards.first()
+        {
+            let mid = ab.rect.center();
+            let c = vectorcraft_embroidery::sf_core::Point::new(mid.x / PT_PER_MM, mid.y / PT_PER_MM);
+            hoop_outline_at(painter, xf, hoop, c, true);
+        }
         return;
     }
-    let Some(st) = app.session.active() else { return };
     // Fabric under the stitches: the artboards, tinted.
     let fabric = ui.fabric;
     let cover = match ui.art {
@@ -809,6 +818,17 @@ fn hoop_outline(painter: &Painter, xf: &Xf, hoop: &vectorcraft_embroidery::sf_co
     // the hoop's centre: the design's middle, less where the design sits in the hoop
     let c = b.center() - vectorcraft_embroidery::sf_core::Point::new(ox, oy);
     let fits = hoop.fits(&vectorcraft_embroidery::sf_core::geom::BBox::new(b.min - c, b.max - c));
+    hoop_outline_at(painter, xf, hoop, c, fits);
+}
+
+/// The hoop's outline, centre marks and name round `c` (mm), blue when `fits`, else red.
+fn hoop_outline_at(
+    painter: &Painter,
+    xf: &Xf,
+    hoop: &vectorcraft_embroidery::sf_core::hoops::Hoop,
+    c: vectorcraft_embroidery::sf_core::Point,
+    fits: bool,
+) {
     let color = if fits { Color32::from_rgb(70, 110, 170) } else { Color32::from_rgb(210, 50, 50) };
     let mut ring: Vec<Pos2> = hoop.outline().into_iter().map(|q| xf.to_screen(pt(q + c))).collect();
     if let Some(&first) = ring.first() {

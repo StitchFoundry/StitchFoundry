@@ -44,7 +44,10 @@ impl VectorcraftApp {
         // ([`place::place_from_cursor`]).
         session.place_cursor_requests = true;
         let views = session.documents().iter().map(View::of).collect();
-        Self {
+        // A saved Anthropic API key from an earlier version is ignored and deleted: the Foundry
+        // Account is the only way to sign in and pay for AI.
+        let key_removed = embroidery::prompt::purge_own_key(services.secrets.as_deref());
+        let mut app = Self {
             session,
             ui: UiState::default(),
             views,
@@ -78,6 +81,8 @@ impl VectorcraftApp {
             simple: simple::SimpleState::default(),
             guide: guide::GuideState::default(),
             updates: updates::UpdateState::default(),
+            learn: Default::default(),
+            staging: false,
             perf: Perf::default(),
             dock_rt: Default::default(),
             titlebar_inset: 0.0,
@@ -157,7 +162,11 @@ impl VectorcraftApp {
             injected_settled: Default::default(),
             geometry_epoch: 0,
             geometry_stamp: None,
+        };
+        if key_removed {
+            app.status(embroidery::prompt::KEY_REMOVED_NOTE);
         }
+        app
     }
 
     pub fn with_control(mut self, rx: Receiver<ControlRequest>) -> Self {
@@ -532,6 +541,7 @@ impl VectorcraftApp {
         }
         dialogs::show(self, &ctx);
         updates_ui::show(self, &ctx);
+        crate::staging::banner(self, &ctx);
         export_progress::show(self, &ctx);
         plugin_runs::show(self, &ctx);
         palette::show(self, &ctx);
