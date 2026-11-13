@@ -71,6 +71,16 @@ pub fn new_token() -> Result<(String, String), String> {
     Ok((token, hash))
 }
 
+/// A new private link token for Send to my phone (kept as is: the link must be shown again).
+pub fn new_phone_token() -> Result<String, String> {
+    Ok(format!("sfp_{}", hex(&random::<32>()?)))
+}
+
+/// Whether `token` has the shape of [`new_phone_token`]'s.
+pub fn good_phone_token(token: &str) -> bool {
+    token.strip_prefix("sfp_").is_some_and(|h| h.len() == 64 && h.bytes().all(|b| b.is_ascii_hexdigit()))
+}
+
 /// A new random password (a test account's, given once): 24 random bytes as hex.
 pub fn new_password() -> Result<String, String> {
     Ok(hex(&random::<24>()?))
