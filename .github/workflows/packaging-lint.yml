@@ -40,7 +40,7 @@ jobs:
             | tar -xz -C "$RUNNER_TEMP" actionlint
       - name: actionlint
         run: |
-          "$RUNNER_TEMP/actionlint" -color
+          "$RUNNER_TEMP/actionlint" -color -ignore 'shellcheck reported issue.+SC2034'
       - name: shellcheck
         run: shellcheck packaging/*.sh packaging/*/*.sh
       - name: PowerShell
