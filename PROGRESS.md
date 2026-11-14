@@ -31,3 +31,5 @@
 - 2026-11-13 nightly sweep: no reports to triage; no new findings filed (reviewed the Learn list loader, HUS decompressor, native unpack limits and the control server).
 - Fix #40: `sf_formats::Timestamp::from_unix` reads the date from chrono instead of its own calendar math; past 9999 it gives 9999-12-31 23:59:59.
 - Issue 94: Help → Report a Bug… / Suggest a Feature… open the hub forms `/report/stitchfoundry/bug` and `/feature` with `?v=<version>&system=`; no feature/bug `mailto:` links remain (test `no_report_link_is_a_mailto`). Only `support@stitchfoundry.app` text in cloud service emails/errors (apps/stitchfoundry-cloud/src/api.rs) stays.
+- 2026-11-14 nightly sweep: no reports to triage; `cargo xtask ci` on main green through fmt, clippy, tests and doctests (later steps stopped on a full disk); cargo audit: no vulnerabilities. Filed the bug-report queue numbering overflow.
+- Fix #48: Cargo.lock moves async-executor from the yanked 1.14.0 to 1.14.1 (`cargo audit -D yanked` passes).
