@@ -2754,7 +2754,12 @@ mod tests {
         for secret in [None, Some(""), Some("wrong"), Some(&ADMIN[..30])] {
             assert_eq!(s.handle(&founding_req(secret, json!({"program": "stitchfoundry", "account": 1}))).status, 404, "{secret:?}");
         }
-        for body in [json!({"account": 1}), json!({"program": "Bad Name", "account": 1}), json!({"program": "x"}), json!({"program": "x", "email": "nobody@example.com"})] {
+        for body in [
+            json!({"account": 1}),
+            json!({"program": "Bad Name", "account": 1}),
+            json!({"program": "x"}),
+            json!({"program": "x", "email": "nobody@example.com"}),
+        ] {
             let r = s.handle(&founding_req(Some(ADMIN), body.clone()));
             assert!(r.status == 400 || r.status == 401, "{body}: {}", r.status);
         }

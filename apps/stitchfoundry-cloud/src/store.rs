@@ -587,7 +587,17 @@ impl Store {
         }
         self.state.next_id += 1;
         let id = self.state.next_id;
-        let account = Account { id, email: email.to_string(), password: password_hash, credits, reserved: 0, created: now, verified, test_run: None, founding: BTreeMap::new() };
+        let account = Account {
+            id,
+            email: email.to_string(),
+            password: password_hash,
+            credits,
+            reserved: 0,
+            created: now,
+            verified,
+            test_run: None,
+            founding: BTreeMap::new(),
+        };
         self.state.accounts.insert(id, account);
         if credits > 0 {
             self.log(Entry { at: now, account: id, kind: "signup".into(), credits: credits as i64, balance: credits, note: String::new() })?;
@@ -620,7 +630,17 @@ impl Store {
         for (email, password) in users {
             self.state.next_id += 1;
             let id = self.state.next_id;
-            let account = Account { id, email, password, credits, reserved: 0, created: now, verified: true, test_run: Some(run.to_string()), founding: BTreeMap::new() };
+            let account = Account {
+                id,
+                email,
+                password,
+                credits,
+                reserved: 0,
+                created: now,
+                verified: true,
+                test_run: Some(run.to_string()),
+                founding: BTreeMap::new(),
+            };
             self.state.accounts.insert(id, account);
             if credits > 0 {
                 let note = format!("test run {run}");
