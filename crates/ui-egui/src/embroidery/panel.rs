@@ -3561,6 +3561,16 @@ fn design_section(app: &mut VectorcraftApp, ui: &mut Ui, t: &Tokens) {
         if let Some(fits) = info["fits"].as_bool() {
             let (txt, col) = if fits { (tl!("Fits the hoop"), t.accent) } else { (tl!("Larger than the hoop"), t.error) };
             ui.label(egui::RichText::new(txt).color(col));
+            if !fits && info["hoop"].is_string() {
+                ui.label(egui::RichText::new(tl!("The design is larger than the sewing field.")).color(t.error));
+                if button(ui, tl!("Fit to Hoop"))
+                    .on_hover_text(tl!("Scale the whole design down, width and height together, until it fits"))
+                    .clicked()
+                    && let Err(e) = app.run("embroidery.hoop.fit", json!({}))
+                {
+                    app.status(e);
+                }
+            }
         }
     } else {
         ui.label(egui::RichText::new(tl!("No stitches yet.")).color(t.text_dim));

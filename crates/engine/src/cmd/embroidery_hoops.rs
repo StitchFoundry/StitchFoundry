@@ -249,7 +249,9 @@ fn fit(s: &mut Session, _: &Value) -> Result<Value> {
         size = design_size(s).ok_or_else(|| bad(CMD, "the design has no stitches yet"))?;
     }
     let ok = fits(&hoop, size);
-    Ok(json!({ "scaled": scaled, "percent": if first.0 > 0.0 { size.0 / first.0 * 100.0 } else { 100.0 }, "width": size.0, "height": size.1, "fits": ok }))
+    Ok(
+        json!({ "scaled": scaled, "percent": if first.0 > 0.0 { size.0 / first.0 * 100.0 } else { 100.0 }, "width": size.0, "height": size.1, "fits": ok }),
+    )
 }
 
 fn rotate(s: &mut Session, _: &Value) -> Result<Value> {
