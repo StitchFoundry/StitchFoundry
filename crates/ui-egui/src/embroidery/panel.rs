@@ -908,6 +908,9 @@ fn hoop_custom_row(app: &mut VectorcraftApp, ui: &mut Ui) {
     egui::CollapsingHeader::new(tl!("Custom Hoops")).id_salt("emb-custom-hoops").show(ui, |ui| {
         super::hoop_editor::show(app, ui, true);
     });
+    egui::CollapsingHeader::new(tl!("Machine Profiles")).id_salt("emb-machine-profiles").show(ui, |ui| {
+        super::machine_editor::show(app, ui);
+    });
 }
 
 /// Job orders: a new one for this design, and the open ones with their status, worksheet and files.
