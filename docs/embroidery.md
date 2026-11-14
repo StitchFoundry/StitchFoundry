@@ -1390,7 +1390,9 @@ one's own. **Smallest That Fits** (`embroidery.hoop.auto {brand?, turn?, special
 chooses the smallest hoop that holds the design, turned a quarter when that fits better (`turn:
 false` keeps hoops as they are; cap, sleeve and jacket-back frames only with `special`; `brand`
 keeps to hoops whose names have it). **Rotate Hoop** (`embroidery.hoop.rotate`) turns the hoop a
-quarter. **In the hoop** chooses where the design sits: centred (as machines centre designs) or at a
+quarter. A design larger than the hoop's sewing field shows a warning in the panel with **Fit to Hoop**
+(`embroidery.hoop.fit`), which scales the whole design down about its centre, width and height together,
+until it fits (a design that fits is left alone). **In the hoop** chooses where the design sits: centred (as machines centre designs) or at a
 fixed place, x and y mm from the hoop's centre (`embroidery.settings {hoopPosition: [x, y] |
 "centre"}`): the machine files are written with the design there, and the hoop outline and the
 fit check follow. **Custom Hoops** keeps hoops of one's own by name with their field
