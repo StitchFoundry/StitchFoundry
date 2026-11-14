@@ -21,7 +21,7 @@ pub fn specs() -> Vec<CommandSpec> {
             "Hoops",
             [],
             None,
-            "{} the standard hoops and one's own, each with whether the design fits it (either way round) → {hoops: [{name, width, height, shape, custom, fits}], hoop, rotated}",
+            "{owned?: true to list only the hoops one owns (My Machine's, and one's own on it)} the standard hoops and one's own, each with whether one owns it and the design fits it (either way round) → {hoops: [{name, width, height, shape, custom, owned, fits}], hoop, rotated}",
             always,
             list
         ),
@@ -95,6 +95,20 @@ pub(crate) fn find_hoop(s: &Session, name: &str) -> Option<Hoop> {
     all_hoops(s).into_iter().find(|h| h.name.eq_ignore_ascii_case(name.trim()))
 }
 
+/// Whether the hoop named `name` is one the user owns: on My Machine's list (its own, and the
+/// hoops of one's own put on it or on every machine). With no machine chosen the standard hoops
+/// are all on offer, so every hoop counts.
+pub(crate) fn is_owned(s: &Session, name: &str) -> bool {
+    let Some(m) = super::embroidery_my_machine::mine(s) else { return true };
+    if m.hoops.iter().any(|n| n.eq_ignore_ascii_case(name)) {
+        return true;
+    }
+    s.prefs
+        .embroidery_custom_hoops
+        .iter()
+        .any(|h| h.name.eq_ignore_ascii_case(name) && (h.machines.is_empty() || h.machines.iter().any(|n| n == m.name)))
+}
+
 /// Whether the design's hoop is a named hoop turned a quarter.
 fn turned(s: &Session, hoop: &Hoop) -> bool {
     find_hoop(s, &hoop.name).is_some_and(|h| (h.width - hoop.height).abs() < 1e-6 && (h.height - hoop.width).abs() < 1e-6 && h.width != h.height)
@@ -134,11 +148,13 @@ fn answer(s: &Session, h: &Hoop) -> Value {
     json!({ "hoop": h.name, "width": h.width, "height": h.height, "rotated": turned(s, h) })
 }
 
-fn list(s: &mut Session, _: &Value) -> Result<Value> {
+fn list(s: &mut Session, p: &Value) -> Result<Value> {
     let size = design_size(s);
     let custom = &s.prefs.embroidery_custom_hoops;
+    let only_owned = p.get("owned").and_then(Value::as_bool) == Some(true);
     let hoops: Vec<Value> = all_hoops(s)
         .iter()
+        .filter(|h| !only_owned || is_owned(s, &h.name))
         .map(|h| {
             json!({
                 "name": h.name,
@@ -149,6 +165,7 @@ fn list(s: &mut Session, _: &Value) -> Result<Value> {
                 "cornerRadius": h.corner_radius,
                 "frame": h.frame,
                 "machines": h.machines,
+                "owned": is_owned(s, &h.name),
                 "fits": size.is_some_and(|d| fits(h, d) || fits(&turn(h), d)),
             })
         })

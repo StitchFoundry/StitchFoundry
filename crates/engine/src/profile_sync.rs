@@ -21,6 +21,8 @@ pub struct ProfileBundle {
     pub my_machine: String,
     /// The hoop of the last design started, "" for none.
     pub last_hoop: String,
+    /// The hoop last picked on each machine, by machine name.
+    pub last_hoop_by_machine: std::collections::BTreeMap<String, String>,
 }
 
 /// Where the profiles are kept. Implemented by the local preferences now, by an account later.
@@ -42,6 +44,7 @@ impl ProfileSync for LocalProfiles<'_> {
             hoops: p.embroidery_custom_hoops.clone(),
             my_machine: p.my_machine.clone(),
             last_hoop: p.last_hoop.clone(),
+            last_hoop_by_machine: p.last_hoop_by_machine.clone(),
         })
     }
 
@@ -51,6 +54,7 @@ impl ProfileSync for LocalProfiles<'_> {
         p.embroidery_custom_hoops = bundle.hoops.clone();
         p.my_machine = bundle.my_machine.clone();
         p.last_hoop = bundle.last_hoop.clone();
+        p.last_hoop_by_machine = bundle.last_hoop_by_machine.clone();
         Ok(())
     }
 }

@@ -52,8 +52,14 @@ fn new_design(s: &mut Session, p: &Value) -> Result<Value> {
     // no hoop: My Machine's everyday one, else the 5×7 most machines take
     let mine = super::embroidery_my_machine::mine(s);
     // no hoop named: the last one used (if this machine has it), else the machine's first
-    let last = Some(s.prefs.last_hoop.as_str())
+    // the hoop last picked on this machine first, then the last picked anywhere
+    let per_machine = mine
+        .and_then(|m| s.prefs.last_hoop_by_machine.get(m.name))
+        .map(String::as_str)
+        .filter(|n| super::embroidery_hoops::find_hoop(s, n).is_some() && super::embroidery_hoops::is_owned(s, n));
+    let any = Some(s.prefs.last_hoop.as_str())
         .filter(|n| !n.is_empty() && mine.is_none_or(|m| m.hoops.contains(n)) && super::embroidery_hoops::find_hoop(s, n).is_some());
+    let last = per_machine.or(any);
     let fallback = Some(Value::String(last.or_else(|| mine.and_then(|m| m.hoops.first()).copied()).unwrap_or(EVERYDAY_HOOP).to_string()));
     let hoop_param = p.get("hoop").cloned().or(fallback);
     let (name, w, h) = match &hoop_param {
@@ -71,6 +77,9 @@ fn new_design(s: &mut Session, p: &Value) -> Result<Value> {
     // a hoop picked by name is the next design's default (samples don't count as a pick)
     if matches!(p.get("hoop"), Some(Value::String(_))) && p.get("remember") != Some(&json!(false)) {
         s.prefs.last_hoop = name.clone();
+        if let Some(m) = mine {
+            s.prefs.last_hoop_by_machine.insert(m.name.to_string(), name.clone());
+        }
     }
     s.execute("file.new", &json!({ "width": w * PT_PER_MM, "height": h * PT_PER_MM }))?;
     s.execute("embroidery.settings", &json!({ "hoop": hoop_param }))?;

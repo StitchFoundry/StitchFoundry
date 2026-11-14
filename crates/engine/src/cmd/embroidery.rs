@@ -3426,7 +3426,7 @@ fn info(s: &mut Session, _p: &Value) -> Result<Value> {
     let custom = &s.prefs.embroidery_custom_hoops;
     let hoops: Vec<Value> = super::embroidery_hoops::all_hoops(s)
         .iter()
-        .map(|h| json!({"name": h.name, "width": h.width, "height": h.height, "custom": custom.iter().any(|c| c.name == h.name)}))
+        .map(|h| json!({"name": h.name, "width": h.width, "height": h.height, "custom": custom.iter().any(|c| c.name == h.name), "owned": super::embroidery_hoops::is_owned(s, &h.name)}))
         .collect();
     let charts: Vec<String> = super::embroidery_charts::all_charts(s).into_iter().map(|c| c.name).collect();
     let saved = &s.prefs.embroidery_machines;

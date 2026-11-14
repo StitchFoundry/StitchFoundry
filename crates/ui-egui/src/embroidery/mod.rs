@@ -245,6 +245,8 @@ pub struct EmbroideryUi {
     pub output: OutputView,
     /// The Patches section's choices.
     pub patches: PatchForm,
+    /// The hoop picker lists every hoop, not just the ones the user owns.
+    pub show_all_hoops: bool,
     /// The hoop-of-one's-own form (Embroidery panel and Make a Design).
     pub hoop_form: hoop_editor::HoopDraft,
     /// The machine profile form of the Embroidery panel.
@@ -422,6 +424,7 @@ impl Default for EmbroideryUi {
             library: LibraryView::default(),
             output: OutputView::default(),
             patches: PatchForm::default(),
+            show_all_hoops: false,
             hoop_form: hoop_editor::HoopDraft::default(),
             machine_form: machine_editor::MachineDraft::default(),
             recolor_scheme: 0,

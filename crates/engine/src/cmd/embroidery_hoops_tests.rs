@@ -122,3 +122,34 @@ fn fit_check_uses_the_custom_hoop() {
     let r = s.execute("embroidery.hoop.rotate", &json!({})).unwrap();
     assert_eq!((r["width"].as_f64(), r["height"].as_f64()), (Some(200.0), Some(100.0)));
 }
+
+#[test]
+fn owned_hoops_filter_and_the_last_hoop_is_kept_per_machine() {
+    let mut s = Session::new();
+    let all = s.execute("embroidery.hoops", &json!({})).unwrap()["hoops"].as_array().unwrap().len();
+    // no machine: every hoop is on offer
+    assert_eq!(s.execute("embroidery.hoops", &json!({"owned": true})).unwrap()["hoops"].as_array().unwrap().len(), all);
+    s.execute("embroidery.hoop.saveCustom", &json!({"name": "Mine", "width": 150, "height": 150})).unwrap();
+    s.execute("embroidery.hoop.saveCustom", &json!({"name": "Elsewhere", "width": 120, "height": 120})).unwrap();
+    s.execute("embroidery.myMachine.set", &json!({"machine": DIAMOND})).unwrap();
+    let other = sf_core::machines::HOME_MACHINES.iter().find(|m| m.name != DIAMOND).unwrap().name;
+    s.execute("embroidery.hoop.attach", &json!({"name": "Elsewhere", "machine": other})).unwrap();
+    let r = s.execute("embroidery.hoops", &json!({"owned": true})).unwrap();
+    let owned: Vec<&str> = r["hoops"].as_array().unwrap().iter().map(|h| h["name"].as_str().unwrap()).collect();
+    assert!(owned.len() < all && owned.contains(&"Mine") && !owned.contains(&"Elsewhere"));
+    assert!(owned.contains(&"Husqvarna 260 × 200"));
+    // without the filter all are listed, each flagged
+    let r = s.execute("embroidery.hoops", &json!({})).unwrap();
+    let flag = |n: &str| r["hoops"].as_array().unwrap().iter().find(|h| h["name"] == n).unwrap()["owned"].clone();
+    assert_eq!((flag("Mine"), flag("Elsewhere")), (json!(true), json!(false)));
+    // the last hoop picked is remembered for this machine, and survives a reload
+    s.execute("embroidery.newDesign", &json!({"hoop": "Mine"})).unwrap();
+    s.execute("embroidery.myMachine.set", &json!({"machine": other})).unwrap();
+    s.execute("embroidery.newDesign", &json!({"hoop": "Elsewhere"})).unwrap();
+    let mut fresh = Session::new();
+    fresh.prefs = serde_json::from_str(&serde_json::to_string(&s.prefs).unwrap()).unwrap();
+    fresh.execute("embroidery.myMachine.set", &json!({"machine": DIAMOND})).unwrap();
+    assert_eq!(fresh.execute("embroidery.newDesign", &json!({})).unwrap()["hoop"], "Mine");
+    fresh.execute("embroidery.myMachine.set", &json!({"machine": other})).unwrap();
+    assert_eq!(fresh.execute("embroidery.newDesign", &json!({})).unwrap()["hoop"], "Elsewhere");
+}
