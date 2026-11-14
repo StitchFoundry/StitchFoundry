@@ -51,7 +51,7 @@ fn get(s: &mut Session, _: &Value) -> Result<Value> {
         .iter()
         .map(|h| {
             let shape = if h.is_elliptical() { "oval" } else { "rect" };
-            json!({ "name": h.name, "width": h.width, "height": h.height, "shape": shape, "machines": h.machines })
+            json!({ "name": h.name, "width": h.width, "height": h.height, "shape": shape, "cornerRadius": h.corner_radius, "frame": h.frame, "machines": h.machines })
         })
         .collect();
     if let Some(m) = m {
