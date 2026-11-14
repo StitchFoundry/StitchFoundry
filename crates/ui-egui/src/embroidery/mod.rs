@@ -6,6 +6,7 @@ pub mod ask;
 pub mod family;
 pub mod font_picker;
 pub mod hoop_editor;
+pub mod machine_editor;
 pub mod kiosk;
 pub mod overlay;
 pub mod panel;
@@ -246,6 +247,8 @@ pub struct EmbroideryUi {
     pub patches: PatchForm,
     /// The hoop-of-one's-own form (Embroidery panel and Make a Design).
     pub hoop_form: hoop_editor::HoopDraft,
+    /// The machine profile form of the Embroidery panel.
+    pub machine_form: machine_editor::MachineDraft,
     /// Recolour: the scheme (an index), the hue turn (degrees) and the one colour.
     pub recolor_scheme: usize,
     pub recolor_degrees: f64,
@@ -420,6 +423,7 @@ impl Default for EmbroideryUi {
             output: OutputView::default(),
             patches: PatchForm::default(),
             hoop_form: hoop_editor::HoopDraft::default(),
+            machine_form: machine_editor::MachineDraft::default(),
             recolor_scheme: 0,
             recolor_degrees: 60.0,
             recolor_amount: 20.0,
