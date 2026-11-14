@@ -91,7 +91,8 @@ fn formats(list: &[Value]) -> Vec<String> {
 
 /// The whole editor: the profiles and the form.
 pub fn show(app: &mut VectorcraftApp, ui: &mut Ui) {
-    let list = app.session.execute("embroidery.machine.list", &json!({})).map(|r| r["machines"].as_array().cloned().unwrap_or_default()).unwrap_or_default();
+    let list =
+        app.session.execute("embroidery.machine.list", &json!({})).map(|r| r["machines"].as_array().cloned().unwrap_or_default()).unwrap_or_default();
     for m in &list {
         let Some(name) = m["name"].as_str() else { continue };
         let standard = m["standard"] == true;
