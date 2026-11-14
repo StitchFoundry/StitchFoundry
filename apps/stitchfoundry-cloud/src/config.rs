@@ -92,6 +92,14 @@ pub struct Config {
     pub test_secret: Option<String>,
     /// Which copy of the service this is (`SF_CLOUD_ENV`): test mode needs `staging`.
     pub env: Option<String>,
+    /// The one-time bonus a founding account gets (`SF_CLOUD_FOUNDING_CREDITS`, default 200).
+    pub founding_credits: u64,
+    /// The secret `POST /v1/founding` needs (`SF_CLOUD_ADMIN_SECRET`, at least
+    /// [`MIN_TEST_SECRET`] characters), sent as `X-Admin-Secret`; without it the route doesn't exist.
+    pub admin_secret: Option<String>,
+    /// Emails of internal accounts (`SF_CLOUD_INTERNAL_EMAILS`, comma separated, lower case):
+    /// they never get a founding number or bonus.
+    pub internal_emails: Vec<String>,
 }
 
 /// The shortest test secret accepted.
@@ -269,6 +277,11 @@ impl Config {
             // (only read in test mode; with it off the routes don't exist)
             test_secret: if test_mode { nonempty("SF_CLOUD_TEST_SECRET") } else { None },
             env: nonempty("SF_CLOUD_ENV"),
+            founding_credits: num("SF_CLOUD_FOUNDING_CREDITS", 200.0)? as u64,
+            admin_secret: nonempty("SF_CLOUD_ADMIN_SECRET").filter(|s| s.chars().count() >= MIN_TEST_SECRET),
+            internal_emails: nonempty("SF_CLOUD_INTERNAL_EMAILS")
+                .map(|v| v.split(',').map(|e| e.trim().to_lowercase()).filter(|e| !e.is_empty()).collect())
+                .unwrap_or_default(),
         };
         if cfg.test_mode {
             production_guard(&cfg, &env)?;

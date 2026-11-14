@@ -16,6 +16,9 @@
 //!   Until the email is confirmed, the account can sign in and read itself but spends nothing:
 //!   AI requests, sew-out checks (free ones too) and buying credits answer 403.
 //! - `GET  /v1/account` → `{id, email, verified, credits, packs, history}`.
+//! - `POST /v1/founding {program, account | email}` (`X-Admin-Secret`; only routed when
+//!   `SF_CLOUD_ADMIN_SECRET` is set): makes an account a numbered founding member of a program,
+//!   with a one-time credit bonus (`SF_CLOUD_FOUNDING_CREDITS`, 200). `/v1/account` lists them.
 //! - `POST /v1/checkout {pack}` → `{url}`: Stripe's checkout page for the pack.
 //! - `POST /v1/stripe/webhook`: Stripe's signed word that a checkout was paid.
 //! - `POST /v1/phone {name, data}`, `GET /v1/phone/list` (signed in) and `GET /v1/phone/sfp_…`
@@ -467,6 +470,8 @@ impl Service {
                 Response::page("The payment was cancelled; nothing was charged.", "You can close this tab and go back to StitchFoundry.")
             }
             // staging only: not even routed unless test mode is on
+            // admin or product call; not routed without the admin secret set
+            ("POST", "/v1/founding") if self.cfg.admin_secret.is_some() => self.founding(req),
             ("POST", "/v1/test/provision") if self.cfg.test_mode => self.test_provision(req),
             ("POST", "/v1/test/cleanup") if self.cfg.test_mode => self.test_cleanup(req),
             // a browser asking for a page that isn't here
@@ -481,6 +486,43 @@ impl Service {
         match (&self.cfg.test_secret, req.header("x-test-secret")) {
             (Some(secret), Some(given)) if self.cfg.test_mode => same_secret(given.trim(), secret),
             _ => false,
+        }
+    }
+
+    /// `POST /v1/founding {program, account | email}` (`X-Admin-Secret`): makes the account a
+    /// founding member of `program` (a-z, 0-9, `-`, up to 32), with the configured bonus once →
+    /// `{program, number, bonus}` (`bonus` 0 when it had it already). 404 with a wrong secret,
+    /// 403 for an internal or test account (they never count).
+    fn founding(&self, req: &Request) -> Response {
+        match (&self.cfg.admin_secret, req.header("x-admin-secret")) {
+            (Some(secret), Some(given)) if same_secret(given.trim(), secret) => {}
+            _ => return not_found(),
+        }
+        let v = match body_json(req) {
+            Ok(v) => v,
+            Err(r) => return r,
+        };
+        let program = match v.get("program").and_then(Value::as_str) {
+            Some(p) if good_run_id(p) => p.to_string(),
+            _ => return Response::error(400, "invalid_request_error", format!("program is 1 to {MAX_RUN_ID} of a-z, 0-9 and -")),
+        };
+        let mut store = self.store();
+        let id = match (v.get("account").and_then(Value::as_u64), v.get("email").and_then(Value::as_str)) {
+            (Some(id), _) => id,
+            (None, Some(email)) => match store.by_email(&email.trim().to_lowercase()) {
+                Some(a) => a.id,
+                None => return store_error(StoreError::NoAccount),
+            },
+            _ => return Response::error(400, "invalid_request_error", "give an account id or an email"),
+        };
+        let internal = store.account(id).is_some_and(|a| self.cfg.internal_emails.contains(&a.email.to_lowercase()));
+        let now = (self.clock)();
+        match store.make_founding(id, &program, self.cfg.founding_credits, internal, now) {
+            Ok(Some((number, granted))) => {
+                Response::json(200, &json!({"program": program, "number": number, "bonus": if granted { self.cfg.founding_credits } else { 0 }}))
+            }
+            Ok(None) => Response::error(403, "permission_error", "internal and test accounts are not founding members"),
+            Err(e) => store_error(e),
         }
     }
 
@@ -601,6 +643,8 @@ impl Service {
             "checkCredits": self.cfg.check_credits,
             // what a dollar of AI use costs in credits, for the app's estimates
             "creditsPerDollar": 100.0 * self.cfg.markup / self.cfg.cents_per_credit,
+            // the founding programs the account is in, for a numbered badge
+            "founding": a.map_or_else(Vec::new, |a| a.founding.iter().map(|(p, n)| json!({"program": p, "number": n})).collect::<Vec<_>>()),
             "sharedChecks": store.shared_checks(id).len(),
             "reports": store.reports(id).len(),
         })
@@ -2672,5 +2716,95 @@ mod tests {
         assert_eq!(store.phone_file(&format!("sfp_{:064x}", 11), late + 1).unwrap().1, vec![11], "a newer send is still good");
         assert_eq!(store.phones(1, late + 1).len(), 6, "the expired ones were cleared");
         assert_eq!(store.phone_file(&format!("sfp_{:064x}", 99), late + 1).unwrap().1, vec![9]);
+    }
+
+    const ADMIN: &str = "admin-secret-admin-secret-admin-secret";
+
+    fn founding_service() -> Service {
+        let cfg = Config::from_env(|k| match k {
+            "SF_CLOUD_ADMIN_SECRET" => Some(ADMIN.into()),
+            "SF_CLOUD_INTERNAL_EMAILS" => Some(" Staff@Example.com ,".into()),
+            _ => None,
+        })
+        .unwrap();
+        Service::with_clock(cfg, Store::in_memory(), Box::new(Fake { calls: Arc::default(), reply: (200, String::new()) }), Box::new(|| 1_000_000))
+    }
+
+    fn founding_req(secret: Option<&str>, body: Value) -> Request {
+        let mut r = req("POST", "/v1/founding", None, body);
+        if let Some(sec) = secret {
+            r.headers.push(("X-Admin-Secret".into(), sec.into()));
+        }
+        r
+    }
+
+    fn join(s: &Service, email: &str) -> (String, u64) {
+        let r = s.handle(&req("POST", "/v1/signup", None, json!({"email": email, "password": "fire truck 1"})));
+        assert_eq!(r.status, 200, "{}", r.body);
+        let v = json_of(&r);
+        (v["token"].as_str().unwrap().to_string(), v["account"]["id"].as_u64().unwrap())
+    }
+
+    #[test]
+    fn founding_needs_the_admin_secret_and_is_absent_without_one() {
+        let (plain, _) = service((200, String::new()), false);
+        assert_eq!(plain.handle(&founding_req(Some(ADMIN), json!({"program": "x", "account": 1}))).status, 404, "not routed");
+        let s = founding_service();
+        join(&s, "a@example.com");
+        for secret in [None, Some(""), Some("wrong"), Some(&ADMIN[..30])] {
+            assert_eq!(s.handle(&founding_req(secret, json!({"program": "stitchfoundry", "account": 1}))).status, 404, "{secret:?}");
+        }
+        for body in [
+            json!({"account": 1}),
+            json!({"program": "Bad Name", "account": 1}),
+            json!({"program": "x"}),
+            json!({"program": "x", "email": "nobody@example.com"}),
+        ] {
+            let r = s.handle(&founding_req(Some(ADMIN), body.clone()));
+            assert!(r.status == 400 || r.status == 401, "{body}: {}", r.status);
+        }
+    }
+
+    #[test]
+    fn a_founding_bonus_is_granted_once_with_numbers_in_order_and_shown_in_the_account() {
+        let s = founding_service();
+        let (t1, id1) = join(&s, "a@example.com");
+        let (_, staff) = join(&s, "staff@example.com");
+        let (t3, id3) = join(&s, "c@example.com");
+        let ask = |body: Value| s.handle(&founding_req(Some(ADMIN), body));
+        let r = ask(json!({"program": "stitchfoundry", "account": id1}));
+        assert_eq!((r.status, json_of(&r)["number"].clone(), json_of(&r)["bonus"].clone()), (200, json!(1), json!(200)));
+        // an internal account is refused and takes no number
+        assert_eq!(ask(json!({"program": "stitchfoundry", "email": "Staff@example.com"})).status, 403);
+        assert!(s.store().account(staff).unwrap().founding.is_empty());
+        // the next real account is #2, with no gap
+        let r = ask(json!({"program": "stitchfoundry", "email": "c@example.com"}));
+        assert_eq!((json_of(&r)["number"].clone(), json_of(&r)["bonus"].clone()), (json!(2), json!(200)));
+        // asking again: same number, no second bonus
+        let r = ask(json!({"program": "stitchfoundry", "account": id1}));
+        assert_eq!((r.status, json_of(&r)["number"].clone(), json_of(&r)["bonus"].clone()), (200, json!(1), json!(0)));
+        // another program numbers on its own, and gets its own bonus
+        let r = ask(json!({"program": "makerfoundry", "account": id3}));
+        assert_eq!((json_of(&r)["number"].clone(), json_of(&r)["bonus"].clone()), (json!(1), json!(200)));
+        // badge data and the credits
+        let a = json_of(&s.handle(&req("GET", "/v1/account", Some(&t1), json!({}))));
+        assert_eq!(a["founding"], json!([{"program": "stitchfoundry", "number": 1}]));
+        assert_eq!(a["credits"], 300, "100 sign-up + one 200 bonus");
+        let a = json_of(&s.handle(&req("GET", "/v1/account", Some(&t3), json!({}))));
+        assert_eq!(a["founding"], json!([{"program": "makerfoundry", "number": 1}, {"program": "stitchfoundry", "number": 2}]));
+        assert_eq!(a["credits"], 500);
+        let kinds: Vec<_> = a["history"].as_array().unwrap().iter().map(|e| e["kind"].as_str().unwrap().to_string()).collect();
+        assert_eq!(kinds.iter().filter(|k| *k == "founding").count(), 2, "ledger: {kinds:?}");
+    }
+
+    #[test]
+    fn test_accounts_are_never_founding_members() {
+        let mut store = Store::in_memory();
+        let ids = store.create_test_accounts("qa", vec![("qa@test.invalid".into(), "h".into())], 10, 5).unwrap();
+        assert_eq!(store.make_founding(ids[0], "stitchfoundry", 200, false, 6).unwrap(), None);
+        let real = store.create("r@example.com", "h".into(), 100, true, 7).unwrap();
+        assert_eq!(store.make_founding(real, "stitchfoundry", 200, false, 8).unwrap(), Some((1, true)), "the test account took no number");
+        assert_eq!(store.account(ids[0]).unwrap().credits, 10);
+        assert!(store.make_founding(999, "stitchfoundry", 200, false, 9).is_err());
     }
 }
