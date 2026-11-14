@@ -35,6 +35,10 @@ pub struct Account {
     /// read as real, and a real account's record is written without it.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub test_run: Option<String>,
+    /// Founding-member numbers by program (`stitchfoundry` → 1, `makerfoundry` → 7). A number is
+    /// given once and never changes; numbers of a program run 1, 2, 3 with no gaps.
+    #[serde(default, skip_serializing_if = "BTreeMap::is_empty")]
+    pub founding: BTreeMap<String, u32>,
 }
 
 /// Accounts made before email confirmation count as confirmed.
@@ -583,7 +587,7 @@ impl Store {
         }
         self.state.next_id += 1;
         let id = self.state.next_id;
-        let account = Account { id, email: email.to_string(), password: password_hash, credits, reserved: 0, created: now, verified, test_run: None };
+        let account = Account { id, email: email.to_string(), password: password_hash, credits, reserved: 0, created: now, verified, test_run: None, founding: BTreeMap::new() };
         self.state.accounts.insert(id, account);
         if credits > 0 {
             self.log(Entry { at: now, account: id, kind: "signup".into(), credits: credits as i64, balance: credits, note: String::new() })?;
@@ -616,7 +620,7 @@ impl Store {
         for (email, password) in users {
             self.state.next_id += 1;
             let id = self.state.next_id;
-            let account = Account { id, email, password, credits, reserved: 0, created: now, verified: true, test_run: Some(run.to_string()) };
+            let account = Account { id, email, password, credits, reserved: 0, created: now, verified: true, test_run: Some(run.to_string()), founding: BTreeMap::new() };
             self.state.accounts.insert(id, account);
             if credits > 0 {
                 let note = format!("test run {run}");
@@ -819,6 +823,31 @@ impl Store {
         self.log(Entry { at: now, account, kind: kind.into(), credits: credits as i64, balance, note: note.into() })?;
         self.save()?;
         Ok(true)
+    }
+
+    /// Makes `account` a founding member of `program`: the next number of the program (1, 2, 3,
+    /// counting only accounts that have one) and a one-time bonus of `bonus` credits in the
+    /// ledger (`founding`, once per account and program). Test accounts and `internal` ones get
+    /// neither (`Ok(None)`). Asking again changes nothing and gives the number it has
+    /// (`granted` false). → `(number, granted)`.
+    pub fn make_founding(&mut self, account: u64, program: &str, bonus: u64, internal: bool, now: u64) -> Result<Option<(u32, bool)>, StoreError> {
+        let a = self.state.accounts.get(&account).ok_or(StoreError::NoAccount)?;
+        if let Some(n) = a.founding.get(program) {
+            return Ok(Some((*n, false)));
+        }
+        if internal || a.test_run.is_some() {
+            return Ok(None);
+        }
+        let number = self.state.accounts.values().filter_map(|a| a.founding.get(program)).max().map_or(1, |n| n.saturating_add(1));
+        let a = self.state.accounts.get_mut(&account).ok_or(StoreError::NoAccount)?;
+        a.founding.insert(program.to_string(), number);
+        a.credits = a.credits.saturating_add(bonus);
+        let balance = a.credits;
+        if bonus > 0 {
+            self.log(Entry { at: now, account, kind: "founding".into(), credits: bonus as i64, balance, note: format!("{program} #{number}") })?;
+        }
+        self.save()?;
+        Ok(Some((number, true)))
     }
 
     /// Holds `credits` of the account's for a request on its way: refused when the credits not held

@@ -199,6 +199,7 @@ target/release/stitchfoundry-cloud
 | `ANTHROPIC_API_KEY` | the service's Anthropic key; without it AI requests answer "not open yet" |
 | `STRIPE_SECRET_KEY`, `STRIPE_WEBHOOK_SECRET` | Stripe's secret key and the webhook's signing secret; without them nothing can be bought |
 | `SF_CLOUD_SIGNUP_CREDITS` | credits a new account starts with (100) |
+| `SF_CLOUD_FOUNDING_CREDITS`, `SF_CLOUD_ADMIN_SECRET`, `SF_CLOUD_INTERNAL_EMAILS` | founding-member bonus (200), the secret (32+ characters, `X-Admin-Secret`) that enables `POST /v1/founding {program, account \| email}`, and internal emails (comma separated) that never get a founding number |
 | `SF_CLOUD_CENTS_PER_CREDIT`, `SF_CLOUD_MARKUP` | a credit's price in cents (1) and the markup on the AI's cost (3) |
 | `SF_CLOUD_PACKS` | the packs on sale (see Prices) |
 | `SF_CLOUD_FREE_CHECKS`, `SF_CLOUD_CHECK_CREDITS` | sew-out checks free a month (3) and a check's price after them (10) |
