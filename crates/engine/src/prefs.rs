@@ -304,6 +304,10 @@ pub struct Prefs {
     /// with no hoop named takes it (when My Machine has it, or no machine is chosen).
     #[serde(default, skip_serializing_if = "String::is_empty")]
     pub last_hoop: String,
+    /// The hoop last picked on each machine, by machine name (`embroidery.newDesign`): a machine's
+    /// next new design takes its own, before `last_hoop`.
+    #[serde(default, skip_serializing_if = "std::collections::BTreeMap::is_empty")]
+    pub last_hoop_by_machine: std::collections::BTreeMap<String, String>,
     /// Where Keep Safe saves a beginner's new designs (`file.keepSafe`; empty: Documents/StitchFoundry Designs).
     #[serde(default, skip_serializing_if = "String::is_empty")]
     pub my_designs_folder: String,
@@ -531,6 +535,7 @@ impl Default for Prefs {
             embroidery_send_dirs: vec![],
             my_machine: String::new(),
             last_hoop: String::new(),
+            last_hoop_by_machine: Default::default(),
             my_designs_folder: String::new(),
             screen_export_presets: vec![],
             templates_folder: String::new(),
