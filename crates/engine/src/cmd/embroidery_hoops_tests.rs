@@ -184,7 +184,7 @@ fn a_design_over_the_field_is_fitted_and_undoes() {
     s.execute("embroidery.newDesign", &json!({"hoop": "Round 100 mm"})).ok();
     s.execute("embroidery.hoop.saveCustom", &json!({"name": "Small", "width": 60, "height": 60})).unwrap();
     s.execute("embroidery.newDesign", &json!({"hoop": "Small"})).unwrap();
-    s.execute("shape.rectangle", &json!({"x": 0, "y": 0, "width": 120, "height": 60})).unwrap();
+    s.execute("shape.rectangle", &json!({"x": 0, "y": 0, "width": 340, "height": 170})).unwrap(); // points: about 120 × 60 mm
     s.execute("embroidery.set", &json!({"type": "fill"})).unwrap();
     let info = s.execute("embroidery.hoops", &json!({})).unwrap();
     assert!(!info["hoops"].as_array().unwrap().iter().any(|h| h["name"] == "Small" && h["fits"] == true));
