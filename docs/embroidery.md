@@ -127,7 +127,7 @@ catch.
 
 **Density** is the gap between rows or zigzags: 0.4 mm by default. Closer for pile (towels,
 fleece) so the stitches sit on top of the loops; more open for leather and vinyl, where too many
-holes cut the material. Fabric presets set it.
+holes cut the material. Fabric presets set it. A fill with rows closer than 0.3 mm shows a warning next to its Density field: it may sew stiff, so lower the density until it just covers the fabric. Test it on a scrap first.
 
 **Underlay** is the stitching sewn first, under the stitches you see: it holds the fabric down
 and gives the top stitches something to sit on.
