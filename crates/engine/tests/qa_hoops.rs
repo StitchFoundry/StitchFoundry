@@ -1,7 +1,7 @@
 //! Add-on 40 QA matrix, slice 1: every hoop in the library × (rotate 90/180/270/45, flip H/V, scale
 //! ±10/±20%), checking that the design stays inside the sewing field and that the DST and PES files
 //! written for it read back. `cargo xtask qa-hoops` runs it (the full matrix, and the report in
-//! `docs/qa/addon-40-report.md`); `cargo xtask ci` runs the fast subset (`QA_HOOPS_FAST=1`: 3 hoops).
+//! `docs/qa/addon-40-report.md`); `cargo xtask ci` runs the fast subset (3 hoops, the default here; `QA_HOOPS_FULL=1` is the full matrix).
 // Integration tests: unwrapping and panicking on failure is fine here (AGENTS.md › Robustness).
 #![allow(clippy::unwrap_used, clippy::expect_used, clippy::panic)]
 
@@ -48,12 +48,13 @@ fn cell(hoop: &Hoop, cmd: &str, params: &Value) -> Result<Vec<(String, String)>,
                 sizes.push((fmt, b.width(), b.height()));
                 // the file is centred, so the field check is on a box about the hoop's middle
                 let c = sf_core::Point::new((b.min.x + b.max.x) / 2.0, (b.min.y + b.max.y) / 2.0);
-                let centred = sf_core::BBox::new(
-                    sf_core::Point::new(b.min.x - c.x, b.min.y - c.y),
-                    sf_core::Point::new(b.max.x - c.x, b.max.y - c.y),
-                );
+                let centred =
+                    sf_core::BBox::new(sf_core::Point::new(b.min.x - c.x, b.min.y - c.y), sf_core::Point::new(b.max.x - c.x, b.max.y - c.y));
                 if !hoop.fits(&centred) {
-                    out.push((format!("{fmt} inside field"), format!("{:.1} x {:.1} mm in a {} x {} mm field", b.width(), b.height(), hoop.width, hoop.height)));
+                    out.push((
+                        format!("{fmt} inside field"),
+                        format!("{:.1} x {:.1} mm in a {} x {} mm field", b.width(), b.height(), hoop.width, hoop.height),
+                    ));
                 }
             }
         }
@@ -69,7 +70,7 @@ fn cell(hoop: &Hoop, cmd: &str, params: &Value) -> Result<Vec<(String, String)>,
 
 #[test]
 fn hoop_matrix() {
-    let fast = std::env::var_os("QA_HOOPS_FAST").is_some();
+    let fast = std::env::var_os("QA_HOOPS_FULL").is_none();
     let mut hoops = standard_hoops();
     if fast {
         let n = hoops.len();
