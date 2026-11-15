@@ -312,7 +312,7 @@ pub fn specs() -> Vec<CommandSpec> {
             "Design Information",
             [],
             None,
-            "{} → {grade (A: made here, objects with their stitch settings; C: opened from a machine file, its stitches made into objects; D: a machine file, stitches only), openedFrom (that file's format, else empty), objects, stitches, jumps, trims, colorChanges, stops, widthMm, heightMm, threadM, bobbinM, seconds, time, colors: [{color, name, stitches, threadM}], hoop, fits, fabric, fabrics, hoops, charts, machine, machineFormat (what it exports in), machines (as embroidery.machine.list), settings}",
+            "{} → {grade (A: made here, objects with their stitch settings; C: opened from a machine file, its stitches made into objects; D: a machine file, stitches only), openedFrom (that file's format, else empty), objects, stitches, jumps, trims, colorChanges, stops, widthMm, heightMm, threadM, bobbinM, seconds, time, colors: [{color, name, stitches, threadM, jumps, trims}], hoop, fits, fabric, fabrics, hoops, charts, machine, machineFormat (what it exports in), machines (as embroidery.machine.list), settings}",
             has_doc,
             info
         ),
@@ -1006,9 +1006,18 @@ pub(super) fn export_machine_file(s: &mut Session, p: &Value) -> Result<Value> {
     // a fixed place in the hoop: the design's middle there, not on the hoop's centre
     let offset = s.doc()?.doc.embroidery.as_deref().and_then(|e| e.settings.hoop_offset).filter(|_| opts.center);
     let moved;
+    // the hoop's orientation in the chosen machine: turned before it is placed
+    let (turn, mirror) = super::embroidery_my_machine::orientation(s);
+    let turned;
+    let source = if turn == 0 && !mirror {
+        plan.pattern()
+    } else {
+        turned = super::embroidery_my_machine::orient(plan.pattern(), turn, mirror);
+        &turned
+    };
     let pattern = match offset {
         Some([x, y]) => {
-            let mut q = plan.pattern().clone();
+            let mut q = source.clone();
             let b = q.bounds();
             let (dx, dy) = (x - (b.min.x + b.max.x) / 2.0, y - (b.min.y + b.max.y) / 2.0);
             for st in &mut q.stitches {
@@ -1019,7 +1028,7 @@ pub(super) fn export_machine_file(s: &mut Session, p: &Value) -> Result<Value> {
             moved = q;
             &moved
         }
-        None => plan.pattern(),
+        None => source,
     };
     let bytes = sf_formats::write(format, pattern, &opts).map_err(|e| EngineError::Other(format!("{} export failed: {e}", format.name())))?;
     // what the machine may refuse or show otherwise, sewn in the design's hoop where it is placed
@@ -3426,7 +3435,7 @@ fn info(s: &mut Session, _p: &Value) -> Result<Value> {
     let custom = &s.prefs.embroidery_custom_hoops;
     let hoops: Vec<Value> = super::embroidery_hoops::all_hoops(s)
         .iter()
-        .map(|h| json!({"name": h.name, "width": h.width, "height": h.height, "custom": custom.iter().any(|c| c.name == h.name)}))
+        .map(|h| json!({"name": h.name, "width": h.width, "height": h.height, "custom": custom.iter().any(|c| c.name == h.name), "owned": super::embroidery_hoops::is_owned(s, &h.name)}))
         .collect();
     let charts: Vec<String> = super::embroidery_charts::all_charts(s).into_iter().map(|c| c.name).collect();
     let saved = &s.prefs.embroidery_machines;
@@ -3494,7 +3503,7 @@ fn info(s: &mut Session, _p: &Value) -> Result<Value> {
         "seconds": st.seconds,
         "time": st.time_string(),
         "maxStitchMm": st.max_stitch_mm,
-        "colors": st.colors.iter().map(|c| json!({"color": c.thread.color.to_hex(), "name": c.thread.label(), "stitches": c.stitches, "threadM": c.thread_m})).collect::<Vec<_>>(),
+        "colors": st.colors.iter().map(|c| json!({"color": c.thread.color.to_hex(), "name": c.thread.label(), "stitches": c.stitches, "threadM": c.thread_m, "jumps": c.jumps, "trims": c.trims})).collect::<Vec<_>>(),
         "hoop": cfg.hoop.as_ref().map(|h| h.name.clone()),
         "hoopSize": cfg.hoop.as_ref().map(|h| [h.width, h.height]),
         "fits": fits,

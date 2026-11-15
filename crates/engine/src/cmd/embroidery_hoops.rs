@@ -21,7 +21,7 @@ pub fn specs() -> Vec<CommandSpec> {
             "Hoops",
             [],
             None,
-            "{} the standard hoops and one's own, each with whether the design fits it (either way round) → {hoops: [{name, width, height, shape, custom, fits}], hoop, rotated}",
+            "{owned?: true to list only the hoops one owns (My Machine's, and one's own on it)} the standard hoops and one's own, each with whether one owns it and the design fits it (either way round) → {hoops: [{name, width, height, shape, custom, owned, fits}], hoop, rotated}",
             always,
             list
         ),
@@ -79,6 +79,15 @@ pub fn specs() -> Vec<CommandSpec> {
             always,
             import
         ),
+        cmd!(
+            "embroidery.hoop.fit",
+            "Fit to Hoop",
+            ["Embroidery"],
+            None,
+            "{} when the design is larger than the hoop's sewing field, scale all of it down about its centre, width and height together (the aspect ratio locked), until it fits; one that fits is left alone → {scaled: bool, percent, width, height, fits}",
+            has_doc,
+            fit
+        ),
         cmd!("embroidery.hoop.deleteCustom", "Delete Custom Hoop", [], None, "{name} forget a hoop of one's own → {name}", always, delete_custom),
     ]
 }
@@ -95,24 +104,38 @@ pub(crate) fn find_hoop(s: &Session, name: &str) -> Option<Hoop> {
     all_hoops(s).into_iter().find(|h| h.name.eq_ignore_ascii_case(name.trim()))
 }
 
+/// Whether the hoop named `name` is one the user owns: on My Machine's list (its own, and the
+/// hoops of one's own put on it or on every machine). With no machine chosen the standard hoops
+/// are all on offer, so every hoop counts.
+pub(crate) fn is_owned(s: &Session, name: &str) -> bool {
+    let Some(m) = super::embroidery_my_machine::mine(s) else { return true };
+    if m.hoops.iter().any(|n| n.eq_ignore_ascii_case(name)) {
+        return true;
+    }
+    s.prefs
+        .embroidery_custom_hoops
+        .iter()
+        .any(|h| h.name.eq_ignore_ascii_case(name) && (h.machines.is_empty() || h.machines.iter().any(|n| n == m.name)))
+}
+
 /// Whether the design's hoop is a named hoop turned a quarter.
 fn turned(s: &Session, hoop: &Hoop) -> bool {
     find_hoop(s, &hoop.name).is_some_and(|h| (h.width - hoop.height).abs() < 1e-6 && (h.height - hoop.width).abs() < 1e-6 && h.width != h.height)
 }
 
 /// The design's size (mm) as it sews, if anything is stitched.
-fn design_size(s: &Session) -> Option<(f64, f64)> {
+pub(crate) fn design_size(s: &Session) -> Option<(f64, f64)> {
     let plan = s.embroidery_plan()?;
     let st = plan.stats.as_ref()?;
     Some((st.width_mm, st.height_mm))
 }
 
-fn fits(h: &Hoop, (w, ht): (f64, f64)) -> bool {
+pub(crate) fn fits(h: &Hoop, (w, ht): (f64, f64)) -> bool {
     let b = |w: f64, h: f64| sf_core::BBox::new(sf_core::Point::new(-w / 2.0, -h / 2.0), sf_core::Point::new(w / 2.0, h / 2.0));
     h.fits(&b(w, ht))
 }
 
-fn turn(h: &Hoop) -> Hoop {
+pub(crate) fn turn(h: &Hoop) -> Hoop {
     Hoop {
         width: h.height,
         height: h.width,
@@ -124,7 +147,7 @@ fn turn(h: &Hoop) -> Hoop {
 
 fn set_hoop(s: &mut Session, h: &Hoop) -> Result<()> {
     // the hoop as it is (turned, one's own), set whole
-    let shape = if h.shape == HoopShape::Oval { "oval" } else { "rect" };
+    let shape = if h.is_elliptical() { "oval" } else { "rect" };
     let hoop = json!({ "name": h.name, "width": h.width, "height": h.height, "shape": shape, "cornerRadius": h.corner_radius, "frame": h.frame });
     s.execute("embroidery.settings", &json!({ "hoop": hoop }))?;
     Ok(())
@@ -134,21 +157,24 @@ fn answer(s: &Session, h: &Hoop) -> Value {
     json!({ "hoop": h.name, "width": h.width, "height": h.height, "rotated": turned(s, h) })
 }
 
-fn list(s: &mut Session, _: &Value) -> Result<Value> {
+fn list(s: &mut Session, p: &Value) -> Result<Value> {
     let size = design_size(s);
     let custom = &s.prefs.embroidery_custom_hoops;
+    let only_owned = p.get("owned").and_then(Value::as_bool) == Some(true);
     let hoops: Vec<Value> = all_hoops(s)
         .iter()
+        .filter(|h| !only_owned || is_owned(s, &h.name))
         .map(|h| {
             json!({
                 "name": h.name,
                 "width": h.width,
                 "height": h.height,
-                "shape": if h.shape == HoopShape::Oval { "oval" } else { "rect" },
+                "shape": if h.is_elliptical() { "oval" } else { "rect" },
                 "custom": custom.iter().any(|c| c.name == h.name),
                 "cornerRadius": h.corner_radius,
                 "frame": h.frame,
                 "machines": h.machines,
+                "owned": is_owned(s, &h.name),
                 "fits": size.is_some_and(|d| fits(h, d) || fits(&turn(h), d)),
             })
         })
@@ -186,6 +212,46 @@ fn auto(s: &mut Session, p: &Value) -> Result<Value> {
     let h = best.ok_or_else(|| bad(CMD, format!("no hoop holds a design of {:.0} × {:.0} mm: try multi-hooping", size.0, size.1)))?;
     set_hoop(s, &h)?;
     Ok(answer(s, &h))
+}
+
+/// The largest uniform scale, in percent and at most 100, at which a design of `size` mm centred
+/// in the hoop lies inside its sewing field (rounded corners and ovals included). `None` for a
+/// size that is not a positive, finite pair.
+pub(crate) fn fit_percent(h: &Hoop, size: (f64, f64)) -> Option<f64> {
+    let (w, ht) = size;
+    if !(w.is_finite() && ht.is_finite() && w > 0.0 && ht > 0.0 && h.width > 0.0 && h.height > 0.0) {
+        return None;
+    }
+    if fits(h, size) {
+        return Some(100.0);
+    }
+    // the field is star-shaped about its centre, so a box that fits at one scale fits at every smaller one
+    let (mut lo, mut hi) = (0.0_f64, 1.0_f64);
+    for _ in 0..40 {
+        let mid = (lo + hi) / 2.0;
+        if fits(h, (w * mid, ht * mid)) { lo = mid } else { hi = mid }
+    }
+    Some(lo * 100.0)
+}
+
+fn fit(s: &mut Session, _: &Value) -> Result<Value> {
+    const CMD: &str = "embroidery.hoop.fit";
+    let hoop = s.doc()?.doc.embroidery.as_deref().and_then(|e| e.hoop.clone()).ok_or_else(|| bad(CMD, "the design has no hoop yet"))?;
+    let first = design_size(s).ok_or_else(|| bad(CMD, "the design has no stitches yet"))?;
+    let mut size = first;
+    let mut scaled = false;
+    // stitch widths don't scale with the art, so measure again and correct a few times
+    for _ in 0..4 {
+        let Some(pct) = fit_percent(&hoop, size).filter(|p| *p < 100.0) else { break };
+        s.execute("select.all", &json!({}))?;
+        s.execute("object.scale", &json!({ "sx": pct * 0.995 }))?;
+        scaled = true;
+        size = design_size(s).ok_or_else(|| bad(CMD, "the design has no stitches yet"))?;
+    }
+    let ok = fits(&hoop, size);
+    Ok(
+        json!({ "scaled": scaled, "percent": if first.0 > 0.0 { size.0 / first.0 * 100.0 } else { 100.0 }, "width": size.0, "height": size.1, "fits": ok }),
+    )
 }
 
 fn rotate(s: &mut Session, _: &Value) -> Result<Value> {
@@ -357,7 +423,7 @@ fn import(s: &mut Session, p: &Value) -> Result<Value> {
     let h = v.get("hoop").ok_or_else(|| bad(CMD, "the file holds no hoop"))?;
     let mut hoop: Hoop = serde_json::from_value(h.clone()).map_err(|e| bad(CMD, format!("the hoop is damaged: {e}")))?;
     // the same checks as making one by hand (an oval or round field is told by its shape)
-    let shape = if hoop.shape == HoopShape::Oval { "oval" } else { "rect" };
+    let shape = if hoop.is_elliptical() { "oval" } else { "rect" };
     let mut q = json!({ "name": hoop.name, "width": hoop.width, "height": hoop.height, "shape": shape });
     if hoop.corner_radius != 0.0 {
         q["cornerRadius"] = json!(hoop.corner_radius);

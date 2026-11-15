@@ -5,7 +5,9 @@ pub mod account;
 pub mod ask;
 pub mod family;
 pub mod font_picker;
+pub mod hoop_editor;
 pub mod kiosk;
+pub mod machine_editor;
 pub mod overlay;
 pub mod panel;
 pub mod profile_curve;
@@ -243,8 +245,12 @@ pub struct EmbroideryUi {
     pub output: OutputView,
     /// The Patches section's choices.
     pub patches: PatchForm,
-    /// A hoop of one's own as typed: name, width and height (mm).
-    pub hoop_draft: (String, f64, f64),
+    /// The hoop picker lists every hoop, not just the ones the user owns.
+    pub show_all_hoops: bool,
+    /// The hoop-of-one's-own form (Embroidery panel and Make a Design).
+    pub hoop_form: hoop_editor::HoopDraft,
+    /// The machine profile form of the Embroidery panel.
+    pub machine_form: machine_editor::MachineDraft,
     /// Recolour: the scheme (an index), the hue turn (degrees) and the one colour.
     pub recolor_scheme: usize,
     pub recolor_degrees: f64,
@@ -418,7 +424,9 @@ impl Default for EmbroideryUi {
             library: LibraryView::default(),
             output: OutputView::default(),
             patches: PatchForm::default(),
-            hoop_draft: (String::new(), 150.0, 150.0),
+            show_all_hoops: false,
+            hoop_form: hoop_editor::HoopDraft::default(),
+            machine_form: machine_editor::MachineDraft::default(),
             recolor_scheme: 0,
             recolor_degrees: 60.0,
             recolor_amount: 20.0,
