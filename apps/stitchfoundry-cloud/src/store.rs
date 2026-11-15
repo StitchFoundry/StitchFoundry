@@ -39,6 +39,15 @@ pub struct Account {
     /// given once and never changes; numbers of a program run 1, 2, 3 with no gaps.
     #[serde(default, skip_serializing_if = "BTreeMap::is_empty")]
     pub founding: BTreeMap<String, u32>,
+    /// How many of `credits` were bought (a purchase). The rest are free credits (sign-up and
+    /// other gifts), which the per-user daily limit applies to; bought credits are never limited.
+    /// Accounts written before this existed read as 0: all their credits count as free.
+    #[serde(default, skip_serializing_if = "is_zero")]
+    pub paid: u64,
+}
+
+fn is_zero(n: &u64) -> bool {
+    *n == 0
 }
 
 /// Accounts made before email confirmation count as confirmed.
@@ -151,6 +160,20 @@ struct State {
     /// Designs sent to a phone, by their link's token.
     #[serde(default)]
     phones: BTreeMap<String, Phone>,
+    /// Sign-up grants made on one day: `(day, count)`, a day being unix seconds / 86400.
+    #[serde(default)]
+    signups: (u64, u64),
+    /// Accounts that signed up over the day's cap, waiting for their credits (oldest first).
+    #[serde(default)]
+    queued: Vec<u64>,
+    /// Requests paid with free credits, by account: `(day, count)`.
+    #[serde(default)]
+    free_requests: BTreeMap<u64, (u64, u64)>,
+}
+
+/// The day number of `now` (unix seconds), for the daily limits.
+pub fn day_of(now: u64) -> u64 {
+    now / 86_400
 }
 
 /// A link made by Send to my phone works for this long (seconds): 24 hours.
@@ -185,6 +208,8 @@ pub enum StoreError {
     NotEnough,
     #[error("the account's email isn't confirmed")]
     Unconfirmed,
+    #[error("today's free AI requests are used")]
+    FreeLimit,
     #[error("couldn't save: {0}")]
     Io(String),
 }
@@ -597,6 +622,7 @@ impl Store {
             verified,
             test_run: None,
             founding: BTreeMap::new(),
+            paid: 0,
         };
         self.state.accounts.insert(id, account);
         if credits > 0 {
@@ -640,6 +666,7 @@ impl Store {
                 verified: true,
                 test_run: Some(run.to_string()),
                 founding: BTreeMap::new(),
+                paid: 0,
             };
             self.state.accounts.insert(id, account);
             if credits > 0 {
@@ -836,6 +863,9 @@ impl Store {
         }
         let a = self.state.accounts.get_mut(&account).ok_or(StoreError::NoAccount)?;
         a.credits = a.credits.saturating_add(credits);
+        if kind == "purchase" {
+            a.paid = a.paid.saturating_add(credits);
+        }
         let balance = a.credits;
         if !key.is_empty() {
             self.state.paid.insert(key.to_string());
@@ -871,8 +901,9 @@ impl Store {
     }
 
     /// Holds `credits` of the account's for a request on its way: refused when the credits not held
-    /// already don't cover it, or the account's email isn't confirmed.
-    pub fn reserve(&mut self, account: u64, credits: u64) -> Result<(), StoreError> {
+    /// already don't cover it, or the account's email isn't confirmed. With `free_ok` false (the
+    /// day's free requests are used) only bought credits count (`FreeLimit` when they don't cover it).
+    pub fn reserve(&mut self, account: u64, credits: u64, free_ok: bool) -> Result<(), StoreError> {
         let a = self.state.accounts.get_mut(&account).ok_or(StoreError::NoAccount)?;
         // nothing is spent, not even a free check's nothing, before the email is confirmed
         if !a.verified {
@@ -881,23 +912,89 @@ impl Store {
         if a.credits.saturating_sub(a.reserved) < credits {
             return Err(StoreError::NotEnough);
         }
+        if !free_ok && a.paid.min(a.credits).saturating_sub(a.reserved) < credits {
+            return Err(StoreError::FreeLimit);
+        }
         a.reserved += credits;
         Ok(())
     }
 
     /// The request held `reserved` is done and cost `spent` (at most what was held): the hold goes,
-    /// what it cost is taken.
-    pub fn settle(&mut self, account: u64, reserved: u64, spent: u64, note: &str, now: u64) -> Result<u64, StoreError> {
+    /// what it cost is taken, free credits first (bought ones only when `free_ok` is false). A
+    /// request that used free credits counts toward the account's day.
+    pub fn settle(&mut self, account: u64, reserved: u64, spent: u64, free_ok: bool, note: &str, now: u64) -> Result<u64, StoreError> {
         let a = self.state.accounts.get_mut(&account).ok_or(StoreError::NoAccount)?;
         a.reserved = a.reserved.saturating_sub(reserved);
         let spent = spent.min(a.credits);
+        let free = a.credits.saturating_sub(a.paid);
+        let from_free = if free_ok { spent.min(free) } else { 0 };
         a.credits -= spent;
+        a.paid = a.paid.saturating_sub(spent - from_free).min(a.credits);
         let balance = a.credits;
+        if from_free > 0 {
+            let day = day_of(now);
+            let e = self.state.free_requests.entry(account).or_insert((day, 0));
+            if e.0 != day {
+                *e = (day, 0);
+            }
+            e.1 += 1;
+        }
         if spent > 0 {
             self.log(Entry { at: now, account, kind: "ai".into(), credits: -(spent as i64), balance, note: note.into() })?;
+        }
+        if spent > 0 || from_free > 0 {
             self.save()?;
         }
         Ok(balance)
+    }
+
+    // ---------- daily limits on the free offers ----------
+
+    /// Requests `account` paid with free credits on the day of `now`.
+    pub fn free_requests_today(&self, account: u64, now: u64) -> u64 {
+        match self.state.free_requests.get(&account) {
+            Some((day, n)) if *day == day_of(now) => *n,
+            _ => 0,
+        }
+    }
+
+    /// Sign-up grants made on the day of `now`.
+    pub fn signups_today(&self, now: u64) -> u64 {
+        if self.state.signups.0 == day_of(now) { self.state.signups.1 } else { 0 }
+    }
+
+    /// Count one sign-up grant on the day of `now`.
+    pub fn count_signup(&mut self, now: u64) -> Result<(), StoreError> {
+        let day = day_of(now);
+        if self.state.signups.0 != day {
+            self.state.signups = (day, 0);
+        }
+        self.state.signups.1 += 1;
+        self.save()
+    }
+
+    /// Put `account` in the line for its sign-up credits.
+    pub fn queue_signup(&mut self, account: u64) -> Result<(), StoreError> {
+        if !self.state.queued.contains(&account) {
+            self.state.queued.push(account);
+        }
+        self.save()
+    }
+
+    /// Whether `account` is waiting for its sign-up credits.
+    pub fn is_queued(&self, account: u64) -> bool {
+        self.state.queued.contains(&account)
+    }
+
+    /// The accounts waiting for sign-up credits, oldest first.
+    pub fn queued(&self) -> &[u64] {
+        &self.state.queued
+    }
+
+    /// Take `account` out of the line (its credits were given, or it is gone).
+    pub fn unqueue_signup(&mut self, account: u64) -> Result<(), StoreError> {
+        self.state.queued.retain(|a| *a != account);
+        self.save()
     }
 }
 
@@ -937,13 +1034,13 @@ mod tests {
     fn credits_are_held_for_a_request_then_only_what_it_cost_is_taken() {
         let mut s = Store::in_memory();
         let id = s.create("a@b.c", "h".into(), 100, true, 0).unwrap();
-        s.reserve(id, 80).unwrap();
-        assert_eq!(s.reserve(id, 30), Err(StoreError::NotEnough), "80 of 100 held already");
-        assert_eq!(s.settle(id, 80, 12, "ask", 1).unwrap(), 88);
+        s.reserve(id, 80, true).unwrap();
+        assert_eq!(s.reserve(id, 30, true), Err(StoreError::NotEnough), "80 of 100 held already");
+        assert_eq!(s.settle(id, 80, 12, true, "ask", 1).unwrap(), 88);
         assert_eq!(s.account(id).unwrap().reserved, 0);
         // a failed request costs nothing
-        s.reserve(id, 50).unwrap();
-        assert_eq!(s.settle(id, 50, 0, "ask", 2).unwrap(), 88);
+        s.reserve(id, 50, true).unwrap();
+        assert_eq!(s.settle(id, 50, 0, true, "ask", 2).unwrap(), 88);
         assert_eq!(s.recent(id).iter().filter(|e| e.kind == "ai").count(), 1);
     }
 
@@ -956,14 +1053,14 @@ mod tests {
         let id = {
             let mut s = Store::open(&dir).unwrap();
             let id = s.create("a@b.c", "hash".into(), 100, true, 1000).unwrap();
-            s.reserve(id, 80).unwrap();
+            s.reserve(id, 80, true).unwrap();
             // any later change writes the state, the hold with it if it were kept
             s.add_session("t1".into(), id, 1001).unwrap();
             id
         };
         let mut s = Store::open(&dir).unwrap();
         assert_eq!(s.account(id).unwrap().reserved, 0, "no request is on its way after a restart");
-        assert_eq!(s.reserve(id, 100), Ok(()), "every credit can be held again");
+        assert_eq!(s.reserve(id, 100, true), Ok(()), "every credit can be held again");
         // a state written by an earlier version, with the hold in it, is read without it
         let old = std::fs::read_to_string(dir.join("state.json")).unwrap().replace("\"credits\":100", "\"credits\":100,\"reserved\":80");
         assert!(old.contains("\"reserved\":80"));
@@ -1016,8 +1113,8 @@ mod tests {
         let mut s = Store::in_memory();
         let id = s.create("a@b.c", "h".into(), 100, false, 0).unwrap();
         assert!(!s.account(id).unwrap().verified);
-        assert_eq!(s.reserve(id, 0), Err(StoreError::Unconfirmed), "not even a free check's nothing");
-        assert_eq!(s.reserve(id, 10), Err(StoreError::Unconfirmed));
+        assert_eq!(s.reserve(id, 0, true), Err(StoreError::Unconfirmed), "not even a free check's nothing");
+        assert_eq!(s.reserve(id, 10, true), Err(StoreError::Unconfirmed));
         s.add_verify("v1".into(), id, 0).unwrap();
         assert_eq!(s.use_verify("v1", ttl).unwrap(), None, "48 hours");
         assert_eq!(s.use_verify("nope", 10).unwrap(), None);
@@ -1029,7 +1126,7 @@ mod tests {
         assert_eq!(s.use_verify("v3", 300).unwrap(), Some(id));
         assert!(s.account(id).unwrap().verified);
         assert_eq!(s.use_verify("v3", 301).unwrap(), None, "once");
-        assert_eq!(s.reserve(id, 10), Ok(()));
+        assert_eq!(s.reserve(id, 10, true), Ok(()));
         // a password reset came by email too: it confirms the address
         let other = s.create("d@e.f", "h".into(), 0, false, 0).unwrap();
         s.add_reset("r1".into(), other, 0).unwrap();
@@ -1049,7 +1146,7 @@ mod tests {
         {
             let mut s = Store::open(&dir).unwrap();
             assert!(s.account(1).unwrap().verified, "an old account is confirmed");
-            assert_eq!(s.reserve(1, 10), Ok(()));
+            assert_eq!(s.reserve(1, 10, true), Ok(()));
             let id = s.create("new@b.c", "h".into(), 100, false, 10).unwrap();
             s.add_verify("v1".into(), id, 10).unwrap();
         }
@@ -1107,6 +1204,6 @@ mod tests {
         c.execute("UPDATE sf_state SET data = $1 WHERE id = 1", &[&old]).unwrap();
         let mut s = Store::open_db(&url).unwrap();
         assert!(s.account(1).unwrap().verified, "an old account is confirmed");
-        assert_eq!(s.reserve(1, 10), Ok(()));
+        assert_eq!(s.reserve(1, 10, true), Ok(()));
     }
 }
