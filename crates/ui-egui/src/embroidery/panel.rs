@@ -3556,7 +3556,15 @@ fn design_section(app: &mut VectorcraftApp, ui: &mut Ui, t: &Tokens) {
         row(ui, tl!("Stitches"), stitches.to_string());
         row(ui, tl!("Size"), format!("{w:.1} × {h:.1} mm ({:.2} × {:.2} in)", w / 25.4, h / 25.4));
         row(ui, tl!("Colors"), info["colors"].as_array().map_or(0, Vec::len).to_string());
+        row(ui, tl!("Jumps"), info["jumps"].as_u64().unwrap_or(0).to_string());
         row(ui, tl!("Trims"), info["trims"].as_u64().unwrap_or(0).to_string());
+        // each colour's own count, to judge cleanup and thread breaks
+        for c in info["colors"].as_array().into_iter().flatten() {
+            let n = |k: &str| c[k].as_u64().unwrap_or(0);
+            let name = c["name"].as_str().filter(|s| !s.is_empty()).or(c["color"].as_str()).unwrap_or_default();
+            let (j, tr) = (tl!("Jumps"), tl!("Trims"));
+            row(ui, name, format!("{j} {} · {tr} {}", n("jumps"), n("trims")));
+        }
         row(ui, tl!("Sewing time"), info["time"].as_str().unwrap_or_default().to_string());
         row(ui, tl!("Thread"), format!("{:.1} m", info["threadM"].as_f64().unwrap_or(0.0)));
         // how editable it is, by where it came from
