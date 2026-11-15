@@ -1006,9 +1006,18 @@ pub(super) fn export_machine_file(s: &mut Session, p: &Value) -> Result<Value> {
     // a fixed place in the hoop: the design's middle there, not on the hoop's centre
     let offset = s.doc()?.doc.embroidery.as_deref().and_then(|e| e.settings.hoop_offset).filter(|_| opts.center);
     let moved;
+    // the hoop's orientation in the chosen machine: turned before it is placed
+    let (turn, mirror) = super::embroidery_my_machine::orientation(s);
+    let turned;
+    let source = if turn == 0 && !mirror {
+        plan.pattern()
+    } else {
+        turned = super::embroidery_my_machine::orient(plan.pattern(), turn, mirror);
+        &turned
+    };
     let pattern = match offset {
         Some([x, y]) => {
-            let mut q = plan.pattern().clone();
+            let mut q = source.clone();
             let b = q.bounds();
             let (dx, dy) = (x - (b.min.x + b.max.x) / 2.0, y - (b.min.y + b.max.y) / 2.0);
             for st in &mut q.stitches {
@@ -1019,7 +1028,7 @@ pub(super) fn export_machine_file(s: &mut Session, p: &Value) -> Result<Value> {
             moved = q;
             &moved
         }
-        None => plan.pattern(),
+        None => source,
     };
     let bytes = sf_formats::write(format, pattern, &opts).map_err(|e| EngineError::Other(format!("{} export failed: {e}", format.name())))?;
     // what the machine may refuse or show otherwise, sewn in the design's hoop where it is placed
