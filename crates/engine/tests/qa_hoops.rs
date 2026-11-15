@@ -16,7 +16,7 @@ fn transforms() -> Vec<(String, &'static str, Value)> {
         v.push((format!("rotate {d}"), "embroidery.quick.rotate", json!({ "degrees": d })));
     }
     for a in ["horizontal", "vertical"] {
-        v.push((format!("flip {}", &a[..1].to_uppercase()), "embroidery.quick.flip", json!({ "axis": a })));
+        v.push((format!("flip {}", a[..1].to_uppercase()), "embroidery.quick.flip", json!({ "axis": a })));
     }
     for p in [90, 110, 80, 120] {
         v.push((format!("scale {p}%"), "embroidery.quick.resize", json!({ "percent": p })));
