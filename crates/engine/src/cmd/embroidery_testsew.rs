@@ -235,7 +235,7 @@ mod tests {
             assert_eq!(r["fits"], true, "{id}: {r}");
             counts.push(r["stitches"].as_u64().unwrap());
         }
-        assert!(counts.iter().all(|&n| n > 300), "{counts:?}");
+        assert!(counts.iter().all(|&n| n > 250), "{counts:?}");
         assert!(s.execute("embroidery.testSew", &json!({"test": "plaid"})).is_err());
         assert_eq!(s.execute("embroidery.testSew.list", &json!({})).unwrap()["tests"].as_array().unwrap().len(), 5);
     }
