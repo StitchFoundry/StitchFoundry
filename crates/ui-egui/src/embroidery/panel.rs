@@ -4154,6 +4154,11 @@ fn checks(app: &mut VectorcraftApp, ui: &mut Ui, t: &Tokens) {
 }
 
 #[cfg(test)]
+pub(crate) fn finding_text_for_test(f: &Value) -> String {
+    finding_text(f)
+}
+
+#[cfg(test)]
 mod stiff_tests {
     use super::*;
 
@@ -4166,9 +4171,4 @@ mod stiff_tests {
         assert!(!too_stiff(FillKind::Motif, 0.1), "motif rows are not a solid fill");
         assert!(stiff_advice().contains("just covers the fabric"));
     }
-}
-
-#[cfg(test)]
-pub(crate) fn finding_text_for_test(f: &Value) -> String {
-    finding_text(f)
 }
