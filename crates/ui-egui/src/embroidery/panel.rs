@@ -2948,6 +2948,21 @@ fn fill_rows(app: &mut VectorcraftApp, ui: &mut Ui, target: Target, e: &Embroide
     fill_comp_rows(app, ui, target, e, f);
 }
 
+/// Row spacing (mm) under which a solid fill sews stiff: the thread lies deeper than the fabric
+/// needs to be covered. The built-in fabrics start at 0.36 mm and up.
+const STIFF_BELOW_MM: f64 = 0.3;
+
+/// What to do about a stiff fill.
+fn stiff_advice() -> &'static str {
+    tl!("Too dense: the fill may sew stiff. Lower the density (more space between rows) until it just covers the fabric.")
+}
+
+/// Whether a fill of this style packs its rows so close that it sews stiff. Meander, motif and
+/// cross fills read their spacing differently and are left alone.
+fn too_stiff(kind: FillKind, spacing: f64) -> bool {
+    !matches!(kind, FillKind::Meander | FillKind::Motif | FillKind::Cross) && spacing.is_finite() && spacing > 0.0 && spacing < STIFF_BELOW_MM
+}
+
 /// A fill's style, spacing, stitch length, cross style and rings.
 fn fill_kind_rows(app: &mut VectorcraftApp, ui: &mut Ui, target: Target, f: &FillParams) {
     let kinds: Vec<&str> = FillKind::ALL.iter().map(|k| tl!(k.label())).collect();
@@ -2964,6 +2979,10 @@ fn fill_kind_rows(app: &mut VectorcraftApp, ui: &mut Ui, target: Target, f: &Fil
     };
     if let Some(v) = num(ui, spacing_label, "fd", f.spacing, " mm", decimals) {
         set(app, target, json!({ "spacing": v }));
+    }
+    if too_stiff(f.kind, f.spacing) {
+        let t = Tokens::get(ui.ctx());
+        ui.colored_label(t.warning, format!("▲ {}", stiff_advice()));
     }
     if !matches!(f.kind, FillKind::Satin | FillKind::Radial) {
         let label = if f.kind == FillKind::Cross { tl!("Cell size") } else { tl!("Stitch length") };
@@ -4131,6 +4150,21 @@ fn checks(app: &mut VectorcraftApp, ui: &mut Ui, t: &Tokens) {
                 v.center = vectorcraft_geom::Point::new(x, y);
             }
         }
+    }
+}
+
+#[cfg(test)]
+mod stiff_tests {
+    use super::*;
+
+    #[test]
+    fn close_rows_are_stiff_and_ordinary_ones_are_not() {
+        assert!(too_stiff(FillKind::Tatami, 0.2));
+        assert!(!too_stiff(FillKind::Tatami, 0.4));
+        assert!(!too_stiff(FillKind::Tatami, 0.0), "no spacing is not advice");
+        assert!(!too_stiff(FillKind::Tatami, f64::NAN));
+        assert!(!too_stiff(FillKind::Motif, 0.1), "motif rows are not a solid fill");
+        assert!(stiff_advice().contains("just covers the fabric"));
     }
 }
 
