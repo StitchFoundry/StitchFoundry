@@ -1006,9 +1006,18 @@ pub(super) fn export_machine_file(s: &mut Session, p: &Value) -> Result<Value> {
     // a fixed place in the hoop: the design's middle there, not on the hoop's centre
     let offset = s.doc()?.doc.embroidery.as_deref().and_then(|e| e.settings.hoop_offset).filter(|_| opts.center);
     let moved;
+    // the hoop's orientation in the chosen machine: turned before it is placed
+    let (turn, mirror) = super::embroidery_my_machine::orientation(s);
+    let turned;
+    let source = if turn == 0 && !mirror {
+        plan.pattern()
+    } else {
+        turned = super::embroidery_my_machine::orient(plan.pattern(), turn, mirror);
+        &turned
+    };
     let pattern = match offset {
         Some([x, y]) => {
-            let mut q = plan.pattern().clone();
+            let mut q = source.clone();
             let b = q.bounds();
             let (dx, dy) = (x - (b.min.x + b.max.x) / 2.0, y - (b.min.y + b.max.y) / 2.0);
             for st in &mut q.stitches {
@@ -1019,7 +1028,7 @@ pub(super) fn export_machine_file(s: &mut Session, p: &Value) -> Result<Value> {
             moved = q;
             &moved
         }
-        None => plan.pattern(),
+        None => source,
     };
     let bytes = sf_formats::write(format, pattern, &opts).map_err(|e| EngineError::Other(format!("{} export failed: {e}", format.name())))?;
     // what the machine may refuse or show otherwise, sewn in the design's hoop where it is placed
@@ -3426,7 +3435,7 @@ fn info(s: &mut Session, _p: &Value) -> Result<Value> {
     let custom = &s.prefs.embroidery_custom_hoops;
     let hoops: Vec<Value> = super::embroidery_hoops::all_hoops(s)
         .iter()
-        .map(|h| json!({"name": h.name, "width": h.width, "height": h.height, "custom": custom.iter().any(|c| c.name == h.name)}))
+        .map(|h| json!({"name": h.name, "width": h.width, "height": h.height, "custom": custom.iter().any(|c| c.name == h.name), "owned": super::embroidery_hoops::is_owned(s, &h.name)}))
         .collect();
     let charts: Vec<String> = super::embroidery_charts::all_charts(s).into_iter().map(|c| c.name).collect();
     let saved = &s.prefs.embroidery_machines;

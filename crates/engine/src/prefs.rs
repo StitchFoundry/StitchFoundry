@@ -304,10 +304,18 @@ pub struct Prefs {
     /// (`embroidery.myMachine.setFormat`). Always one the machine reads.
     #[serde(default, skip_serializing_if = "std::collections::BTreeMap::is_empty")]
     pub my_machine_formats: std::collections::BTreeMap<String, String>,
+    /// How the hoop sits in each machine, by machine name: (degrees clockwise 0/90/180/270, mirrored)
+    /// (`embroidery.myMachine.setOrientation`). Exports are turned by it.
+    #[serde(default, skip_serializing_if = "std::collections::BTreeMap::is_empty")]
+    pub my_machine_orientation: std::collections::BTreeMap<String, (u16, bool)>,
     /// The hoop of the last design started with `embroidery.newDesign` by name: the next new design
     /// with no hoop named takes it (when My Machine has it, or no machine is chosen).
     #[serde(default, skip_serializing_if = "String::is_empty")]
     pub last_hoop: String,
+    /// The hoop last picked on each machine, by machine name (`embroidery.newDesign`): a machine's
+    /// next new design takes its own, before `last_hoop`.
+    #[serde(default, skip_serializing_if = "std::collections::BTreeMap::is_empty")]
+    pub last_hoop_by_machine: std::collections::BTreeMap<String, String>,
     /// Where Keep Safe saves a beginner's new designs (`file.keepSafe`; empty: Documents/StitchFoundry Designs).
     #[serde(default, skip_serializing_if = "String::is_empty")]
     pub my_designs_folder: String,
@@ -534,8 +542,10 @@ impl Default for Prefs {
             embroidery_ai_effort: String::new(),
             embroidery_send_dirs: vec![],
             my_machine: String::new(),
-            my_machine_formats: Default::default(),
             last_hoop: String::new(),
+            last_hoop_by_machine: Default::default(),
+            my_machine_formats: Default::default(),
+            my_machine_orientation: Default::default(),
             my_designs_folder: String::new(),
             screen_export_presets: vec![],
             templates_folder: String::new(),

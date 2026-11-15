@@ -117,6 +117,21 @@ fn pick(ui: &mut Ui, label: &str, id: &str, current: usize, options: &[&str]) ->
     out
 }
 
+/// The hoop names the picker offers from `embroidery.info`: the owned ones (`owned`), or all with
+/// `show_all`; the design's own hoop is always there.
+pub(crate) fn hoop_choices(info: &Value, show_all: bool) -> Vec<String> {
+    let cur = info["hoop"].as_str();
+    info["hoops"]
+        .as_array()
+        .map(|a| {
+            a.iter()
+                .filter(|h| show_all || h["owned"].as_bool().unwrap_or(true) || h["name"].as_str() == cur)
+                .filter_map(|h| h["name"].as_str().map(str::to_string))
+                .collect()
+        })
+        .unwrap_or_default()
+}
+
 /// [`pick`] for names that are data (styles, fabrics, hoops): shown as they are, never
 /// translated.
 pub(crate) fn pick_names(ui: &mut Ui, label: &str, id: &str, current: usize, options: &[&str]) -> Option<usize> {
@@ -906,29 +921,10 @@ fn hoop_position_row(app: &mut VectorcraftApp, ui: &mut Ui, info: &Value) {
 /// A hoop of one's own: its name and field, kept with the standard ones.
 fn hoop_custom_row(app: &mut VectorcraftApp, ui: &mut Ui) {
     egui::CollapsingHeader::new(tl!("Custom Hoops")).id_salt("emb-custom-hoops").show(ui, |ui| {
-        let d = &mut app.embroidery.hoop_draft;
-        ui.horizontal(|ui| {
-            ui.add(egui::TextEdit::singleline(&mut d.0).desired_width(110.0).hint_text(tl!("Hoop name")));
-            ui.add(egui::DragValue::new(&mut d.1).range(20.0..=2000.0).suffix(" mm"));
-            ui.label("×");
-            ui.add(egui::DragValue::new(&mut d.2).range(20.0..=2000.0).suffix(" mm"));
-        });
-        let (name, w, h) = (d.0.trim().to_string(), d.1, d.2);
-        ui.horizontal(|ui| {
-            if !name.is_empty() && button(ui, tl!("Save Hoop")).clicked() {
-                match app.run("embroidery.hoop.saveCustom", json!({ "name": name, "width": w, "height": h })) {
-                    Ok(_) => {
-                        app.run("embroidery.settings", json!({ "hoop": name })).ok();
-                    }
-                    Err(e) => app.status(e),
-                }
-            }
-            if app.session.prefs.embroidery_custom_hoops.iter().any(|c| c.name.eq_ignore_ascii_case(&name))
-                && button(ui, tl!("Delete Hoop")).clicked()
-            {
-                app.run("embroidery.hoop.deleteCustom", json!({ "name": name })).ok();
-            }
-        });
+        super::hoop_editor::show(app, ui, true);
+    });
+    egui::CollapsingHeader::new(tl!("Machine Profiles")).id_salt("emb-machine-profiles").show(ui, |ui| {
+        super::machine_editor::show(app, ui);
     });
 }
 
@@ -3580,17 +3576,28 @@ fn design_section(app: &mut VectorcraftApp, ui: &mut Ui, t: &Tokens) {
         if let Some(fits) = info["fits"].as_bool() {
             let (txt, col) = if fits { (tl!("Fits the hoop"), t.accent) } else { (tl!("Larger than the hoop"), t.error) };
             ui.label(egui::RichText::new(txt).color(col));
+            if !fits && info["hoop"].is_string() {
+                ui.label(egui::RichText::new(tl!("The design is larger than the sewing field.")).color(t.error));
+                if button(ui, tl!("Fit to Hoop"))
+                    .on_hover_text(tl!("Scale the whole design down, width and height together, until it fits"))
+                    .clicked()
+                    && let Err(e) = app.run("embroidery.hoop.fit", json!({}))
+                {
+                    app.status(e);
+                }
+            }
         }
     } else {
         ui.label(egui::RichText::new(tl!("No stitches yet.")).color(t.text_dim));
     }
     checks(app, ui, t);
     // Hoop and fabric.
-    let hoops: Vec<String> =
-        info["hoops"].as_array().map(|a| a.iter().filter_map(|h| h["name"].as_str().map(str::to_string)).collect()).unwrap_or_default();
+    let hoops = hoop_choices(&info, app.embroidery.show_all_hoops);
     let mut hoop_opts: Vec<&str> = vec![tl!("No hoop")];
     hoop_opts.extend(hoops.iter().map(String::as_str));
     let cur_hoop = info["hoop"].as_str().and_then(|h| hoops.iter().position(|x| x == h)).map_or(0, |i| i + 1);
+    ui.checkbox(&mut app.embroidery.show_all_hoops, tl!("Show all hoops"))
+        .on_hover_text(tl!("Off: only the hoops My Machine has and the ones you made"));
     if let Some(i) = pick_names(ui, tl!("Hoop"), "hoop", cur_hoop, &hoop_opts) {
         let v = if i == 0 { Value::Null } else { json!(hoop_opts.get(i).copied().unwrap_or_default()) };
         app.run("embroidery.settings", json!({ "hoop": v })).ok();
@@ -4145,4 +4152,19 @@ fn checks(app: &mut VectorcraftApp, ui: &mut Ui, t: &Tokens) {
 #[cfg(test)]
 pub(crate) fn finding_text_for_test(f: &Value) -> String {
     finding_text(f)
+}
+
+#[cfg(test)]
+mod hoop_choice_tests {
+    use serde_json::json;
+
+    use super::hoop_choices;
+
+    #[test]
+    fn the_picker_lists_owned_hoops_and_the_designs_own_unless_show_all() {
+        let info = json!({"hoop": "C", "hoops": [
+            {"name": "A", "owned": true}, {"name": "B", "owned": false}, {"name": "C", "owned": false}]});
+        assert_eq!(hoop_choices(&info, false), ["A", "C"]);
+        assert_eq!(hoop_choices(&info, true), ["A", "B", "C"]);
+    }
 }

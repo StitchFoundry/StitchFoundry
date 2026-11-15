@@ -11,7 +11,7 @@ const CMD: &str = "embroidery.testSew";
 /// The word the lettering tests sew.
 const WORD: &str = "Grace";
 /// The tests: (id, name, what to look for).
-pub const TESTS: [(&str, &str, &str); 4] = [
+pub const TESTS: [(&str, &str, &str); 5] = [
     (
         "satin",
         "Satin underlay ladder",
@@ -32,6 +32,11 @@ pub const TESTS: [(&str, &str, &str); 4] = [
         "Towel test",
         "Top: cotton settings. Middle: a towel's (denser, edge run and zigzag under every letter, more pull compensation). Bottom: the towel's with a knockdown under the word. Sew on a towel with a water-soluble topping. Look for: letters sinking into the loops, loops poking through, edges crisp.",
     ),
+    (
+        "orientation",
+        "Hoop orientation test",
+        "An arrow and the word TOP, with L and R in the corners and the centre. Sew it once in the machine's hoop, then tell embroidery.myMachine.setOrientation which way the arrow pointed (0 is up); if the letters read backwards, mirror.",
+    ),
 ];
 
 pub fn specs() -> Vec<CommandSpec> {
@@ -41,7 +46,7 @@ pub fn specs() -> Vec<CommandSpec> {
             "Test Sew-Out",
             [],
             None,
-            "{test: satin|lettering|fill|towel, hoop?: a hoop's name (My Machine's first that fits 220 × 130 mm), color?: \"#rrggbb\"} a new design that sews the same thing several ways side by side, labelled in running stitch, to sew out on the real machine and fabric and compare: satin underlay by column width, lettering by size, fill underlay, a towel's settings; its notes say what each part is and what to look for → {test, name, look, stitches, hoop}",
+            "{test: satin|lettering|fill|towel|orientation, hoop?: a hoop's name (My Machine's first that fits 220 × 130 mm), color?: \"#rrggbb\"} a new design that sews the same thing several ways side by side, labelled in running stitch, to sew out on the real machine and fabric and compare: satin underlay by column width, lettering by size, fill underlay, a towel's settings; or the hoop orientation test; its notes say what each part is and what to look for → {test, name, look, stitches, hoop}",
             always,
             test_sew
         ),
@@ -116,9 +121,9 @@ fn satin_underlay(kind: &str) -> Value {
 }
 
 fn test_sew(s: &mut Session, p: &Value) -> Result<Value> {
-    let test = str_param(p, "test").ok_or_else(|| bad(CMD, "missing `test`: satin, lettering, fill or towel"))?;
+    let test = str_param(p, "test").ok_or_else(|| bad(CMD, "missing `test`: satin, lettering, fill, towel or orientation"))?;
     let &(id, name, look) =
-        TESTS.iter().find(|t| t.0 == test).ok_or_else(|| bad(CMD, format!("no test `{test}`: satin, lettering, fill or towel")))?;
+        TESTS.iter().find(|t| t.0 == test).ok_or_else(|| bad(CMD, format!("no test `{test}`: satin, lettering, fill, towel or orientation")))?;
     let color = str_param(p, "color").unwrap_or("#1a3e8c");
     sf_core::Rgb::from_hex(color).ok_or_else(|| bad(CMD, "`color` is \"#rrggbb\""))?;
     let (hoop, _, _) = super::embroidery_ith::pick_hoop(s, p, (226.0, 136.0), CMD)?;
@@ -178,6 +183,20 @@ fn test_sew(s: &mut Session, p: &Value) -> Result<Value> {
                 pg.label(s, x - 15.0, y + 22.0, title)?;
             }
         }
+        "orientation" => {
+            // an arrow up the middle, TOP above it, L and R in the corners and the centre
+            for (a, b) in [((0.0, 40.0), (0.0, -30.0)), ((0.0, -30.0), (-12.0, -16.0)), ((0.0, -30.0), (12.0, -16.0))] {
+                pg.line(s, a, b)?;
+                s.execute("embroidery.set", &json!({ "type": "run" }))?;
+            }
+            pg.label(s, -8.0, -42.0, "TOP")?;
+            for (x, y) in [(-100.0, -50.0), (-100.0, 58.0), (-100.0, 4.0)] {
+                pg.label(s, x, y, "L")?;
+            }
+            for (x, y) in [(96.0, -50.0), (96.0, 58.0), (96.0, 4.0)] {
+                pg.label(s, x, y, "R")?;
+            }
+        }
         _ => {
             let towel = json!({ "spacing": 0.33, "pull_comp": 0.35, "underlay": satin_underlay("edge+zz") });
             pg.label(s, -110.0, -36.0, "Cotton")?;
@@ -216,8 +235,8 @@ mod tests {
             assert_eq!(r["fits"], true, "{id}: {r}");
             counts.push(r["stitches"].as_u64().unwrap());
         }
-        assert!(counts.iter().all(|&n| n > 1500), "{counts:?}");
+        assert!(counts.iter().all(|&n| n > 250), "{counts:?}");
         assert!(s.execute("embroidery.testSew", &json!({"test": "plaid"})).is_err());
-        assert_eq!(s.execute("embroidery.testSew.list", &json!({})).unwrap()["tests"].as_array().unwrap().len(), 4);
+        assert_eq!(s.execute("embroidery.testSew.list", &json!({})).unwrap()["tests"].as_array().unwrap().len(), 5);
     }
 }
