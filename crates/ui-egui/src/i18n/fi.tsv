@@ -7349,3 +7349,4 @@ axis	Y Axis	Y-akseli
 @msg	a {width}×{height} screenshot's byte count overflows	{width}×{height} kuvakaappauksen tavumäärä ylittää rajan
 @msg	the window's {what} ({points} points × {scale} DPI) cannot size a screenshot	ikkunan {what} ({points} pistettä × {scale} DPI) ei voi määrittää kuvakaappauksen kokoa
 	Live preview	Reaaliaikainen esikatselu
+	Too dense: the fill may sew stiff. Lower the density (more space between rows) until it just covers the fabric.	Liian tiheä: täyte voi tulla jäykäksi. Pienennä tiheyttä (enemmän tilaa rivien välillä), kunnes se juuri peittää kankaan.

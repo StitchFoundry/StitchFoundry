@@ -6934,3 +6934,4 @@ axis	Y Axis	Y축
 @msg	a {width}×{height} screenshot's byte count overflows	{width}×{height} 스크린샷의 바이트 수가 넘칩니다
 @msg	the window's {what} ({points} points × {scale} DPI) cannot size a screenshot	창의 {what}({points}포인트 × {scale} DPI)로는 스크린샷 크기를 정할 수 없습니다
 	Live preview	실시간 미리 보기
+	Too dense: the fill may sew stiff. Lower the density (more space between rows) until it just covers the fabric.	밀도가 너무 높습니다. 채움이 뻣뻣하게 수놓일 수 있습니다. 원단이 딱 덮일 때까지 밀도를 낮추세요(줄 사이 간격을 넓힙니다).

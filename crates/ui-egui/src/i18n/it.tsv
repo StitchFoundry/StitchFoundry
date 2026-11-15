@@ -6980,3 +6980,4 @@ axis	Y Axis	Asse Y
 @msg	a {width}×{height} screenshot's byte count overflows	il numero di byte di uno screenshot {width}×{height} va in overflow
 @msg	the window's {what} ({points} points × {scale} DPI) cannot size a screenshot	la {what} della finestra ({points} punti × {scale} DPI) non può dimensionare uno screenshot
 	Live preview	Anteprima dal vivo
+	Too dense: the fill may sew stiff. Lower the density (more space between rows) until it just covers the fabric.	Troppo denso: il riempimento può risultare rigido. Riduci la densità (più spazio tra le file) finché copre appena il tessuto.

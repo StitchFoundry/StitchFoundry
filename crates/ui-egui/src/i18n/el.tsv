@@ -7283,3 +7283,4 @@ axis	Y Axis	Άξονας Y
 @msg	a {width}×{height} screenshot's byte count overflows	το πλήθος byte ενός στιγμιότυπου {width}×{height} υπερχειλίζει
 @msg	the window's {what} ({points} points × {scale} DPI) cannot size a screenshot	το {what} του παραθύρου ({points} σημεία × {scale} DPI) δεν μπορεί να καθορίσει μέγεθος στιγμιότυπου
 	Live preview	Ζωντανή προεπισκόπηση
+	Too dense: the fill may sew stiff. Lower the density (more space between rows) until it just covers the fabric.	Πολύ πυκνό: το γέμισμα μπορεί να βγει σκληρό. Μειώστε την πυκνότητα (περισσότερος χώρος ανάμεσα στις σειρές) μέχρι να καλύπτει ακριβώς το ύφασμα.
