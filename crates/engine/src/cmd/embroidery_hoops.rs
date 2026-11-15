@@ -124,18 +124,18 @@ fn turned(s: &Session, hoop: &Hoop) -> bool {
 }
 
 /// The design's size (mm) as it sews, if anything is stitched.
-fn design_size(s: &Session) -> Option<(f64, f64)> {
+pub(crate) fn design_size(s: &Session) -> Option<(f64, f64)> {
     let plan = s.embroidery_plan()?;
     let st = plan.stats.as_ref()?;
     Some((st.width_mm, st.height_mm))
 }
 
-fn fits(h: &Hoop, (w, ht): (f64, f64)) -> bool {
+pub(crate) fn fits(h: &Hoop, (w, ht): (f64, f64)) -> bool {
     let b = |w: f64, h: f64| sf_core::BBox::new(sf_core::Point::new(-w / 2.0, -h / 2.0), sf_core::Point::new(w / 2.0, h / 2.0));
     h.fits(&b(w, ht))
 }
 
-fn turn(h: &Hoop) -> Hoop {
+pub(crate) fn turn(h: &Hoop) -> Hoop {
     Hoop {
         width: h.height,
         height: h.width,
