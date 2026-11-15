@@ -271,8 +271,17 @@ fn queue(_: &mut Session, p: &Value) -> Result<Value> {
     if existing.len() >= MAX_QUEUED {
         return Err(bad(C, format!("{MAX_QUEUED} reports are already waiting; send them first")));
     }
-    // The next number after the highest one, so names sort oldest first and never repeat.
-    let next = existing.iter().filter_map(|n| n.strip_prefix("report-")?.strip_suffix(".json")?.parse::<u64>().ok()).max().map_or(1, |n| n + 1);
+    // The next number after the highest one, so names sort oldest first and never repeat. Only
+    // the eight-digit names this command writes count, and the number must stay eight digits
+    // (a ninth digit would sort before the others).
+    let numbered = |n: &String| {
+        let digits = n.strip_prefix("report-")?.strip_suffix(".json")?;
+        (digits.len() == 8 && digits.bytes().all(|b| b.is_ascii_digit())).then(|| digits.parse::<u64>().ok())?
+    };
+    let next = existing.iter().filter_map(numbered).max().map_or(Some(1), |n| n.checked_add(1)).filter(|&n| n <= 99_999_999);
+    let Some(next) = next else {
+        return Err(bad(C, "the report queue has run out of numbers; send or delete the waiting reports"));
+    };
     let name = format!("report-{next:08}.json");
     std::fs::write(dir.join(&name), built["payload"].to_string()).map_err(|e| bad(C, format!("{name}: {e}")))?;
     Ok(json!({ "file": name, "pending": existing.len() + 1 }))
@@ -358,6 +367,22 @@ mod tests {
             s.execute("help.bugReport.queue", &json!({"dir": d, "what": "n"})).unwrap();
         }
         assert!(s.execute("help.bugReport.queue", &json!({"dir": d, "what": "over"})).is_err());
+        let _ = std::fs::remove_dir_all(&dir);
+    }
+
+    #[test]
+    fn queue_numbering_ignores_odd_names_and_never_wraps() {
+        let dir = std::env::temp_dir().join(format!("sf-bugq-max-{}", std::process::id()));
+        let _ = std::fs::remove_dir_all(&dir);
+        std::fs::create_dir_all(&dir).unwrap();
+        std::fs::write(dir.join("report-18446744073709551615.json"), "{}").unwrap();
+        let mut s = Session::new();
+        let d = dir.to_str().unwrap();
+        // A name we never write doesn't count (and can't overflow the numbering).
+        assert_eq!(s.execute("help.bugReport.queue", &json!({"dir": d, "what": "one"})).unwrap()["file"], "report-00000001.json");
+        // The last eight-digit number: the next report is refused instead of wrapping or growing a digit.
+        std::fs::write(dir.join("report-99999999.json"), "{}").unwrap();
+        assert!(s.execute("help.bugReport.queue", &json!({"dir": d, "what": "two"})).is_err());
         let _ = std::fs::remove_dir_all(&dir);
     }
 }
