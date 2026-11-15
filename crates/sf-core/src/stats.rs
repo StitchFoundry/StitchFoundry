@@ -16,6 +16,10 @@ pub struct ColorUsage {
     pub stitches: usize,
     /// Top thread length in metres.
     pub thread_m: f64,
+    /// Jumps sewn in this colour's block (a jump before its first stitch counts here).
+    pub jumps: usize,
+    /// Trims in this colour's block.
+    pub trims: usize,
 }
 
 #[derive(Clone, Debug, PartialEq)]
@@ -54,7 +58,7 @@ pub fn pattern_stats(p: &Pattern, settings: &DesignSettings) -> PatternStats {
     let mut stops = 0;
     let mut thread_mm = 0.0;
     let mut max_stitch: f64 = 0.0;
-    let mut colors: Vec<ColorUsage> = vec![ColorUsage { thread: p.thread(0), stitches: 0, thread_m: 0.0 }];
+    let mut colors: Vec<ColorUsage> = vec![ColorUsage { thread: p.thread(0), stitches: 0, thread_m: 0.0, jumps: 0, trims: 0 }];
     let mut prev = None;
     for s in &p.stitches {
         let pos = s.pos();
@@ -72,11 +76,21 @@ pub fn pattern_stats(p: &Pattern, settings: &DesignSettings) -> PatternStats {
                     cu.thread_m += used.unwrap_or(0.0) / 1000.0;
                 }
             }
-            Cmd::Jump => jumps += 1,
-            Cmd::Trim => trims += 1,
+            Cmd::Jump => {
+                jumps += 1;
+                if let Some(cu) = colors.last_mut() {
+                    cu.jumps += 1;
+                }
+            }
+            Cmd::Trim => {
+                trims += 1;
+                if let Some(cu) = colors.last_mut() {
+                    cu.trims += 1;
+                }
+            }
             Cmd::ColorChange => {
                 color_changes += 1;
-                colors.push(ColorUsage { thread: p.thread(colors.len()), stitches: 0, thread_m: 0.0 });
+                colors.push(ColorUsage { thread: p.thread(colors.len()), stitches: 0, thread_m: 0.0, jumps: 0, trims: 0 });
             }
             Cmd::Stop => stops += 1,
             Cmd::End => {}
@@ -104,5 +118,29 @@ pub fn pattern_stats(p: &Pattern, settings: &DesignSettings) -> PatternStats {
         seconds,
         colors,
         max_stitch_mm: max_stitch,
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::geom::Point;
+
+    #[test]
+    fn jumps_and_trims_are_counted_per_colour() {
+        let mut p = Pattern::new();
+        p.stitch(Point::new(0.0, 0.0));
+        p.stitch(Point::new(1.0, 0.0));
+        p.trim();
+        p.jump(Point::new(5.0, 0.0));
+        p.stitch(Point::new(5.0, 1.0));
+        p.color_change();
+        p.stitch(Point::new(6.0, 1.0));
+        p.stitch(Point::new(7.0, 1.0));
+        let st = pattern_stats(&p, &DesignSettings::default());
+        assert_eq!((st.jumps, st.trims), (st.colors.iter().map(|c| c.jumps).sum(), st.colors.iter().map(|c| c.trims).sum()));
+        assert_eq!(st.colors.len(), 2);
+        assert_eq!((st.colors[0].jumps, st.colors[0].trims), (1, 1));
+        assert_eq!((st.colors[1].jumps, st.colors[1].trims), (0, 0));
     }
 }
