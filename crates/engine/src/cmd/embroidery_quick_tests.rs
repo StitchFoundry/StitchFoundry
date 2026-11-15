@@ -12,7 +12,9 @@ fn design() -> Session {
     s.execute("embroidery.newDesign", &json!({"hoop": "Quick"})).unwrap();
     s.execute("shape.rectangle", &json!({"x": 0, "y": 0, "width": 280, "height": 140})).unwrap();
     s.execute("shape.rectangle", &json!({"x": 20, "y": 20, "width": 60, "height": 30})).unwrap();
+    s.execute("select.all", &json!({})).unwrap();
     s.execute("embroidery.set", &json!({"type": "fill"})).unwrap();
+    s.execute("select.none", &json!({})).unwrap();
     s
 }
 
@@ -62,13 +64,13 @@ fn rotation_is_recentred_offers_a_way_out_and_undoes() {
     // a hoop 120 wide and 60 high holds the design one way, not the other
     s.execute("embroidery.hoop.saveCustom", &json!({"name": "Strip", "width": 130, "height": 50})).unwrap();
     s.execute("embroidery.settings", &json!({"hoop": {"name": "Strip", "width": 130, "height": 50, "shape": "rect"}})).unwrap();
-    s.execute("embroidery.quick.rotate", &json!({"degrees": -45})).unwrap();
     let r = s.execute("embroidery.quick.rotate", &json!({"degrees": 90})).unwrap();
     assert_eq!(r["fits"], false, "{r}");
     assert!(r["offers"].as_array().unwrap().contains(&json!("fitToHoop")));
     assert!(s.execute("embroidery.quick.rotate", &json!({"degrees": f64::NAN})).is_err());
     s.execute("edit.undo", &json!({})).unwrap();
-    assert_eq!(size(&mut s).0.round() > size(&mut s).1.round(), true);
+    let st = s.embroidery_plan().unwrap().stats.clone().unwrap();
+    assert!(st.width_mm > st.height_mm, "one undo takes the turn back");
 }
 
 #[test]
