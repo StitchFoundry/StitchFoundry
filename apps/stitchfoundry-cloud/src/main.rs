@@ -65,7 +65,8 @@ fn run() -> Result<(), String> {
                 body: if too_big { vec![0; MAX_BODY + 1] } else { body },
             };
             let resp = service.handle(&req);
-            let mut out = tiny_http::Response::from_string(resp.body).with_status_code(resp.status);
+            let data = if resp.raw.is_empty() { resp.body.into_bytes() } else { resp.raw };
+            let mut out = tiny_http::Response::from_data(data).with_status_code(resp.status);
             for (k, v) in std::iter::once(("Content-Type".to_string(), resp.content_type.to_string())).chain(resp.headers) {
                 if let Ok(h) = tiny_http::Header::from_bytes(k.as_bytes(), v.as_bytes()) {
                     out.add_header(h);

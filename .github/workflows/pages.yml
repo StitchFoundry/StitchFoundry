@@ -1,5 +1,5 @@
 # The web app on GitHub Pages (free for a public repository): every push to main builds the
-# browser version and publishes it at https://stitchwright.github.io/StitchFoundry/. Also run by
+# browser version and publishes it at https://stitchfoundry.github.io/StitchFoundry/. Also run by
 # hand from Actions › Web app › Run workflow.
 #
 # One-time setting (repository owner): Settings › Pages › Build and deployment › Source:
@@ -56,7 +56,7 @@ jobs:
       # only their fonts/ folder. Bump the commit deliberately.
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
-          repository: Stitchwright/stitchfoundry-fonts
+          repository: StitchFoundry/stitchfoundry-fonts
           ref: 857ca33ffab22a3bfb976a0a301880b74dc57050
           path: stitchfoundry-fonts
           sparse-checkout: fonts

@@ -381,7 +381,7 @@ fn export(s: &mut Session, p: &Value) -> Result<Value> {
     }
     let format = match str_param(p, "format") {
         Some(f) => f.trim().trim_start_matches('.').to_ascii_lowercase(),
-        None => super::embroidery_my_machine::mine(s).map(|m| m.format.to_string()).unwrap_or_else(|| "dst".into()),
+        None => super::embroidery_my_machine::save_format(s).unwrap_or_else(|| "dst".into()),
     };
     if !super::embroidery::MACHINE_EXTS.contains(&format.as_str()) {
         return Err(bad(CMD, format!("unknown format `{format}`: one of {}", super::embroidery::MACHINE_EXTS.join(", "))));

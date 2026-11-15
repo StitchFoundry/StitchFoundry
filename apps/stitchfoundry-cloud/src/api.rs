@@ -16,8 +16,14 @@
 //!   Until the email is confirmed, the account can sign in and read itself but spends nothing:
 //!   AI requests, sew-out checks (free ones too) and buying credits answer 403.
 //! - `GET  /v1/account` → `{id, email, verified, credits, packs, history}`.
+//! - `POST /v1/founding {program, account | email}` (`X-Admin-Secret`; only routed when
+//!   `SF_CLOUD_ADMIN_SECRET` is set): makes an account a numbered founding member of a program,
+//!   with a one-time credit bonus (`SF_CLOUD_FOUNDING_CREDITS`, 200). `/v1/account` lists them.
 //! - `POST /v1/checkout {pack}` → `{url}`: Stripe's checkout page for the pack.
 //! - `POST /v1/stripe/webhook`: Stripe's signed word that a checkout was paid.
+//! - `POST /v1/phone {name, data}`, `GET /v1/phone/list` (signed in) and `GET /v1/phone/sfp_…`
+//!   (no sign-in: the private link): Send to my phone. A design file is kept for 24 hours under a
+//!   random link (the QR code in the app), at most ten sends an account.
 //! - `POST /v1/messages`: an Anthropic Messages API request, sent with the service's key and paid
 //!   for in credits (`x-stitchfoundry-credits` on the reply: what is left).
 //!
@@ -42,7 +48,7 @@ use serde_json::{Value, json};
 
 use crate::auth::{self, Throttle};
 use crate::config::Config;
-use crate::store::{Check, Store, StoreError};
+use crate::store::{Check, PHONE_TTL, Phone, Store, StoreError};
 use crate::{pricing, sewout, stripe};
 
 /// The largest request body accepted (an image to redraw is the largest thing sent).
@@ -115,6 +121,21 @@ fn same_secret(given: &str, secret: &str) -> bool {
 
 /// The answer to any unknown route, which a test route gives too when it isn't on or the secret
 /// is wrong (so nothing says it exists).
+/// The biggest design file Send to my phone keeps (bytes).
+const MAX_PHONE_FILE: usize = 4 * 1024 * 1024;
+
+/// `name` as a file name a phone can save: letters, digits, spaces, `-`, `_` and `.`, at most 64
+/// characters, ending in an extension of one to five letters or digits (the machine format).
+fn phone_name(name: &str) -> Option<String> {
+    let name = name.trim();
+    let ok = !name.is_empty()
+        && name.chars().count() <= 64
+        && !name.starts_with('.')
+        && name.chars().all(|c| c.is_ascii_alphanumeric() || matches!(c, ' ' | '-' | '_' | '.'));
+    let (stem, ext) = name.rsplit_once('.')?;
+    (ok && !stem.is_empty() && (1..=5).contains(&ext.len()) && ext.bytes().all(|b| b.is_ascii_alphanumeric())).then(|| name.to_string())
+}
+
 fn not_found() -> Response {
     Response::error(404, "not_found_error", "no such endpoint")
 }
@@ -180,12 +201,14 @@ pub struct Response {
     pub status: u16,
     pub content_type: &'static str,
     pub body: String,
+    /// A file's bytes, sent instead of `body` when not empty.
+    pub raw: Vec<u8>,
     pub headers: Vec<(String, String)>,
 }
 
 impl Response {
     fn json(status: u16, v: &Value) -> Response {
-        Response { status, content_type: "application/json", body: v.to_string(), headers: Vec::new() }
+        Response { status, content_type: "application/json", body: v.to_string(), raw: Vec::new(), headers: Vec::new() }
     }
 
     fn error(status: u16, kind: &str, message: impl Into<String>) -> Response {
@@ -194,7 +217,7 @@ impl Response {
 
     /// An HTML page titled `title` around `body`, with [`PAGE_HEADERS`].
     fn html(status: u16, title: &str, body: &str) -> Response {
-        Response { status, content_type: "text/html; charset=utf-8", body: page_html(title, body), headers: page_headers() }
+        Response { status, content_type: "text/html; charset=utf-8", body: page_html(title, body), raw: Vec::new(), headers: page_headers() }
     }
 
     /// A page for Stripe's return addresses: `text`, what to do next, and a way to the site (the
@@ -203,7 +226,7 @@ impl Response {
         let body = format!(
             "<!doctype html><html lang=\"en\"><meta charset=\"utf-8\"><meta name=\"viewport\" content=\"width=device-width\"><title>StitchFoundry</title><body style=\"font-family:sans-serif;max-width:32em;margin:4em auto;padding:0 1em;line-height:1.5\"><h1>StitchFoundry</h1><p>{text}</p><p>{next}</p><p><a href=\"{SITE_URL}\" style=\"display:inline-block;padding:.6em 1.2em;border-radius:.4em;background:#2a5bd7;color:#fff;text-decoration:none\">Back to stitchfoundry.app</a></p></body></html>"
         );
-        Response { status: 200, content_type: "text/html; charset=utf-8", body, headers: page_headers() }
+        Response { status: 200, content_type: "text/html; charset=utf-8", body, raw: Vec::new(), headers: page_headers() }
     }
 }
 
@@ -358,6 +381,7 @@ fn link_html(title: &str, body: &str) -> Response {
         status: 200,
         content_type: "text/html; charset=utf-8",
         body: html,
+        raw: Vec::new(),
         headers: headers.iter().map(|(k, v)| (k.to_string(), v.to_string())).collect(),
     }
 }
@@ -415,7 +439,7 @@ impl Service {
         let path = req.path.split('?').next().unwrap_or_default();
         match (req.method.as_str(), path) {
             // a browser asking whether it may call
-            ("OPTIONS", _) => Response { status: 204, content_type: "text/plain", body: String::new(), headers: Vec::new() },
+            ("OPTIONS", _) => Response { status: 204, content_type: "text/plain", body: String::new(), raw: Vec::new(), headers: Vec::new() },
             ("GET", "/") => home(),
             ("GET", "/v1/health") => Response::json(
                 200,
@@ -438,11 +462,16 @@ impl Service {
             ("POST", "/v1/sewout") => self.sewout(req),
             ("POST", "/v1/sewout/delete") => self.delete_shared(req),
             ("POST", "/v1/report") => self.report(req),
+            ("POST", "/v1/phone") => self.phone_send(req),
+            ("GET" | "POST", "/v1/phone/list") => self.phone_list(req),
+            ("GET", p) if p.starts_with("/v1/phone/") => self.phone_get(&p["/v1/phone/".len()..]),
             ("GET", "/paid") => self.paid(req),
             ("GET", "/cancelled") => {
                 Response::page("The payment was cancelled; nothing was charged.", "You can close this tab and go back to StitchFoundry.")
             }
             // staging only: not even routed unless test mode is on
+            // admin or product call; not routed without the admin secret set
+            ("POST", "/v1/founding") if self.cfg.admin_secret.is_some() => self.founding(req),
             ("POST", "/v1/test/provision") if self.cfg.test_mode => self.test_provision(req),
             ("POST", "/v1/test/cleanup") if self.cfg.test_mode => self.test_cleanup(req),
             // a browser asking for a page that isn't here
@@ -457,6 +486,43 @@ impl Service {
         match (&self.cfg.test_secret, req.header("x-test-secret")) {
             (Some(secret), Some(given)) if self.cfg.test_mode => same_secret(given.trim(), secret),
             _ => false,
+        }
+    }
+
+    /// `POST /v1/founding {program, account | email}` (`X-Admin-Secret`): makes the account a
+    /// founding member of `program` (a-z, 0-9, `-`, up to 32), with the configured bonus once →
+    /// `{program, number, bonus}` (`bonus` 0 when it had it already). 404 with a wrong secret,
+    /// 403 for an internal or test account (they never count).
+    fn founding(&self, req: &Request) -> Response {
+        match (&self.cfg.admin_secret, req.header("x-admin-secret")) {
+            (Some(secret), Some(given)) if same_secret(given.trim(), secret) => {}
+            _ => return not_found(),
+        }
+        let v = match body_json(req) {
+            Ok(v) => v,
+            Err(r) => return r,
+        };
+        let program = match v.get("program").and_then(Value::as_str) {
+            Some(p) if good_run_id(p) => p.to_string(),
+            _ => return Response::error(400, "invalid_request_error", format!("program is 1 to {MAX_RUN_ID} of a-z, 0-9 and -")),
+        };
+        let mut store = self.store();
+        let id = match (v.get("account").and_then(Value::as_u64), v.get("email").and_then(Value::as_str)) {
+            (Some(id), _) => id,
+            (None, Some(email)) => match store.by_email(&email.trim().to_lowercase()) {
+                Some(a) => a.id,
+                None => return store_error(StoreError::NoAccount),
+            },
+            _ => return Response::error(400, "invalid_request_error", "give an account id or an email"),
+        };
+        let internal = store.account(id).is_some_and(|a| self.cfg.internal_emails.contains(&a.email.to_lowercase()));
+        let now = (self.clock)();
+        match store.make_founding(id, &program, self.cfg.founding_credits, internal, now) {
+            Ok(Some((number, granted))) => {
+                Response::json(200, &json!({"program": program, "number": number, "bonus": if granted { self.cfg.founding_credits } else { 0 }}))
+            }
+            Ok(None) => Response::error(403, "permission_error", "internal and test accounts are not founding members"),
+            Err(e) => store_error(e),
         }
     }
 
@@ -577,6 +643,8 @@ impl Service {
             "checkCredits": self.cfg.check_credits,
             // what a dollar of AI use costs in credits, for the app's estimates
             "creditsPerDollar": 100.0 * self.cfg.markup / self.cfg.cents_per_credit,
+            // the founding programs the account is in, for a numbered badge
+            "founding": a.map_or_else(Vec::new, |a| a.founding.iter().map(|(p, n)| json!({"program": p, "number": n})).collect::<Vec<_>>()),
             "sharedChecks": store.shared_checks(id).len(),
             "reports": store.reports(id).len(),
         })
@@ -1183,6 +1251,80 @@ impl Service {
     }
 
     /// Delete a shared check (`{check}`), or all of the account's (`{}`) → `{deleted}`.
+    /// Send to my phone: keep a design file (`name`, base64 `data`) for 24 hours under a private
+    /// link → `{link, name, expires}`.
+    fn phone_send(&self, req: &Request) -> Response {
+        let id = match self.signed_in(req) {
+            Ok(id) => id,
+            Err(r) => return r,
+        };
+        let v = match body_json(req) {
+            Ok(v) => v,
+            Err(r) => return r,
+        };
+        let Some(name) = v.get("name").and_then(Value::as_str).and_then(phone_name) else {
+            return Response::error(400, "invalid_request_error", "the file needs a name with its extension, like Rose.dst");
+        };
+        let Some(bytes) = v.get("data").and_then(Value::as_str).and_then(sewout::base64_decode).filter(|b| !b.is_empty()) else {
+            return Response::error(400, "invalid_request_error", "the file can't be read");
+        };
+        if bytes.len() > MAX_PHONE_FILE {
+            return Response::error(413, "request_too_large", "the file is too large to send to a phone");
+        }
+        let token = match auth::new_phone_token() {
+            Ok(t) => t,
+            Err(e) => {
+                log::error!("phone: no random token: {e}");
+                return Response::error(500, "api_error", "the service couldn't make a link: try again later");
+            }
+        };
+        let now = (self.clock)();
+        let phone = Phone { account: id, name, created: now, expires: now + PHONE_TTL };
+        if let Err(e) = self.store().add_phone(&token, phone.clone(), bytes, now) {
+            return store_error(e);
+        }
+        Response::json(200, &json!({ "link": self.phone_link(&token), "name": phone.name, "expires": phone.expires }))
+    }
+
+    /// The last sends that still work, newest first → `{sends: [{link, name, created, expires}]}`.
+    fn phone_list(&self, req: &Request) -> Response {
+        let id = match self.signed_in(req) {
+            Ok(id) => id,
+            Err(r) => return r,
+        };
+        let now = (self.clock)();
+        let sends: Vec<Value> = self
+            .store()
+            .phones(id, now)
+            .iter()
+            .map(|(t, p)| json!({ "link": self.phone_link(t), "name": p.name, "created": p.created, "expires": p.expires }))
+            .collect();
+        Response::json(200, &json!({ "sends": sends }))
+    }
+
+    /// The file behind a private link, as a download (the phone's browser opens this).
+    fn phone_get(&self, token: &str) -> Response {
+        let gone = || Response::error(404, "not_found_error", "this link has expired or doesn't exist: send the design again");
+        if !auth::good_phone_token(token) {
+            return gone();
+        }
+        let Some((phone, bytes)) = self.store().phone_file(token, (self.clock)()) else { return gone() };
+        Response {
+            status: 200,
+            content_type: "application/octet-stream",
+            body: String::new(),
+            raw: bytes,
+            headers: vec![
+                ("Content-Disposition".into(), format!("attachment; filename=\"{}\"", phone.name)),
+                ("Cache-Control".into(), "private, no-store".into()),
+            ],
+        }
+    }
+
+    fn phone_link(&self, token: &str) -> String {
+        format!("{}/v1/phone/{token}", self.cfg.public_url)
+    }
+
     fn delete_shared(&self, req: &Request) -> Response {
         let id = match self.signed_in(req) {
             Ok(id) => id,
@@ -1350,6 +1492,7 @@ impl Service {
                 status,
                 content_type: "application/json",
                 body: text,
+                raw: Vec::new(),
                 headers: vec![("x-stitchfoundry-credits".into(), left.to_string()), ("x-stitchfoundry-spent".into(), spent.to_string())],
             },
             Err(e) => {
@@ -2502,5 +2645,166 @@ mod tests {
         assert!(same_secret(SECRET, SECRET));
         assert!(!same_secret(&SECRET[..31], SECRET) && !same_secret("", SECRET) && !same_secret(&format!("{SECRET}x"), SECRET));
         assert!(good_run_id("qa-2026-11-03-1") && !good_run_id("") && !good_run_id("QA"));
+    }
+
+    #[test]
+    fn send_to_my_phone_keeps_a_private_file_for_24_hours() {
+        let (s, _) = service((200, "{}".into()), true);
+        let t = sign_up(&s);
+        let data = sewout::base64_encode(&[1, 2, 3, 0, 255]);
+        let sent = s.handle(&req("POST", "/v1/phone", Some(&t), json!({"name": "Rose.dst", "data": data})));
+        assert_eq!(sent.status, 200, "{}", sent.body);
+        let v = json_of(&sent);
+        let link = v["link"].as_str().unwrap().to_string();
+        assert!(link.contains("/v1/phone/sfp_"), "{link}");
+        assert_eq!(v["expires"], 1_000_000 + 24 * 3600);
+        // the phone opens the link without signing in and gets the bytes
+        let path = &link[link.find("/v1/phone/").unwrap()..];
+        let got = s.handle(&req("GET", path, None, json!({})));
+        assert_eq!((got.status, got.raw.clone()), (200, vec![1, 2, 3, 0, 255]));
+        assert!(got.headers.iter().any(|(k, v)| k == "Content-Disposition" && v.contains("Rose.dst")));
+        // the list shows it, only to its owner
+        assert_eq!(json_of(&s.handle(&req("GET", "/v1/phone/list", Some(&t), json!({}))))["sends"].as_array().unwrap().len(), 1);
+        assert_eq!(s.handle(&req("GET", "/v1/phone/list", None, json!({}))).status, 401);
+        let other = s.handle(&req("POST", "/v1/signup", None, json!({"email": "ben@example.com", "password": "fire truck 2"})));
+        let other = json_of(&other)["token"].as_str().unwrap().to_string();
+        assert_eq!(json_of(&s.handle(&req("GET", "/v1/phone/list", Some(&other), json!({}))))["sends"].as_array().unwrap().len(), 0);
+    }
+
+    #[test]
+    fn send_to_my_phone_needs_an_account_a_good_name_and_a_file() {
+        let (s, _) = service((200, "{}".into()), true);
+        let data = sewout::base64_encode(&[1, 2, 3]);
+        assert_eq!(s.handle(&req("POST", "/v1/phone", None, json!({"name": "a.dst", "data": data}))).status, 401);
+        let t = sign_up(&s);
+        for bad in ["", "noext", "../x.dst", "a/b.dst", ".dst", "x.toolongext", "x.d-t", "\\evil.dst"] {
+            assert_eq!(s.handle(&req("POST", "/v1/phone", Some(&t), json!({"name": bad, "data": data}))).status, 400, "{bad}");
+        }
+        assert_eq!(s.handle(&req("POST", "/v1/phone", Some(&t), json!({"name": "a.dst", "data": ""}))).status, 400);
+        assert_eq!(s.handle(&req("POST", "/v1/phone", Some(&t), json!({"name": "a.dst"}))).status, 400);
+        let big = sewout::base64_encode(&vec![7u8; MAX_PHONE_FILE + 1]);
+        assert_eq!(s.handle(&req("POST", "/v1/phone", Some(&t), json!({"name": "a.dst", "data": big}))).status, 413);
+    }
+
+    #[test]
+    fn a_phone_link_that_is_unknown_or_malformed_finds_nothing() {
+        let (s, _) = service((200, "{}".into()), true);
+        for p in
+            ["/v1/phone/sfp_nope", "/v1/phone/..%2f..", &format!("/v1/phone/sfp_{}", "0".repeat(64)), &format!("/v1/phone/sfs_{}", "0".repeat(64))]
+        {
+            assert_eq!(s.handle(&req("GET", p, None, json!({}))).status, 404, "{p}");
+        }
+    }
+
+    #[test]
+    fn phone_sends_expire_and_an_account_keeps_the_last_ten() {
+        let mut store = Store::in_memory();
+        let phone = |created: u64| Phone { account: 1, name: "a.dst".into(), created, expires: created + PHONE_TTL };
+        for i in 0..12u64 {
+            store.add_phone(&format!("sfp_{i:064x}"), phone(100 + i), vec![i as u8], 100 + i).unwrap();
+        }
+        let mine = store.phones(1, 200);
+        assert_eq!(mine.len(), crate::store::PHONE_KEEP);
+        assert_eq!(mine[0].1.created, 111, "newest first");
+        assert!(store.phone_file(&format!("sfp_{:064x}", 0), 200).is_none(), "the oldest two were replaced");
+        assert_eq!(store.phone_file(&format!("sfp_{:064x}", 5), 200).unwrap().1, vec![5]);
+        // 24 hours on, the link is dead; the next send clears the files
+        let late = 100 + 5 + PHONE_TTL;
+        assert!(store.phone_file(&format!("sfp_{:064x}", 5), late).is_none());
+        assert!(store.phones(1, late).len() < 10);
+        store.add_phone(&format!("sfp_{:064x}", 99), phone(late), vec![9], late).unwrap();
+        assert_eq!(store.phone_file(&format!("sfp_{:064x}", 11), late + 1).unwrap().1, vec![11], "a newer send is still good");
+        assert_eq!(store.phones(1, late + 1).len(), 6, "the expired ones were cleared");
+        assert_eq!(store.phone_file(&format!("sfp_{:064x}", 99), late + 1).unwrap().1, vec![9]);
+    }
+
+    const ADMIN: &str = "admin-secret-admin-secret-admin-secret";
+
+    fn founding_service() -> Service {
+        let cfg = Config::from_env(|k| match k {
+            "SF_CLOUD_ADMIN_SECRET" => Some(ADMIN.into()),
+            "SF_CLOUD_INTERNAL_EMAILS" => Some(" Staff@Example.com ,".into()),
+            _ => None,
+        })
+        .unwrap();
+        Service::with_clock(cfg, Store::in_memory(), Box::new(Fake { calls: Arc::default(), reply: (200, String::new()) }), Box::new(|| 1_000_000))
+    }
+
+    fn founding_req(secret: Option<&str>, body: Value) -> Request {
+        let mut r = req("POST", "/v1/founding", None, body);
+        if let Some(sec) = secret {
+            r.headers.push(("X-Admin-Secret".into(), sec.into()));
+        }
+        r
+    }
+
+    fn join(s: &Service, email: &str) -> (String, u64) {
+        let r = s.handle(&req("POST", "/v1/signup", None, json!({"email": email, "password": "fire truck 1"})));
+        assert_eq!(r.status, 200, "{}", r.body);
+        let v = json_of(&r);
+        (v["token"].as_str().unwrap().to_string(), v["account"]["id"].as_u64().unwrap())
+    }
+
+    #[test]
+    fn founding_needs_the_admin_secret_and_is_absent_without_one() {
+        let (plain, _) = service((200, String::new()), false);
+        assert_eq!(plain.handle(&founding_req(Some(ADMIN), json!({"program": "x", "account": 1}))).status, 404, "not routed");
+        let s = founding_service();
+        join(&s, "a@example.com");
+        for secret in [None, Some(""), Some("wrong"), Some(&ADMIN[..30])] {
+            assert_eq!(s.handle(&founding_req(secret, json!({"program": "stitchfoundry", "account": 1}))).status, 404, "{secret:?}");
+        }
+        for body in [
+            json!({"account": 1}),
+            json!({"program": "Bad Name", "account": 1}),
+            json!({"program": "x"}),
+            json!({"program": "x", "email": "nobody@example.com"}),
+        ] {
+            let r = s.handle(&founding_req(Some(ADMIN), body.clone()));
+            assert!(r.status == 400 || r.status == 401, "{body}: {}", r.status);
+        }
+    }
+
+    #[test]
+    fn a_founding_bonus_is_granted_once_with_numbers_in_order_and_shown_in_the_account() {
+        let s = founding_service();
+        let (t1, id1) = join(&s, "a@example.com");
+        let (_, staff) = join(&s, "staff@example.com");
+        let (t3, id3) = join(&s, "c@example.com");
+        let ask = |body: Value| s.handle(&founding_req(Some(ADMIN), body));
+        let r = ask(json!({"program": "stitchfoundry", "account": id1}));
+        assert_eq!((r.status, json_of(&r)["number"].clone(), json_of(&r)["bonus"].clone()), (200, json!(1), json!(200)));
+        // an internal account is refused and takes no number
+        assert_eq!(ask(json!({"program": "stitchfoundry", "email": "Staff@example.com"})).status, 403);
+        assert!(s.store().account(staff).unwrap().founding.is_empty());
+        // the next real account is #2, with no gap
+        let r = ask(json!({"program": "stitchfoundry", "email": "c@example.com"}));
+        assert_eq!((json_of(&r)["number"].clone(), json_of(&r)["bonus"].clone()), (json!(2), json!(200)));
+        // asking again: same number, no second bonus
+        let r = ask(json!({"program": "stitchfoundry", "account": id1}));
+        assert_eq!((r.status, json_of(&r)["number"].clone(), json_of(&r)["bonus"].clone()), (200, json!(1), json!(0)));
+        // another program numbers on its own, and gets its own bonus
+        let r = ask(json!({"program": "makerfoundry", "account": id3}));
+        assert_eq!((json_of(&r)["number"].clone(), json_of(&r)["bonus"].clone()), (json!(1), json!(200)));
+        // badge data and the credits
+        let a = json_of(&s.handle(&req("GET", "/v1/account", Some(&t1), json!({}))));
+        assert_eq!(a["founding"], json!([{"program": "stitchfoundry", "number": 1}]));
+        assert_eq!(a["credits"], 300, "100 sign-up + one 200 bonus");
+        let a = json_of(&s.handle(&req("GET", "/v1/account", Some(&t3), json!({}))));
+        assert_eq!(a["founding"], json!([{"program": "makerfoundry", "number": 1}, {"program": "stitchfoundry", "number": 2}]));
+        assert_eq!(a["credits"], 500);
+        let kinds: Vec<_> = a["history"].as_array().unwrap().iter().map(|e| e["kind"].as_str().unwrap().to_string()).collect();
+        assert_eq!(kinds.iter().filter(|k| *k == "founding").count(), 2, "ledger: {kinds:?}");
+    }
+
+    #[test]
+    fn test_accounts_are_never_founding_members() {
+        let mut store = Store::in_memory();
+        let ids = store.create_test_accounts("qa", vec![("qa@test.invalid".into(), "h".into())], 10, 5).unwrap();
+        assert_eq!(store.make_founding(ids[0], "stitchfoundry", 200, false, 6).unwrap(), None);
+        let real = store.create("r@example.com", "h".into(), 100, true, 7).unwrap();
+        assert_eq!(store.make_founding(real, "stitchfoundry", 200, false, 8).unwrap(), Some((1, true)), "the test account took no number");
+        assert_eq!(store.account(ids[0]).unwrap().credits, 10);
+        assert!(store.make_founding(999, "stitchfoundry", 200, false, 9).is_err());
     }
 }

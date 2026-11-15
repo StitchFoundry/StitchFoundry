@@ -22,7 +22,7 @@ pub struct Source {
 /// whose fonts are free to download, each under its own licence (most the SIL Open Font
 /// License).
 pub const SOURCES: &[Source] = &[
-    Source { name: "StitchFoundry fonts", repo: "Stitchwright/stitchfoundry-fonts", page: "https://github.com/Stitchwright/stitchfoundry-fonts" },
+    Source { name: "StitchFoundry fonts", repo: "StitchFoundry/stitchfoundry-fonts", page: "https://github.com/StitchFoundry/stitchfoundry-fonts" },
     Source { name: "Ink/Stitch font library", repo: "inkstitch/embroidery-fonts", page: "https://github.com/inkstitch/embroidery-fonts" },
 ];
 

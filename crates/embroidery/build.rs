@@ -1,5 +1,5 @@
 //! The optional StitchFoundry fonts build input (FONT-01;
-//! https://github.com/Stitchwright/stitchfoundry-fonts): with `STITCHFOUNDRY_FONTS_DIR=<checkout>`
+//! https://github.com/StitchFoundry/stitchfoundry-fonts): with `STITCHFOUNDRY_FONTS_DIR=<checkout>`
 //! set, every font folder under its `fonts/` (font.json, glyphs.stitchfoundry and the licence
 //! beside them) is embedded as `BUNDLED_FONTS`, and the app has them without loading anything;
 //! unset, `BUNDLED_FONTS` is empty and fonts are loaded or downloaded as before. Font files never

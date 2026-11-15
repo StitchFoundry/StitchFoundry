@@ -54,8 +54,16 @@ pub fn run_ui_command(app: &mut VectorcraftApp, id: &str, p: &Value) -> Option<R
         return Some(result);
     }
     if id == "file.export.embroidery" {
+        // no format asked for: My Machine's (the one chosen for it), else the design's, else DST
+        let mut p = if p.is_object() { p.clone() } else { json!({}) };
+        if p.get("format").and_then(Value::as_str).is_none() {
+            let mine = app.session.execute("embroidery.myMachine", &json!({})).ok().and_then(|r| r["format"].as_str().map(str::to_string));
+            if let (Some(f), Some(o)) = (mine, p.as_object_mut()) {
+                o.insert("format".into(), json!(f));
+            }
+        }
         let ext = p.get("format").and_then(Value::as_str).unwrap_or("dst").to_ascii_lowercase();
-        return Some(io::save_command_output(app, "embroidery.export", &ext, p.clone()).map(|path| json!({ "path": path })));
+        return Some(io::save_command_output(app, "embroidery.export", &ext, p).map(|path| json!({ "path": path })));
     }
     if id == "file.export.quilt" {
         let ext = p.get("format").and_then(Value::as_str).unwrap_or("plt").to_ascii_lowercase();
@@ -650,6 +658,10 @@ fn run_ui_part7(app: &mut VectorcraftApp, id: &str, p: &Value) -> Option<Result<
         "ui.checkForUpdates" => crate::updates::run(app, p),
         "ui.calibrateLifeSize" => crate::dialogs::life_size::run(app, p),
         "ui.myMachine" => crate::dialogs::my_machine::open(app),
+        "ui.learn" => crate::learn::open(app),
+        "ui.learn.watch" => crate::learn::act(app, "watch", p),
+        "ui.learn.docs" => crate::learn::act(app, "docs", p),
+        "ui.learn.try" => crate::learn::act(app, "try", p),
         "ui.startDesign" => crate::dialogs::start_design::open(app),
         "ui.startDesign.create" => crate::dialogs::start_design::create(app, p),
         "ui.saveForMemoryCard" => crate::dialogs::memory_card::run(app, p),

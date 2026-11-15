@@ -40,6 +40,7 @@ pub(crate) mod ime;
 pub mod io;
 pub mod keymap;
 pub mod layout_migration;
+pub mod learn;
 pub mod menus;
 pub mod native_menu;
 pub mod opening;
@@ -131,6 +132,8 @@ pub struct VectorcraftApp {
     pub guide: guide::GuideState,
     /// The update check: running, and a newer release when it found one (desktop).
     pub updates: updates::UpdateState,
+    /// Help › Learn….
+    pub learn: learn::LearnState,
     pub perf: Perf,
     /// Docking state that lives for the session only.
     pub(crate) dock_rt: panel_docking::Runtime,

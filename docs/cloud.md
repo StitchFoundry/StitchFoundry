@@ -62,6 +62,14 @@ pass through this service; sales and subscriptions are the other services' own.
   `/v1/health`'s `email` says which. Accounts made before CLOUD-10 count as confirmed: their stored
   records have no `verified` field, which is read as confirmed (in `state.json` and in Postgres's
   `sf_state` alike, so there is no migration to run).
+- **Send to my phone (issue 91, service side):** `POST /v1/phone {name, data}` (signed in; `data` is
+  the design file in base64, at most 4 MB, `name` like `Rose.dst`) keeps the file for 24 hours under a
+  random private link (`sfp_` and 64 hex digits) and answers `{link, name, expires}`; the app turns the
+  link into a QR code. Opening the link (`GET /v1/phone/sfp_…`, no sign-in, as a phone's browser does)
+  downloads the file; an unknown, malformed or expired link is a 404. `GET /v1/phone/list` (signed in)
+  gives the account's last ten live sends, newest first. A new send beyond ten replaces the oldest,
+  and expired files are deleted on the next send. Not done yet: the app's button, the QR code and
+  the web app's list.
 - **Forgotten passwords:** `POST /v1/password/forgot` emails a link (through Resend, from
   `SF_CLOUD_MAIL_FROM`) that opens `/reset`, a page with no scripts where the new password is set.
   The link works once, for an hour; the service keeps only its SHA-256. Setting a new password
@@ -191,6 +199,7 @@ target/release/stitchfoundry-cloud
 | `ANTHROPIC_API_KEY` | the service's Anthropic key; without it AI requests answer "not open yet" |
 | `STRIPE_SECRET_KEY`, `STRIPE_WEBHOOK_SECRET` | Stripe's secret key and the webhook's signing secret; without them nothing can be bought |
 | `SF_CLOUD_SIGNUP_CREDITS` | credits a new account starts with (100) |
+| `SF_CLOUD_FOUNDING_CREDITS`, `SF_CLOUD_ADMIN_SECRET`, `SF_CLOUD_INTERNAL_EMAILS` | founding-member bonus (200), the secret (32+ characters, `X-Admin-Secret`) that enables `POST /v1/founding {program, account \| email}`, and internal emails (comma separated) that never get a founding number |
 | `SF_CLOUD_CENTS_PER_CREDIT`, `SF_CLOUD_MARKUP` | a credit's price in cents (1) and the markup on the AI's cost (3) |
 | `SF_CLOUD_PACKS` | the packs on sale (see Prices) |
 | `SF_CLOUD_FREE_CHECKS`, `SF_CLOUD_CHECK_CREDITS` | sew-out checks free a month (3) and a check's price after them (10) |

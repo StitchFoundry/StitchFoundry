@@ -123,7 +123,7 @@ The window runs natively on Wayland (eframe's `wayland` feature) and on X11. On 
 ## Embroidery fonts: stitchfoundry-fonts (optional build input)
 
 The Foundry embroidery fonts (Block, Varsity, Script, Slab, Sans) live in
-[Stitchwright/stitchfoundry-fonts](https://github.com/Stitchwright/stitchfoundry-fonts), never
+[StitchFoundry/stitchfoundry-fonts](https://github.com/StitchFoundry/stitchfoundry-fonts), never
 here. `crates/embroidery/build.rs` embeds every folder under its `fonts/` (font.json,
 glyphs.stitchfoundry and OFL.txt; about 1 MB in all) as
 `vectorcraft_embroidery::fonts::BUNDLED_FONTS` when `STITCHFOUNDRY_FONTS_DIR` points at a checkout,
@@ -134,7 +134,7 @@ only its `fonts/` folder (not the Ink/Stitch fonts, which the app's Font Library
 asked), and the packages carry each font's licence as `OFL-<folder>.txt`.
 
 ```sh
-git clone --depth 1 --filter=blob:none --sparse https://github.com/Stitchwright/stitchfoundry-fonts ../stitchfoundry-fonts
+git clone --depth 1 --filter=blob:none --sparse https://github.com/StitchFoundry/stitchfoundry-fonts ../stitchfoundry-fonts
 git -C ../stitchfoundry-fonts sparse-checkout set fonts
 STITCHFOUNDRY_FONTS_DIR="$PWD/../stitchfoundry-fonts" cargo xtask ci   # also runs the built-in fonts test
 ```
