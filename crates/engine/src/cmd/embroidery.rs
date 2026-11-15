@@ -312,7 +312,7 @@ pub fn specs() -> Vec<CommandSpec> {
             "Design Information",
             [],
             None,
-            "{} → {grade (A: made here, objects with their stitch settings; C: opened from a machine file, its stitches made into objects; D: a machine file, stitches only), openedFrom (that file's format, else empty), objects, stitches, jumps, trims, colorChanges, stops, widthMm, heightMm, threadM, bobbinM, seconds, time, colors: [{color, name, stitches, threadM}], hoop, fits, fabric, fabrics, hoops, charts, machine, machineFormat (what it exports in), machines (as embroidery.machine.list), settings}",
+            "{} → {grade (A: made here, objects with their stitch settings; C: opened from a machine file, its stitches made into objects; D: a machine file, stitches only), openedFrom (that file's format, else empty), objects, stitches, jumps, trims, colorChanges, stops, widthMm, heightMm, threadM, bobbinM, seconds, time, colors: [{color, name, stitches, threadM, jumps, trims}], hoop, fits, fabric, fabrics, hoops, charts, machine, machineFormat (what it exports in), machines (as embroidery.machine.list), settings}",
             has_doc,
             info
         ),
@@ -3503,7 +3503,7 @@ fn info(s: &mut Session, _p: &Value) -> Result<Value> {
         "seconds": st.seconds,
         "time": st.time_string(),
         "maxStitchMm": st.max_stitch_mm,
-        "colors": st.colors.iter().map(|c| json!({"color": c.thread.color.to_hex(), "name": c.thread.label(), "stitches": c.stitches, "threadM": c.thread_m})).collect::<Vec<_>>(),
+        "colors": st.colors.iter().map(|c| json!({"color": c.thread.color.to_hex(), "name": c.thread.label(), "stitches": c.stitches, "threadM": c.thread_m, "jumps": c.jumps, "trims": c.trims})).collect::<Vec<_>>(),
         "hoop": cfg.hoop.as_ref().map(|h| h.name.clone()),
         "hoopSize": cfg.hoop.as_ref().map(|h| [h.width, h.height]),
         "fits": fits,

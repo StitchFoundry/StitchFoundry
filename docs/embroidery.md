@@ -2617,6 +2617,7 @@ tool list for all parameters):
 | `embroidery.makeCurrent`, `embroidery.current`, `embroidery.current.setParams {type, params}`, `embroidery.current.reset {type?}` | the properties new objects take |
 | `embroidery.style.new {name?}` / `apply {name}` / `redefine {name}` / `unlink` / `rename {name, to}` / `duplicate` / `delete` / `list` | embroidery styles |
 | `embroidery.fabric.save {name, from?, …}`, `embroidery.fabric.delete {name}` | fabrics made for the design |
+| `embroidery.advisor {fabric?, textHeight?}` | Stitch advisor: a starting needle, stabilizer and hints (needle breaks, puckering) for a kind of fabric, and a warning for lettering under about 6 mm; always "a starting point, test on scrap first" |
 | `embroidery.branch {ids?}`, `embroidery.breakApart {ids?}` | sew objects as one path; separate a branch, a redwork group or a many-part object |
 | `embroidery.addButtonholes {style?, length?, width?, angle?, at?, to?, count?}` | straight, rounded or keyhole buttonholes: one, or a string evenly spaced from `at` to `to` |
 | `embroidery.knife {ids?, overlap?}` | cut stitched shapes round their holes and at their branches into pieces that each turn their own way, a branch group |

@@ -23,6 +23,7 @@ mod draw2;
 mod edit;
 mod effectcmd;
 pub mod embroidery;
+pub mod embroidery_advisor;
 pub mod embroidery_ai;
 pub mod embroidery_applique;
 pub mod embroidery_art;
@@ -382,6 +383,7 @@ pub fn command_specs() -> &'static [CommandSpec] {
         v.extend(embroidery_compare::specs());
         v.extend(quilting::specs());
         v.extend(embroidery_testsew::specs());
+        v.extend(embroidery_advisor::specs());
         v.extend(embroidery_sheet_setup::specs());
         v.extend(embroidery_background::specs());
         v.extend(embroidery_endless::specs());
