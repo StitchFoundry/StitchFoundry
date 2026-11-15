@@ -3,6 +3,26 @@
 Release notes for each version, newest first, written for the people who use StitchFoundry. The
 release workflow copies a version's section into its GitHub release (`docs/releasing.md`).
 
+## 0.15.0-rc.2 (test release)
+
+Everything since 0.15.0-rc.1. A test release: please tell us what doesn't work, and test-sew designs before using them on a garment that matters.
+
+### Hoops and machines
+- **Hoop editor.** Make your own hoops (size, shape, corner radius and frame) and attach them to your machines.
+- **Machine profiles.** Edit a machine's profile, including which hoops it owns, and keep one hoop picked per machine.
+- **Pick from the hoops you own.** The hoop list can show only the hoops on your machine, and a new design starts in the last hoop you used on that machine.
+- **Warning when a design is bigger than the hoop,** and **Fit to Hoop**: one action that shrinks the whole design (aspect ratio locked) until it fits the sewing field.
+- **Hoop orientation test** and a per-machine export rotation, so designs come out the way the hoop sits in your machine. Test-sew it on scrap first.
+- **Quick rotate, flip and resize** commands for the selection (buttons come in a later build).
+
+### Embroidery
+- **Jump and trim counts** per colour in the design details.
+- **Stitch advice** (needle, stabilizer and hints by fabric) and "too stiff" density advice, in the engine; screens for the advisor come later.
+
+### Not in this build yet
+- The full hoop QA matrix (every hoop times every rotate, flip and resize, in every file format) is still being built. The release notes for 0.15.0 will say when it has passed.
+- Buttons for quick rotate, flip and resize, and the Stitch advisor screens.
+
 ## 0.15.0-rc.1 (test release)
 
 Everything since 0.14.0. A test release: please tell us what doesn't work, and test-sew designs before using them on a garment that matters.
