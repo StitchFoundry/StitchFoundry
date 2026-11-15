@@ -76,6 +76,7 @@ pub mod embroidery_patches;
 pub mod embroidery_photo;
 pub mod embroidery_props;
 pub mod embroidery_queue;
+pub mod embroidery_quick;
 pub mod embroidery_recognise;
 pub mod embroidery_recolor;
 pub mod embroidery_region;
@@ -347,6 +348,7 @@ pub fn command_specs() -> &'static [CommandSpec] {
         v.extend(export_history::specs());
         v.extend(embroidery_image::specs());
         v.extend(embroidery_hoops::specs());
+        v.extend(embroidery_quick::specs());
         v.extend(embroidery_recolor::specs());
         v.extend(embroidery_charts::specs());
         v.extend(embroidery_templates::specs());
