@@ -7174,3 +7174,4 @@ axis	Y Axis	Y-akse
 @msg	no empty artboards to delete	ingen tomme tegneflader at slette
 	Scale Presets	Skaleringsforudindstillinger
 	Live preview	Direkte forhåndsvisning
+	Too dense: the fill may sew stiff. Lower the density (more space between rows) until it just covers the fabric.	For tæt: fyldet kan blive stift. Sænk tætheden (mere plads mellem rækkerne), til det lige dækker stoffet.

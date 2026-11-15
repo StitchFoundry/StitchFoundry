@@ -7289,3 +7289,4 @@ axis	Y Axis	Eje Y
 @msg	a {width}×{height} screenshot's byte count overflows	el número de bytes de una captura de {width}×{height} se desborda
 @msg	the window's {what} ({points} points × {scale} DPI) cannot size a screenshot	el {what} de la ventana ({points} puntos × {scale} DPI) no puede dimensionar una captura
 	Live preview	Vista previa en directo
+	Too dense: the fill may sew stiff. Lower the density (more space between rows) until it just covers the fabric.	Demasiado denso: el relleno puede quedar rígido. Reduzca la densidad (más espacio entre filas) hasta que cubra justo la tela.

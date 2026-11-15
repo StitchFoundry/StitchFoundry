@@ -7337,3 +7337,4 @@ axis	Y Axis	osa Y
 @msg	a {width}×{height} screenshot's byte count overflows	počet bajtů snímku {width}×{height} přeteče
 @msg	the window's {what} ({points} points × {scale} DPI) cannot size a screenshot	okno {what} ({points} bodů × {scale} DPI) nemůže určit velikost snímku
 	Live preview	Živý náhled
+	Too dense: the fill may sew stiff. Lower the density (more space between rows) until it just covers the fabric.	Příliš husté: výplň může být tuhá. Snižte hustotu (větší mezera mezi řadami), až výplň právě pokryje látku.

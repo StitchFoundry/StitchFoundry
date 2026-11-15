@@ -7242,3 +7242,4 @@ axis	Y Axis	Y ос
 @msg	no empty artboards to delete	няма празни работни области за изтриване
 	Scale Presets	Пресети за мащаб
 	Live preview	Преглед на живо
+	Too dense: the fill may sew stiff. Lower the density (more space between rows) until it just covers the fabric.	Твърде гъсто: изпълването може да стане корав. Намалете плътността (повече място между редовете), докато само покрива плата.

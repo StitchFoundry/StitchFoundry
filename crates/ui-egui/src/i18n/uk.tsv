@@ -6960,3 +6960,4 @@ axis	Y Axis	Вісь Y
 @msg	a {width}×{height} screenshot's byte count overflows	кількість байтів знімка {width}×{height} переповнюється
 @msg	the window's {what} ({points} points × {scale} DPI) cannot size a screenshot	{what} вікна ({points} пунктів × {scale} DPI) не дозволяє задати розмір знімка
 	Live preview	Перегляд у реальному часі
+	Too dense: the fill may sew stiff. Lower the density (more space between rows) until it just covers the fabric.	Надто щільно: заливка може вийти жорсткою. Зменште щільність (більше місця між рядами), доки вона лише ледве вкриває тканину.

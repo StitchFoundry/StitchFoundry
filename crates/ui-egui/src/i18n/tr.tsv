@@ -5593,3 +5593,4 @@ axis	Y Axis	Y ekseni
 @msg	a {width}×{height} screenshot's byte count overflows	{width}×{height} ekran görüntüsünün bayt sayısı taşıyor
 @msg	the window's {what} ({points} points × {scale} DPI) cannot size a screenshot	pencerenin {what} ({points} nokta × {scale} DPI) bir ekran görüntüsünü boyutlandıramaz
 	Live preview	Canlı önizleme
+	Too dense: the fill may sew stiff. Lower the density (more space between rows) until it just covers the fabric.	Fazla yoğun: dolgu sert dikilebilir. Kumaşı tam kapatana kadar yoğunluğu düşürün (sıralar arasında daha fazla boşluk).

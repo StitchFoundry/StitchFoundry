@@ -7158,3 +7158,4 @@ axis	Y Axis	Y 轴
 @msg	a {width}×{height} screenshot's byte count overflows	{width}×{height} 截图的字节数溢出
 @msg	the window's {what} ({points} points × {scale} DPI) cannot size a screenshot	窗口的{what}（{points} 点 × {scale} DPI）无法确定截图大小
 	Live preview	实时预览
+	Too dense: the fill may sew stiff. Lower the density (more space between rows) until it just covers the fabric.	密度过高:填充可能变硬。请降低密度(加大行距),直到刚好盖住面料。
