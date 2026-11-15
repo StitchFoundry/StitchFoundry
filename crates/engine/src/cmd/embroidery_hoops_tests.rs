@@ -153,3 +153,46 @@ fn owned_hoops_filter_and_the_last_hoop_is_kept_per_machine() {
     fresh.execute("embroidery.myMachine.set", &json!({"machine": other})).unwrap();
     assert_eq!(fresh.execute("embroidery.newDesign", &json!({})).unwrap()["hoop"], "Elsewhere");
 }
+
+#[test]
+fn fit_percent_maths() {
+    let h = |w: f64, ht: f64, oval: bool| Hoop {
+        name: "T".into(),
+        width: w,
+        height: ht,
+        shape: if oval { HoopShape::Oval } else { HoopShape::Rect },
+        ..Default::default()
+    };
+    let r = h(100.0, 100.0, false);
+    assert_eq!(super::fit_percent(&r, (50.0, 80.0)), Some(100.0));
+    let p = super::fit_percent(&r, (200.0, 100.0)).unwrap();
+    assert!((p - 50.0).abs() < 0.01, "{p}");
+    // an oval cuts the corners: a square of 100 fits an ellipse of 100 × 100 at 1/√2
+    let o = super::fit_percent(&h(100.0, 100.0, true), (100.0, 100.0)).unwrap();
+    assert!((o - 70.71).abs() < 0.05, "{o}");
+    // aspect locked: the scaled size keeps its ratio and fits
+    let q = super::fit_percent(&r, (300.0, 150.0)).unwrap() / 100.0;
+    assert!((300.0 * q / (150.0 * q) - 2.0).abs() < 1e-9 && super::fits(&r, (300.0 * q, 150.0 * q)));
+    for bad in [(0.0, 10.0), (f64::NAN, 10.0), (10.0, f64::INFINITY), (-1.0, 5.0)] {
+        assert_eq!(super::fit_percent(&r, bad), None);
+    }
+}
+
+#[test]
+fn a_design_over_the_field_is_fitted_and_undoes() {
+    let mut s = Session::new();
+    s.execute("embroidery.newDesign", &json!({"hoop": "Round 100 mm"})).ok();
+    s.execute("embroidery.hoop.saveCustom", &json!({"name": "Small", "width": 60, "height": 60})).unwrap();
+    s.execute("embroidery.newDesign", &json!({"hoop": "Small"})).unwrap();
+    s.execute("shape.rectangle", &json!({"x": 0, "y": 0, "width": 340, "height": 170})).unwrap(); // points: about 120 × 60 mm
+    s.execute("embroidery.set", &json!({"type": "fill"})).unwrap();
+    let info = s.execute("embroidery.hoops", &json!({})).unwrap();
+    assert!(!info["hoops"].as_array().unwrap().iter().any(|h| h["name"] == "Small" && h["fits"] == true));
+    let r = s.execute("embroidery.hoop.fit", &json!({})).unwrap();
+    assert_eq!((r["scaled"].as_bool(), r["fits"].as_bool()), (Some(true), Some(true)), "{r}");
+    let (w, ht) = (r["width"].as_f64().unwrap(), r["height"].as_f64().unwrap());
+    assert!(w <= 60.0 && (w / ht - 2.0).abs() < 0.2, "{w} x {ht}");
+    // already fitting: left alone
+    let again = s.execute("embroidery.hoop.fit", &json!({})).unwrap();
+    assert_eq!(again["scaled"], false);
+}

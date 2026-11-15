@@ -79,6 +79,15 @@ pub fn specs() -> Vec<CommandSpec> {
             always,
             import
         ),
+        cmd!(
+            "embroidery.hoop.fit",
+            "Fit to Hoop",
+            ["Embroidery"],
+            None,
+            "{} when the design is larger than the hoop's sewing field, scale all of it down about its centre, width and height together (the aspect ratio locked), until it fits; one that fits is left alone → {scaled: bool, percent, width, height, fits}",
+            has_doc,
+            fit
+        ),
         cmd!("embroidery.hoop.deleteCustom", "Delete Custom Hoop", [], None, "{name} forget a hoop of one's own → {name}", always, delete_custom),
     ]
 }
@@ -203,6 +212,46 @@ fn auto(s: &mut Session, p: &Value) -> Result<Value> {
     let h = best.ok_or_else(|| bad(CMD, format!("no hoop holds a design of {:.0} × {:.0} mm: try multi-hooping", size.0, size.1)))?;
     set_hoop(s, &h)?;
     Ok(answer(s, &h))
+}
+
+/// The largest uniform scale, in percent and at most 100, at which a design of `size` mm centred
+/// in the hoop lies inside its sewing field (rounded corners and ovals included). `None` for a
+/// size that is not a positive, finite pair.
+pub(crate) fn fit_percent(h: &Hoop, size: (f64, f64)) -> Option<f64> {
+    let (w, ht) = size;
+    if !(w.is_finite() && ht.is_finite() && w > 0.0 && ht > 0.0 && h.width > 0.0 && h.height > 0.0) {
+        return None;
+    }
+    if fits(h, size) {
+        return Some(100.0);
+    }
+    // the field is star-shaped about its centre, so a box that fits at one scale fits at every smaller one
+    let (mut lo, mut hi) = (0.0_f64, 1.0_f64);
+    for _ in 0..40 {
+        let mid = (lo + hi) / 2.0;
+        if fits(h, (w * mid, ht * mid)) { lo = mid } else { hi = mid }
+    }
+    Some(lo * 100.0)
+}
+
+fn fit(s: &mut Session, _: &Value) -> Result<Value> {
+    const CMD: &str = "embroidery.hoop.fit";
+    let hoop = s.doc()?.doc.embroidery.as_deref().and_then(|e| e.hoop.clone()).ok_or_else(|| bad(CMD, "the design has no hoop yet"))?;
+    let first = design_size(s).ok_or_else(|| bad(CMD, "the design has no stitches yet"))?;
+    let mut size = first;
+    let mut scaled = false;
+    // stitch widths don't scale with the art, so measure again and correct a few times
+    for _ in 0..4 {
+        let Some(pct) = fit_percent(&hoop, size).filter(|p| *p < 100.0) else { break };
+        s.execute("select.all", &json!({}))?;
+        s.execute("object.scale", &json!({ "sx": pct * 0.995 }))?;
+        scaled = true;
+        size = design_size(s).ok_or_else(|| bad(CMD, "the design has no stitches yet"))?;
+    }
+    let ok = fits(&hoop, size);
+    Ok(
+        json!({ "scaled": scaled, "percent": if first.0 > 0.0 { size.0 / first.0 * 100.0 } else { 100.0 }, "width": size.0, "height": size.1, "fits": ok }),
+    )
 }
 
 fn rotate(s: &mut Session, _: &Value) -> Result<Value> {
