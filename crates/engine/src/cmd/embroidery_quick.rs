@@ -23,7 +23,7 @@ pub fn specs() -> Vec<CommandSpec> {
             "Quick Rotate",
             [],
             None,
-            "{degrees: finite number, counter-clockwise (90 left, -90 right, 45, 180…)} turn the selection, or the whole design when nothing is selected, as one group about its middle, then put it back in the middle of the hoop → {width, height, widthIn, heightIn, fits, offers: [rotateHoop|fitToHoop]}",
+            "{degrees: counter-clockwise, a finite number (90 left, -90 right, 45, 180…)} turn the selection, or the whole design when nothing is selected, as one group about its middle, then put it back in the middle of the hoop → {width, height, widthIn, heightIn, fits, offers: [rotateHoop|fitToHoop]}",
             has_doc,
             rotate
         ),
