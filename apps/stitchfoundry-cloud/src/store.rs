@@ -35,6 +35,10 @@ pub struct Account {
     /// read as real, and a real account's record is written without it.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub test_run: Option<String>,
+    /// Founding-member numbers by program (`stitchfoundry` → 1, `makerfoundry` → 7). A number is
+    /// given once and never changes; numbers of a program run 1, 2, 3 with no gaps.
+    #[serde(default, skip_serializing_if = "BTreeMap::is_empty")]
+    pub founding: BTreeMap<String, u32>,
 }
 
 /// Accounts made before email confirmation count as confirmed.
@@ -108,6 +112,17 @@ pub struct Report {
     pub created: u64,
 }
 
+/// A design sent to the user's phone (Send to my phone): whose, what it's called, and until when
+/// its private link works. The file itself is kept under the SHA-256 of the link's token.
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+pub struct Phone {
+    pub account: u64,
+    /// The file's name, as the phone's app will see it (`"Rose.dst"`).
+    pub name: String,
+    pub created: u64,
+    pub expires: u64,
+}
+
 #[derive(Debug, Default, Serialize, Deserialize)]
 struct State {
     next_id: u64,
@@ -133,7 +148,15 @@ struct State {
     /// Email-confirmation links by the SHA-256 of their token (the token itself is never kept).
     #[serde(default)]
     verifies: BTreeMap<String, Verify>,
+    /// Designs sent to a phone, by their link's token.
+    #[serde(default)]
+    phones: BTreeMap<String, Phone>,
 }
+
+/// A link made by Send to my phone works for this long (seconds): 24 hours.
+pub const PHONE_TTL: u64 = 24 * 3600;
+/// How many sends an account keeps at once; a new one beyond this replaces the oldest.
+pub const PHONE_KEEP: usize = 10;
 
 /// The most recent entries kept for an account's history.
 const RECENT: usize = 50;
@@ -447,6 +470,73 @@ impl Store {
         Ok(())
     }
 
+    // ---------- Send to my phone ----------
+
+    /// The id a phone send's file is kept under: the SHA-256 of its link token, so a file's folder
+    /// name is always plain hex.
+    fn phone_file_id(token: &str) -> String {
+        format!("phone-{}", crate::auth::token_hash(token))
+    }
+
+    /// Keep `bytes` for the link `token` (its `phone` record says whose and until when), and drop
+    /// the account's oldest sends beyond [`PHONE_KEEP`] and anything expired.
+    pub fn add_phone(&mut self, token: &str, phone: Phone, bytes: Vec<u8>, now: u64) -> Result<(), StoreError> {
+        self.forget_expired_phones(now)?;
+        self.keep_shared(&Self::phone_file_id(token), &[("file".to_string(), bytes)], "")?;
+        let account = phone.account;
+        self.state.phones.insert(token.to_string(), phone);
+        let mut mine: Vec<(u64, String)> =
+            self.state.phones.iter().filter(|(_, p)| p.account == account).map(|(t, p)| (p.created, t.clone())).collect();
+        mine.sort();
+        let extra = mine.len().saturating_sub(PHONE_KEEP);
+        for (_, t) in mine.into_iter().take(extra) {
+            self.forget_kept(&Self::phone_file_id(&t))?;
+            self.state.phones.remove(&t);
+        }
+        self.save()
+    }
+
+    /// The send behind link `token` and its file, unless it's unknown or expired.
+    pub fn phone_file(&self, token: &str, now: u64) -> Option<(Phone, Vec<u8>)> {
+        let phone = self.state.phones.get(token).filter(|p| p.expires > now)?;
+        let bytes = self.kept_file(&Self::phone_file_id(token), "file")?;
+        Some((phone.clone(), bytes))
+    }
+
+    /// `account`'s sends that still work, newest first, with their link tokens.
+    pub fn phones(&self, account: u64, now: u64) -> Vec<(String, Phone)> {
+        let mut v: Vec<(String, Phone)> =
+            self.state.phones.iter().filter(|(_, p)| p.account == account && p.expires > now).map(|(t, p)| (t.clone(), p.clone())).collect();
+        v.sort_by(|a, b| b.1.created.cmp(&a.1.created).then_with(|| a.0.cmp(&b.0)));
+        v
+    }
+
+    /// Delete the sends that have expired (their files too).
+    fn forget_expired_phones(&mut self, now: u64) -> Result<(), StoreError> {
+        let gone: Vec<String> = self.state.phones.iter().filter(|(_, p)| p.expires <= now).map(|(t, _)| t.clone()).collect();
+        for t in gone {
+            self.forget_kept(&Self::phone_file_id(&t))?;
+            self.state.phones.remove(&t);
+        }
+        Ok(())
+    }
+
+    /// The bytes of file `name` kept under `id`.
+    fn kept_file(&self, id: &str, name: &str) -> Option<Vec<u8>> {
+        match &self.backend {
+            Backend::Memory(m) => {
+                let m = m.lock().unwrap_or_else(std::sync::PoisonError::into_inner);
+                m.get(id)?.0.iter().find(|(n, _)| n == name).map(|(_, b)| b.clone())
+            }
+            Backend::Dir(dir) => std::fs::read(dir.join("shared").join(id).join(name)).ok(),
+            Backend::Db(c) => {
+                let mut c = c.lock().unwrap_or_else(std::sync::PoisonError::into_inner);
+                let row = c.query_opt("SELECT data FROM sf_shared_files WHERE check_id = $1 AND name = $2", &[&id, &name]).ok()??;
+                row.try_get::<_, Vec<u8>>(0).ok()
+            }
+        }
+    }
+
     // ---------- sew-out reports ----------
 
     /// Keep report `id`: its `files` and its `text` (as a shared check's), and whose it is.
@@ -497,7 +587,17 @@ impl Store {
         }
         self.state.next_id += 1;
         let id = self.state.next_id;
-        let account = Account { id, email: email.to_string(), password: password_hash, credits, reserved: 0, created: now, verified, test_run: None };
+        let account = Account {
+            id,
+            email: email.to_string(),
+            password: password_hash,
+            credits,
+            reserved: 0,
+            created: now,
+            verified,
+            test_run: None,
+            founding: BTreeMap::new(),
+        };
         self.state.accounts.insert(id, account);
         if credits > 0 {
             self.log(Entry { at: now, account: id, kind: "signup".into(), credits: credits as i64, balance: credits, note: String::new() })?;
@@ -530,7 +630,17 @@ impl Store {
         for (email, password) in users {
             self.state.next_id += 1;
             let id = self.state.next_id;
-            let account = Account { id, email, password, credits, reserved: 0, created: now, verified: true, test_run: Some(run.to_string()) };
+            let account = Account {
+                id,
+                email,
+                password,
+                credits,
+                reserved: 0,
+                created: now,
+                verified: true,
+                test_run: Some(run.to_string()),
+                founding: BTreeMap::new(),
+            };
             self.state.accounts.insert(id, account);
             if credits > 0 {
                 let note = format!("test run {run}");
@@ -733,6 +843,31 @@ impl Store {
         self.log(Entry { at: now, account, kind: kind.into(), credits: credits as i64, balance, note: note.into() })?;
         self.save()?;
         Ok(true)
+    }
+
+    /// Makes `account` a founding member of `program`: the next number of the program (1, 2, 3,
+    /// counting only accounts that have one) and a one-time bonus of `bonus` credits in the
+    /// ledger (`founding`, once per account and program). Test accounts and `internal` ones get
+    /// neither (`Ok(None)`). Asking again changes nothing and gives the number it has
+    /// (`granted` false). → `(number, granted)`.
+    pub fn make_founding(&mut self, account: u64, program: &str, bonus: u64, internal: bool, now: u64) -> Result<Option<(u32, bool)>, StoreError> {
+        let a = self.state.accounts.get(&account).ok_or(StoreError::NoAccount)?;
+        if let Some(n) = a.founding.get(program) {
+            return Ok(Some((*n, false)));
+        }
+        if internal || a.test_run.is_some() {
+            return Ok(None);
+        }
+        let number = self.state.accounts.values().filter_map(|a| a.founding.get(program)).max().map_or(1, |n| n.saturating_add(1));
+        let a = self.state.accounts.get_mut(&account).ok_or(StoreError::NoAccount)?;
+        a.founding.insert(program.to_string(), number);
+        a.credits = a.credits.saturating_add(bonus);
+        let balance = a.credits;
+        if bonus > 0 {
+            self.log(Entry { at: now, account, kind: "founding".into(), credits: bonus as i64, balance, note: format!("{program} #{number}") })?;
+        }
+        self.save()?;
+        Ok(Some((number, true)))
     }
 
     /// Holds `credits` of the account's for a request on its way: refused when the credits not held

@@ -5,7 +5,7 @@ tested against a stand-in hub, not yet against the real hub and bucket. The hub'
 the extra `meta` keys were added the same day (a value out of range is dropped by the hub, not
 refused). Left for the hub's owner: a CORS rule on the bucket for stitchfoundry.app, so the web
 app can upload. StitchHub's side is built (the "StitchFoundry inbox": `src/inbox.mjs` and
-the README's section of that name in [Stitchwright/stitchhub](https://github.com/Stitchwright/stitchhub),
+the README's section of that name in [StitchFoundry/stitchhub](https://github.com/StitchFoundry/stitchhub),
 on the branch `claude/happy-einstein-mmdl83` at the time of writing), tested against stand-ins only.
 This page is StitchFoundry's side: what it sends, from where, and its answers to the hub's questions.
 

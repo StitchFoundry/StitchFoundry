@@ -14,7 +14,7 @@ section: graphics
 priority: optional
 maintainer: ${VECTORCRAFT_MAINTAINER}
 vendor: StitchFoundry
-homepage: https://github.com/Stitchwright/StitchFoundry
+homepage: https://github.com/StitchFoundry/StitchFoundry
 license: MIT OR Apache-2.0
 description: |-
   Open-source machine-embroidery digitizing, built on a full vector editor.

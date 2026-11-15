@@ -232,28 +232,21 @@ pub struct Timestamp {
 }
 
 impl Timestamp {
-    /// The UTC date and time `secs` seconds after 1970-01-01.
+    /// The UTC date and time `secs` seconds after 1970-01-01; past the end of 9999 (the most
+    /// the formats store), the last second of 9999.
     pub fn from_unix(secs: u64) -> Timestamp {
-        let days = (secs / 86_400) as i64;
-        let rem = secs % 86_400;
-        // Days → civil date (proleptic Gregorian), counting eras of 400 years from 0000-03-01.
-        let z = days + 719_468;
-        let era = z.div_euclid(146_097);
-        let doe = z.rem_euclid(146_097);
-        let yoe = (doe - doe / 1_460 + doe / 36_524 - doe / 146_096) / 365;
-        let doy = doe - (365 * yoe + yoe / 4 - yoe / 100);
-        let mp = (5 * doy + 2) / 153;
-        let day = doy - (153 * mp + 2) / 5 + 1;
-        let month = if mp < 10 { mp + 3 } else { mp - 9 };
-        let year = yoe + era * 400 + i64::from(month <= 2);
-        Timestamp {
-            year: year.clamp(0, 9_999) as u16,
-            month: month as u8,
-            day: day as u8,
-            hour: (rem / 3_600) as u8,
-            minute: (rem / 60 % 60) as u8,
-            second: (rem % 60) as u8,
+        use chrono::{Datelike, Timelike};
+        const LAST: Timestamp = Timestamp { year: 9_999, month: 12, day: 31, hour: 23, minute: 59, second: 59 };
+        let Some(t) = i64::try_from(secs).ok().and_then(|s| chrono::DateTime::from_timestamp(s, 0)) else {
+            return LAST;
+        };
+        let Ok(year) = u16::try_from(t.year()) else { return LAST };
+        if year > LAST.year {
+            return LAST;
         }
+        // chrono's month, day, hour, minute and second all fit a u8.
+        let small = |v: u32| u8::try_from(v).unwrap_or(0);
+        Timestamp { year, month: small(t.month()), day: small(t.day()), hour: small(t.hour()), minute: small(t.minute()), second: small(t.second()) }
     }
 
     /// The current UTC date and time (a fixed date where the platform has no clock).
@@ -527,5 +520,13 @@ mod tests {
         assert_eq!(Timestamp::from_unix(951_827_696), Timestamp { year: 2000, month: 2, day: 29, hour: 12, minute: 34, second: 56 });
         // 2026-10-10 00:00:00.
         assert_eq!(Timestamp::from_unix(1_791_590_400), Timestamp { year: 2026, month: 10, day: 10, hour: 0, minute: 0, second: 0 });
+        // 2024-02-29 23:59:59, and the second after it.
+        assert_eq!(Timestamp::from_unix(1_709_251_199), Timestamp { year: 2024, month: 2, day: 29, hour: 23, minute: 59, second: 59 });
+        assert_eq!(Timestamp::from_unix(1_709_251_200), Timestamp { year: 2024, month: 3, day: 1, hour: 0, minute: 0, second: 0 });
+        // Past 9999 (a clock gone wrong): the last second of 9999, a real date.
+        let last = Timestamp { year: 9_999, month: 12, day: 31, hour: 23, minute: 59, second: 59 };
+        assert_eq!(Timestamp::from_unix(253_402_300_799), last);
+        assert_eq!(Timestamp::from_unix(253_402_300_800), last);
+        assert_eq!(Timestamp::from_unix(u64::MAX), last);
     }
 }

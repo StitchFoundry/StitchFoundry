@@ -543,6 +543,7 @@ pub fn show(app: &mut VectorcraftApp, ctx: &egui::Context) {
     help::show(app, ctx);
     life_size::show(app, ctx);
     my_machine::show(app, ctx);
+    crate::learn::show(app, ctx);
     start_design::show(app, ctx);
     memory_card::show(app, ctx);
     orders::show(app, ctx);
