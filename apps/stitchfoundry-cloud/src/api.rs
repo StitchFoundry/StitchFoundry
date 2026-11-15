@@ -386,11 +386,17 @@ fn link_html(title: &str, body: &str) -> Response {
     }
 }
 
+/// What an account sees when its sign-up credits wait for tomorrow.
+const QUEUED_MESSAGE: &str = "Free credits are back tomorrow";
+/// What an account sees when its day's free AI requests are used.
+const FREE_LIMIT_MESSAGE: &str = "you've used today's free AI requests: they're back tomorrow, or buy credits in Account";
+
 fn store_error(e: StoreError) -> Response {
     match e {
         StoreError::Taken => Response::error(409, "invalid_request_error", "an account with that email already exists: sign in instead"),
         StoreError::NoAccount => Response::error(401, "authentication_error", "sign in again"),
         StoreError::NotEnough => Response::error(402, "billing_error", "not enough Foundry credits: buy more in Account"),
+        StoreError::FreeLimit => Response::error(429, "rate_limit_error", FREE_LIMIT_MESSAGE),
         StoreError::Unconfirmed => Response::error(403, "permission_error", format!("{CONFIRM_FIRST}.")),
         StoreError::Io(e) => {
             log::error!("store: {e}");
@@ -433,6 +439,7 @@ impl Service {
     }
 
     fn route(&self, req: &Request) -> Response {
+        self.release_queued((self.clock)());
         if req.body.len() > MAX_BODY {
             return Response::error(413, "request_too_large", "the request is too large");
         }
@@ -640,6 +647,9 @@ impl Service {
             "verified": a.is_some_and(|a| self.verified(a)),
             "credits": a.map_or(0, |a| a.credits.saturating_sub(a.reserved)),
             "freeChecks": free_checks,
+            // waiting for the sign-up credits (the day's cap was reached): they come tomorrow
+            "creditsQueued": store.is_queued(id),
+            "creditsQueuedMessage": if store.is_queued(id) { Value::from(QUEUED_MESSAGE) } else { Value::Null },
             "checkCredits": self.cfg.check_credits,
             // what a dollar of AI use costs in credits, for the app's estimates
             "creditsPerDollar": 100.0 * self.cfg.markup / self.cfg.cents_per_credit,
@@ -766,6 +776,12 @@ impl Service {
         }
     }
 
+    /// Whether `id` may still pay a request with free credits today (`SF_CLOUD_FREE_DAILY_REQUESTS`;
+    /// 0 is no limit). Bought credits don't depend on it.
+    fn free_ok(&self, store: &Store, id: u64, now: u64) -> bool {
+        self.cfg.free_daily_requests == 0 || store.free_requests_today(id, now) < self.cfg.free_daily_requests
+    }
+
     /// Whether the free offers have budget left in `month` (`SF_CLOUD_FREE_BUDGET_CENTS`).
     fn free_left(&self, store: &Store, month: &str) -> bool {
         store.free_spent(month) < self.cfg.free_budget_cents
@@ -795,6 +811,38 @@ impl Service {
         Ok((email, password))
     }
 
+    /// Gives the starting credits to accounts waiting for them (signed up over a day's cap), oldest
+    /// first, while the day's cap and the month's free budget allow.
+    fn release_queued(&self, now: u64) {
+        let mut store = self.store();
+        if store.queued().is_empty() {
+            return;
+        }
+        let month = sewout::month(now);
+        let cost = pricing::grant_cost_cents(&self.cfg, self.cfg.signup_credits);
+        for id in store.queued().to_vec() {
+            if store.account(id).is_none() {
+                let _ = store.unqueue_signup(id);
+                continue;
+            }
+            if store.signups_today(now) >= self.cfg.signup_daily_cap || store.free_spent(&month).saturating_add(cost) > self.cfg.free_budget_cents {
+                break;
+            }
+            match store.add_credits(id, self.cfg.signup_credits, "signup", "", "", now) {
+                Ok(_) => {
+                    if let Err(e) = store.count_signup(now).and_then(|()| store.add_free_spent(&month, cost)).and_then(|()| store.unqueue_signup(id))
+                    {
+                        log::error!("queued sign-up: {e}");
+                    }
+                }
+                Err(e) => {
+                    log::error!("queued sign-up: {e}");
+                    break;
+                }
+            }
+        }
+    }
+
     fn signup(&self, req: &Request) -> Response {
         let (email, password) = match Self::credentials(req) {
             Ok(c) => c,
@@ -816,15 +864,21 @@ impl Service {
             let mut store = self.store();
             // the starting credits, while the month's free offers can afford them
             let cost = pricing::grant_cost_cents(&self.cfg, self.cfg.signup_credits);
-            let credits = if store.free_spent(&month).saturating_add(cost) <= self.cfg.free_budget_cents { self.cfg.signup_credits } else { 0 };
+            let capped = store.signups_today(now) >= self.cfg.signup_daily_cap;
+            let credits =
+                if !capped && store.free_spent(&month).saturating_add(cost) <= self.cfg.free_budget_cents { self.cfg.signup_credits } else { 0 };
             let id = match store.create(&email, hash, credits, verified, now) {
                 Ok(id) => id,
                 Err(e) => return store_error(e),
             };
             if credits > 0
-                && let Err(e) = store.add_free_spent(&month, cost)
+                && let Err(e) = store.add_free_spent(&month, cost).and_then(|()| store.count_signup(now))
             {
                 log::error!("free budget: {e}");
+            }
+            // over the day's cap: the credits come tomorrow
+            if capped && let Err(e) = store.queue_signup(id) {
+                log::error!("sign-up queue: {e}");
             }
             id
         };
@@ -1452,7 +1506,9 @@ impl Service {
                 }
                 Charge::Flat(c) => c,
             };
-            if let Err(e) = store.reserve(id, hold) {
+            let now = (self.clock)();
+            let free_ok = self.free_ok(&store, id, now);
+            if let Err(e) = store.reserve(id, hold, free_ok) {
                 return store_error(e);
             }
             *n += 1;
@@ -1477,7 +1533,8 @@ impl Service {
         let now = (self.clock)();
         let left = {
             let mut store = self.store();
-            store.settle(id, hold, spent.min(hold), note, now).map(|l| l.saturating_sub(store.account(id).map_or(0, |a| a.reserved)))
+            let free_ok = self.free_ok(&store, id, now);
+            store.settle(id, hold, spent.min(hold), free_ok, note, now).map(|l| l.saturating_sub(store.account(id).map_or(0, |a| a.reserved)))
         };
         // (the locks are always taken in-flight first, then the store: never the other way round)
         if let Some(n) = self.in_flight.lock().unwrap_or_else(std::sync::PoisonError::into_inner).get_mut(&id) {
@@ -1969,7 +2026,7 @@ mod tests {
         assert_eq!(r.status, 529);
         assert_eq!(json_of(&s.handle(&req("GET", "/v1/account", Some(&t), json!({}))))["credits"], 100);
         // under MIN_TO_START credits left: buy more first
-        s.store().settle(1, 0, 90, "test", 0).unwrap();
+        s.store().settle(1, 0, 90, true, "test", 0).unwrap();
         let r = s.handle(&req("POST", "/v1/messages", Some(&t), ok.clone()));
         assert_eq!(r.status, 402);
         assert!(json_of(&r)["error"]["message"].as_str().unwrap().contains("buy more"));
@@ -2806,5 +2863,119 @@ mod tests {
         assert_eq!(store.make_founding(real, "stitchfoundry", 200, false, 8).unwrap(), Some((1, true)), "the test account took no number");
         assert_eq!(store.account(ids[0]).unwrap().credits, 10);
         assert!(store.make_founding(999, "stitchfoundry", 200, false, 9).is_err());
+    }
+
+    /// A service with a daily sign-up cap and daily free-request limit, and a clock to move.
+    fn limited(cap: u64, free_requests: u64) -> (Service, Arc<std::sync::atomic::AtomicU64>) {
+        let reply = json!({"type": "message", "model": "claude-opus-5-5", "content": [{"type": "text", "text": "ok"}], "usage": {"input_tokens": 100, "output_tokens": 10}});
+        let cfg = Config::from_env(|k| match k {
+            "ANTHROPIC_API_KEY" => Some("sk-ant-service".into()),
+            "SF_CLOUD_SIGNUP_DAILY_CAP" => Some(cap.to_string()),
+            "SF_CLOUD_FREE_DAILY_REQUESTS" => Some(free_requests.to_string()),
+            _ => None,
+        })
+        .unwrap();
+        let clock = Arc::new(std::sync::atomic::AtomicU64::new(1_000_000));
+        let c = clock.clone();
+        let s = Service::with_clock(
+            cfg,
+            Store::in_memory(),
+            Box::new(Fake { calls: Arc::default(), reply: (200, reply.to_string()) }),
+            Box::new(move || c.load(std::sync::atomic::Ordering::SeqCst)),
+        );
+        (s, clock)
+    }
+
+    fn sign_up_as(s: &Service, email: &str) -> String {
+        let r = s.handle(&req("POST", "/v1/signup", None, json!({"email": email, "password": "fire truck 1"})));
+        assert_eq!(r.status, 200, "{}", r.body);
+        json_of(&r)["token"].as_str().unwrap().to_string()
+    }
+
+    fn account_of(s: &Service, t: &str) -> Value {
+        json_of(&s.handle(&req("GET", "/v1/account", Some(t), json!({}))))
+    }
+
+    /// Sign-ups over the day's cap start without credits, are queued, and get them next day.
+    #[test]
+    fn signups_over_the_daily_cap_are_queued_and_granted_next_day() {
+        let (s, clock) = limited(2, 0);
+        let (a, b, c) = (sign_up_as(&s, "a@example.com"), sign_up_as(&s, "b@example.com"), sign_up_as(&s, "c@example.com"));
+        assert_eq!(account_of(&s, &a)["credits"], 100);
+        assert_eq!(account_of(&s, &b)["credits"], 100);
+        let q = account_of(&s, &c);
+        assert_eq!(q["credits"], 0, "over the cap: no credits yet");
+        assert_eq!(q["creditsQueued"], true);
+        assert_eq!(q["creditsQueuedMessage"], "Free credits are back tomorrow");
+        assert_eq!(account_of(&s, &a)["creditsQueued"], false);
+        // later the same day: still waiting
+        clock.store(1_000_000 + 3600, std::sync::atomic::Ordering::SeqCst);
+        assert_eq!(account_of(&s, &c)["credits"], 0);
+        // the next day: granted, once
+        clock.store(1_000_000 + 86_400, std::sync::atomic::Ordering::SeqCst);
+        let g = account_of(&s, &c);
+        assert_eq!(g["credits"], 100);
+        assert_eq!(g["creditsQueued"], false);
+        assert_eq!(account_of(&s, &c)["credits"], 100, "not granted twice");
+        assert_eq!(g["history"][0]["kind"], "signup");
+    }
+
+    /// The queue is first come first served, and a day's grants (queued ones too) stay under the cap.
+    #[test]
+    fn the_queue_is_released_in_order_within_the_cap() {
+        let (s, clock) = limited(1, 0);
+        let _a = sign_up_as(&s, "a@example.com");
+        let (b, c) = (sign_up_as(&s, "b@example.com"), sign_up_as(&s, "c@example.com"));
+        clock.store(1_000_000 + 86_400, std::sync::atomic::Ordering::SeqCst);
+        assert_eq!(account_of(&s, &b)["credits"], 100, "the older waiter first");
+        assert_eq!(account_of(&s, &c)["credits"], 0, "one a day");
+        clock.store(1_000_000 + 2 * 86_400, std::sync::atomic::Ordering::SeqCst);
+        assert_eq!(account_of(&s, &c)["credits"], 100);
+    }
+
+    /// Free credits pay only so many AI requests a day; bought credits are never limited.
+    #[test]
+    fn free_credits_have_a_daily_request_limit_but_bought_credits_dont() {
+        let (s, clock) = limited(100, 2);
+        let t = sign_up_as(&s, "a@example.com");
+        assert_eq!(s.handle(&ai(&t)).status, 200);
+        assert_eq!(s.handle(&ai(&t)).status, 200);
+        let r = s.handle(&ai(&t));
+        assert_eq!(r.status, 429, "{}", r.body);
+        assert!(r.body.contains("back tomorrow"));
+        // buying credits lets requests through again, paid with the bought ones
+        let id = account_of(&s, &t)["id"].as_u64().unwrap();
+        s.store().add_credits(id, 500, "purchase", "cs_x", "pack", 1_000_000).unwrap();
+        let before = account_of(&s, &t)["credits"].as_u64().unwrap();
+        assert_eq!(s.handle(&ai(&t)).status, 200);
+        let after = account_of(&s, &t)["credits"].as_u64().unwrap();
+        assert!(after < before, "the request was paid");
+        assert!(s.store().account(id).unwrap().paid < 500, "from the bought credits");
+        // the next day the free credits work again
+        clock.store(1_000_000 + 86_400, std::sync::atomic::Ordering::SeqCst);
+        assert_eq!(s.handle(&ai(&t)).status, 200);
+    }
+
+    /// With the limit at 0 there is none.
+    #[test]
+    fn a_free_request_limit_of_zero_means_no_limit() {
+        let (s, _) = limited(100, 0);
+        let t = sign_up_as(&s, "a@example.com");
+        for _ in 0..5 {
+            assert_eq!(s.handle(&ai(&t)).status, 200);
+        }
+    }
+
+    /// An account that only bought credits is not limited even at the free limit.
+    #[test]
+    fn paid_credits_work_when_the_free_limit_is_reached_at_once() {
+        let (s, _) = limited(0, 1);
+        let t = sign_up_as(&s, "a@example.com");
+        assert_eq!(account_of(&s, &t)["credits"], 0, "cap 0: queued");
+        let id = account_of(&s, &t)["id"].as_u64().unwrap();
+        s.store().add_credits(id, 500, "purchase", "cs_y", "pack", 1_000_000).unwrap();
+        for _ in 0..3 {
+            assert_eq!(s.handle(&ai(&t)).status, 200);
+        }
     }
 }

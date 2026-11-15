@@ -59,6 +59,12 @@ pub struct Config {
     /// they used. Once it is reached, new accounts start without credits and checks are paid until
     /// the next month.
     pub free_budget_cents: u64,
+    /// The most sign-ups given their starting credits in one day (`SF_CLOUD_SIGNUP_DAILY_CAP`,
+    /// 100). Later sign-ups are queued and get them the next day.
+    pub signup_daily_cap: u64,
+    /// The most AI requests one account may pay with free credits in a day
+    /// (`SF_CLOUD_FREE_DAILY_REQUESTS`, 50; 0 means no limit). Bought credits are never limited.
+    pub free_daily_requests: u64,
     /// The Postgres database (`DATABASE_URL`, as Railway sets it); without it the data folder.
     pub database_url: Option<String>,
     /// Where sew-out reports are emailed (`SF_CLOUD_REPORTS_TO`), through Resend
@@ -261,6 +267,8 @@ impl Config {
             free_checks: num("SF_CLOUD_FREE_CHECKS", 3.0)? as u64,
             check_credits: num("SF_CLOUD_CHECK_CREDITS", 10.0)? as u64,
             free_budget_cents: num("SF_CLOUD_FREE_BUDGET_CENTS", 2500.0)? as u64,
+            signup_daily_cap: num("SF_CLOUD_SIGNUP_DAILY_CAP", 100.0)? as u64,
+            free_daily_requests: num("SF_CLOUD_FREE_DAILY_REQUESTS", 50.0)? as u64,
             database_url: nonempty("DATABASE_URL"),
             // (with a test mailbox, email is on and no Resend key is kept)
             resend_key: if mail_catcher.is_some() { Some(MAIL_CATCHER_KEY.into()) } else { nonempty("RESEND_API_KEY") },
@@ -375,6 +383,8 @@ mod tests {
         assert_eq!(c.addr, "127.0.0.1:8080");
         assert_eq!(c.signup_credits, 100);
         assert_eq!(c.free_budget_cents, 2500);
+        assert_eq!(c.signup_daily_cap, 100);
+        assert_eq!(c.free_daily_requests, 50);
         assert_eq!(c.packs.len(), 3);
         assert!(c.anthropic_key.is_none() && c.stripe_key.is_none());
         let c = Config::from_env(|k| match k {
