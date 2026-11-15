@@ -36,12 +36,45 @@ pub fn specs() -> Vec<CommandSpec> {
             always,
             set_format
         ),
+        cmd!(
+            "embroidery.myMachine.setOrientation",
+            "Set Hoop Orientation",
+            [],
+            None,
+            "{rotation: 0|90|180|270 (degrees clockwise: how the arrow of the Hoop orientation test (embroidery.testSew) pointed when sewn), mirror?: bool (default false)} save how the hoop sits in the chosen machine: exports are turned by it → as embroidery.myMachine",
+            always,
+            set_orientation
+        ),
     ]
 }
 
 /// The machine chosen as one's own, if any.
 pub(super) fn mine(s: &Session) -> Option<&'static HomeMachine> {
     Some(s.prefs.my_machine.as_str()).filter(|n| !n.is_empty()).and_then(home_machine)
+}
+
+/// How the hoop sits in the chosen machine: (degrees clockwise, mirrored); (0, false) when unset.
+pub(super) fn orientation(s: &Session) -> (u16, bool) {
+    mine(s).and_then(|m| s.prefs.my_machine_orientation.get(m.name)).copied().unwrap_or((0, false))
+}
+
+/// `pattern` mirrored left to right, then turned `deg` clockwise (a multiple of 90) about its middle.
+pub(super) fn orient(pattern: &sf_core::pattern::Pattern, deg: u16, mirror: bool) -> sf_core::pattern::Pattern {
+    let mut q = pattern.clone();
+    let b = q.bounds();
+    let (cx, cy) = ((b.min.x + b.max.x) / 2.0, (b.min.y + b.max.y) / 2.0);
+    for st in &mut q.stitches {
+        let (mut x, mut y) = (st.x - cx, st.y - cy);
+        if mirror {
+            x = -x;
+        }
+        // y points down, so (x, y) → (-y, x) is a quarter turn clockwise
+        for _ in 0..(deg / 90) % 4 {
+            (x, y) = (-y, x);
+        }
+        (st.x, st.y) = (cx + x, cy + y);
+    }
+    q
 }
 
 /// The format saved by default: the one chosen for the machine, else its native one.
@@ -83,6 +116,7 @@ fn get(s: &mut Session, _: &Value) -> Result<Value> {
         "summary": m.zip(save_format(s)).map(|(m, f)| format!("{}: saves {}", m.name, f.to_ascii_uppercase())),
         "hoops": hoops,
         "own": own,
+        "orientation": { "rotation": orientation(s).0, "mirror": orientation(s).1 },
         "folder": s.prefs.embroidery_send_dirs.first(),
         "machines": HOME_MACHINES.iter().map(|m| json!({ "name": m.name, "format": m.format, "reads": m.reads })).collect::<Vec<_>>(),
     }))
@@ -121,6 +155,23 @@ fn set_format(s: &mut Session, p: &Value) -> Result<Value> {
                 s.prefs.my_machine_formats.insert(m.name.to_string(), f);
             }
         }
+    }
+    get(s, &json!({}))
+}
+
+fn set_orientation(s: &mut Session, p: &Value) -> Result<Value> {
+    const CMD: &str = "embroidery.myMachine.setOrientation";
+    let m = mine(s).ok_or_else(|| bad(CMD, "choose a machine first: embroidery.myMachine.set"))?;
+    let rotation = p
+        .get("rotation")
+        .and_then(Value::as_u64)
+        .filter(|r| [0, 90, 180, 270].contains(r))
+        .ok_or_else(|| bad(CMD, "`rotation` is 0, 90, 180 or 270"))?;
+    let mirror = p.get("mirror").and_then(Value::as_bool).unwrap_or(false);
+    if rotation == 0 && !mirror {
+        s.prefs.my_machine_orientation.remove(m.name);
+    } else {
+        s.prefs.my_machine_orientation.insert(m.name.to_string(), (rotation as u16, mirror));
     }
     get(s, &json!({}))
 }
@@ -182,5 +233,38 @@ mod tests {
         assert!(s.execute("embroidery.myMachine.set", &json!({"machine": "Sewing Wonder 3000"})).is_err());
         s.execute("embroidery.myMachine.set", &json!({"machine": null})).unwrap();
         assert!(s.execute("embroidery.myMachine", &json!({})).unwrap()["machine"].is_null());
+    }
+
+    /// The saved orientation turns every export; each offset rotates every stitch (DST, PES, JEF, EXP).
+    #[test]
+    fn exports_are_turned_by_the_saved_orientation() {
+        use sf_formats::Format;
+        let mut s = Session::new();
+        s.execute("embroidery.myMachine.set", &json!({"machine": "Brother or Baby Lock"})).unwrap();
+        assert!(s.execute("embroidery.myMachine.setOrientation", &json!({"rotation": 45})).is_err());
+        s.execute("embroidery.testSew", &json!({"test": "orientation"})).unwrap();
+        let read = |s: &mut Session, f: &str| {
+            let r = s.execute("embroidery.export", &json!({"format": f})).unwrap();
+            let bytes = vectorcraft_format::base64_decode(r["dataBase64"].as_str().unwrap()).unwrap();
+            sf_formats::read(Format::from_extension(f).unwrap(), &bytes).unwrap()
+        };
+        for f in ["dst", "pes", "jef", "exp"] {
+            let base = read(&mut s, f);
+            for (rot, mirror) in [(0u16, false), (90, false), (180, false), (270, false), (0, true), (90, true)] {
+                s.execute("embroidery.myMachine.setOrientation", &json!({"rotation": rot, "mirror": mirror})).unwrap();
+                let got = read(&mut s, f);
+                let want = orient(&base, rot, mirror);
+                assert_eq!(got.stitches.len(), want.stitches.len(), "{f} {rot} {mirror}");
+                let (bb, gb) = (base.bounds(), got.bounds());
+                // a quarter turn swaps the width and the height (the formats keep 0.1 mm)
+                let swap = rot % 180 == 90;
+                let (bw, bh) = (bb.max.x - bb.min.x, bb.max.y - bb.min.y);
+                let (gw, gh) = (gb.max.x - gb.min.x, gb.max.y - gb.min.y);
+                let (ew, eh) = if swap { (bh, bw) } else { (bw, bh) };
+                assert!((gw - ew).abs() < 3.0 && (gh - eh).abs() < 3.0, "{f} {rot} {mirror}: {gw}x{gh} vs {ew}x{eh}");
+            }
+            s.execute("embroidery.myMachine.setOrientation", &json!({"rotation": 0})).unwrap();
+        }
+        assert_eq!(s.execute("embroidery.myMachine", &json!({})).unwrap()["orientation"]["rotation"], 0);
     }
 }
