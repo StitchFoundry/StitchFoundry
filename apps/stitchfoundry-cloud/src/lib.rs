@@ -10,5 +10,6 @@ pub mod config;
 pub mod mail_catcher;
 pub mod pricing;
 pub mod sewout;
+pub mod spend;
 pub mod store;
 pub mod stripe;

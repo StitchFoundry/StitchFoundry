@@ -203,6 +203,8 @@ target/release/stitchfoundry-cloud
 | `SF_CLOUD_CENTS_PER_CREDIT`, `SF_CLOUD_MARKUP` | a credit's price in cents (1) and the markup on the AI's cost (3) |
 | `SF_CLOUD_PACKS` | the packs on sale (see Prices) |
 | `SF_CLOUD_FREE_CHECKS`, `SF_CLOUD_CHECK_CREDITS` | sew-out checks free a month (3) and a check's price after them (10) |
+| `SF_CLOUD_AI_BUDGET_CENTS`, `SF_CLOUD_OWNER_EMAIL` | the family's monthly AI budget in cents (0 = none). At 80% of it `SF_CLOUD_OWNER_EMAIL` is emailed (through Resend, once a month); at 100% free credits and free checks stop paying for AI family-wide (429), bought credits keep working, and the owner is emailed again |
+| `SF_CLOUD_PRODUCT_KEYS` | the Foundry apps allowed to report AI calls (`product:key` apart by commas, keys 24+ characters; a product's name is `a-z`, `0-9`, `.`, `_`, `-`), sent as `X-Product-Key` |
 | `SF_CLOUD_FREE_BUDGET_CENTS` | the most the free offers may cost in AI a month (2500: $25; see Prices) |
 | `SF_CLOUD_SIGNUP_DAILY_CAP` | sign-ups given their starting credits a day (100); later ones are queued and get them the next day (account shows `creditsQueued`, "Free credits are back tomorrow") |
 | `SF_CLOUD_FREE_DAILY_REQUESTS` | AI requests one account may pay with free credits a day (50; 0 = no limit); bought credits are never limited (429 when used up and nothing bought) |
@@ -337,3 +339,17 @@ the web app to call from a browser (CORS; sessions are bearer tokens, never cook
 in the Anthropic API's shape, `{"type": "error", "error": {"type", "message"}}`: 401 to sign in
 again, 402 for too few credits, 403 (`permission_error`) until the email is confirmed, with a
 message to show as it is, 429 to wait, 503 for what isn't set up.
+
+## AI cost log and spend page (every Foundry app)
+
+Each Foundry app (LaserFoundry, PatternFoundry, ScreenFoundry…) can report the AI calls it makes with its own Anthropic key, so the owner sees the whole family's spend in one place, and charge them to the shared wallet. StitchFoundry's own requests (`/v1/messages`, sew-out checks) are logged the same way as product `stitchfoundry`.
+
+To adopt it, a product asks for a key (`SF_CLOUD_PRODUCT_KEYS`) and, after each AI call, posts:
+
+`POST /v1/ai/log` with `X-Product-Key`, body `{feature, model?, input_tokens?, output_tokens?, cost_usd, credits?, account?}`
+
+- `feature` is the product's own name for what ran (`trace`, `ask`; `a-z`, `0-9`, `.`, `_`, `-`, up to 32); `cost_usd` is what the call really cost; `credits` is the price the product set for that feature, taken from the account's shared wallet (free credits first, bought ones after) and needing `account`, the Foundry Account id.
+- → `{logged: true, charged}`. A wallet that can't pay answers 402 (not enough credits), 403 (email not confirmed) or 429 (free credits paused or used up today); the call is still logged, at 0 credits charged. An unknown account is 401 and nothing is logged. A wrong key is 404. Test accounts' calls are never logged.
+- The log is `ai_calls.jsonl` (or the `sf_ai_calls` table), append-only; the totals are by day, product and feature.
+
+The owner reads it at `GET /admin/spend` (a page: the browser asks for a password, which is `SF_CLOUD_ADMIN_SECRET`) or `GET /v1/admin/spend` (JSON, `X-Admin-Secret`): spend today and this month, cost by product and by feature, credits sold against credits used this month, what free credits cost, and the budget (percent used, whether free credits are paused). Not routed without the admin secret.
