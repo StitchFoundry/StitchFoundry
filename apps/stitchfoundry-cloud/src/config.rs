@@ -103,6 +103,13 @@ pub struct Config {
     /// The secret `POST /v1/founding` needs (`SF_CLOUD_ADMIN_SECRET`, at least
     /// [`MIN_TEST_SECRET`] characters), sent as `X-Admin-Secret`; without it the route doesn't exist.
     pub admin_secret: Option<String>,
+    /// The most the family's AI may cost in a calendar month (`SF_CLOUD_AI_BUDGET_CENTS`; 0 = no
+    /// budget). At 80% the owner is emailed; at 100% free credits stop paying for AI.
+    pub ai_budget_cents: u64,
+    /// Who the budget email goes to (`SF_CLOUD_OWNER_EMAIL`).
+    pub owner_email: Option<String>,
+    /// Products allowed to report AI calls (`SF_CLOUD_PRODUCT_KEYS`, `product:key` apart by commas).
+    pub product_keys: Vec<(String, String)>,
     /// Emails of internal accounts (`SF_CLOUD_INTERNAL_EMAILS`, comma separated, lower case):
     /// they never get a founding number or bonus.
     pub internal_emails: Vec<String>,
@@ -286,6 +293,9 @@ impl Config {
             test_secret: if test_mode { nonempty("SF_CLOUD_TEST_SECRET") } else { None },
             env: nonempty("SF_CLOUD_ENV"),
             founding_credits: num("SF_CLOUD_FOUNDING_CREDITS", 200.0)? as u64,
+            ai_budget_cents: num("SF_CLOUD_AI_BUDGET_CENTS", 0.0)? as u64,
+            owner_email: nonempty("SF_CLOUD_OWNER_EMAIL"),
+            product_keys: nonempty("SF_CLOUD_PRODUCT_KEYS").map(|s| crate::spend::parse_product_keys(&s)).unwrap_or_default(),
             admin_secret: nonempty("SF_CLOUD_ADMIN_SECRET").filter(|s| s.chars().count() >= MIN_TEST_SECRET),
             internal_emails: nonempty("SF_CLOUD_INTERNAL_EMAILS")
                 .map(|v| v.split(',').map(|e| e.trim().to_lowercase()).filter(|e| !e.is_empty()).collect())

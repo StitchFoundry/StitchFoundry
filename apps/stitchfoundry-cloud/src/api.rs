@@ -26,6 +26,8 @@
 //!   random link (the QR code in the app), at most ten sends an account.
 //! - `POST /v1/messages`: an Anthropic Messages API request, sent with the service's key and paid
 //!   for in credits (`x-stitchfoundry-credits` on the reply: what is left).
+//! - `POST /v1/ai/log` (`X-Product-Key`), `GET /admin/spend`, `GET /v1/admin/spend`: the family-wide
+//!   AI cost log, the owner's spend page and the monthly budget (see `docs/cloud.md`).
 //!
 //! - `POST /v1/test/provision {run, credits?}` and `POST /v1/test/cleanup {run}`: only in test
 //!   mode (`SF_CLOUD_TEST_MODE`, a staging copy; otherwise 404 like any unknown route), with
@@ -49,7 +51,7 @@ use serde_json::{Value, json};
 use crate::auth::{self, Throttle};
 use crate::config::Config;
 use crate::store::{Check, PHONE_TTL, Phone, Store, StoreError};
-use crate::{pricing, sewout, stripe};
+use crate::{pricing, sewout, spend, stripe};
 
 /// The largest request body accepted (an image to redraw is the largest thing sent).
 pub const MAX_BODY: usize = 8 * 1024 * 1024;
@@ -389,7 +391,8 @@ fn link_html(title: &str, body: &str) -> Response {
 /// What an account sees when its sign-up credits wait for tomorrow.
 const QUEUED_MESSAGE: &str = "Free credits are back tomorrow";
 /// What an account sees when its day's free AI requests are used.
-const FREE_LIMIT_MESSAGE: &str = "you've used today's free AI requests: they're back tomorrow, or buy credits in Account";
+const FREE_LIMIT_MESSAGE: &str =
+    "free AI requests are used up for now (today's limit, or this month's AI budget): they're back tomorrow or next month, or buy credits in Account";
 
 fn store_error(e: StoreError) -> Response {
     match e {
@@ -466,6 +469,9 @@ impl Service {
             ("POST", "/v1/checkout") => self.checkout(req),
             ("POST", "/v1/stripe/webhook") => self.webhook(req),
             ("POST", "/v1/messages") => self.messages(req),
+            ("POST", "/v1/ai/log") => self.ai_log(req),
+            ("GET", "/v1/admin/spend") if self.cfg.admin_secret.is_some() => self.admin_spend(req, false),
+            ("GET", "/admin/spend") if self.cfg.admin_secret.is_some() => self.admin_spend(req, true),
             ("POST", "/v1/sewout") => self.sewout(req),
             ("POST", "/v1/sewout/delete") => self.delete_shared(req),
             ("POST", "/v1/report") => self.report(req),
@@ -779,12 +785,71 @@ impl Service {
     /// Whether `id` may still pay a request with free credits today (`SF_CLOUD_FREE_DAILY_REQUESTS`;
     /// 0 is no limit). Bought credits don't depend on it.
     fn free_ok(&self, store: &Store, id: u64, now: u64) -> bool {
-        self.cfg.free_daily_requests == 0 || store.free_requests_today(id, now) < self.cfg.free_daily_requests
+        (self.cfg.free_daily_requests == 0 || store.free_requests_today(id, now) < self.cfg.free_daily_requests) && !self.ai_paused(store, now)
     }
 
-    /// Whether the free offers have budget left in `month` (`SF_CLOUD_FREE_BUDGET_CENTS`).
+    /// Whether the family's AI has used the whole month's budget (`SF_CLOUD_AI_BUDGET_CENTS`): then
+    /// free credits and free checks stop paying for AI, and bought credits go on.
+    fn ai_paused(&self, store: &Store, now: u64) -> bool {
+        self.cfg.ai_budget_cents > 0 && store.ai_month_cost(&sewout::month(now)) >= self.cfg.ai_budget_cents.saturating_mul(spend::MICRO_PER_CENT)
+    }
+
+    /// Whether the free offers have budget left in `month` (`SF_CLOUD_FREE_BUDGET_CENTS`, and the
+    /// family's AI budget).
     fn free_left(&self, store: &Store, month: &str) -> bool {
-        store.free_spent(month) < self.cfg.free_budget_cents
+        store.free_spent(month) < self.cfg.free_budget_cents && !self.ai_paused(store, (self.clock)())
+    }
+
+    /// Emails the owner when the month's AI cost has newly passed 80% or 100% of the budget, once
+    /// for each level of a month. Call it after a call was logged, with no lock held.
+    fn check_budget(&self, now: u64) {
+        let budget = self.cfg.ai_budget_cents.saturating_mul(spend::MICRO_PER_CENT);
+        if budget == 0 {
+            return;
+        }
+        let month = sewout::month(now);
+        let (level, cost, before) = {
+            let store = self.store();
+            let cost = store.ai_month_cost(&month);
+            let level: u8 = if cost >= budget {
+                100
+            } else if cost.saturating_mul(10) >= budget.saturating_mul(8) {
+                80
+            } else {
+                0
+            };
+            if level == 0 || level <= store.budget_mailed(&month) {
+                return;
+            }
+            (level, cost, store.budget_mailed(&month))
+        };
+        let (Some(key), Some(to)) = (&self.cfg.resend_key, &self.cfg.owner_email) else { return };
+        // marked before sending, so two calls at once send one email; undone if it didn't go
+        if let Err(e) = self.store().set_budget_mailed(&month, level) {
+            log::error!("ai budget: {e}");
+            return;
+        }
+        let what = if level == 100 {
+            "The month's AI budget is used up. Free credits and free checks no longer pay for AI until next month; bought credits keep working."
+        } else {
+            "The month's AI spend has reached 80% of the budget. At 100%, free credits and free checks stop paying for AI."
+        };
+        let text = format!(
+            "{what}\n\nSpent in {month}: ${:.2} of ${:.2}.\nSee /admin/spend for the breakdown by product and feature.\n",
+            cost as f64 / 1e6,
+            budget as f64 / 1e6
+        );
+        let mail = json!({ "from": self.cfg.mail_from, "to": [to], "subject": format!("Foundry AI budget at {level}% for {month}"), "text": text });
+        let sent = matches!(
+            self.upstream.post(RESEND_URL, &[("authorization", format!("Bearer {key}")), ("content-type", "application/json".into())], &mail.to_string()),
+            Ok((status, _)) if (200..300).contains(&status)
+        );
+        if !sent {
+            log::error!("ai budget: the {level}% email didn't go");
+            if let Err(e) = self.store().set_budget_mailed(&month, before) {
+                log::error!("ai budget: {e}");
+            }
+        }
     }
 
     fn new_session(&self, id: u64) -> Response {
@@ -1204,6 +1269,151 @@ impl Service {
         self.forward(req, id, key, &body, max_tokens, Charge::Metered, "AI request")
     }
 
+    /// `POST /v1/ai/log {feature, model?, input_tokens?, output_tokens?, cost_usd, credits?, account?}`
+    /// (`X-Product-Key`: the key of a product in `SF_CLOUD_PRODUCT_KEYS`, which names the product):
+    /// a Foundry app reports an AI call it made with its own key. With `account` and `credits`, the
+    /// credits are taken from the account's shared wallet (free ones first, as for StitchFoundry's
+    /// own requests); the call is logged either way, and a wallet that can't pay answers 402 or 429
+    /// with the call logged at 0 credits. → `{logged, charged}`.
+    fn ai_log(&self, req: &Request) -> Response {
+        let given = req.header("x-product-key").map(str::trim).unwrap_or_default();
+        let Some(product) = self.cfg.product_keys.iter().find(|(_, k)| same_secret(given, k)).map(|(p, _)| p.clone()) else {
+            return not_found();
+        };
+        let v = match body_json(req) {
+            Ok(v) => v,
+            Err(r) => return r,
+        };
+        let bad = |why: &str| Response::error(400, "invalid_request_error", why.to_string());
+        let Some(feature) = v.get("feature").and_then(Value::as_str).and_then(spend::good_name) else {
+            return bad("feature is 1 to 32 of a-z, 0-9, . _ and -");
+        };
+        let count = |k: &str| v.get(k).and_then(Value::as_u64).unwrap_or(0).min(1_000_000_000);
+        let credits = count("credits").min(1_000_000);
+        let cost_usd = v.get("cost_usd").and_then(Value::as_f64);
+        if !cost_usd.is_some_and(|c| c.is_finite() && c >= 0.0) {
+            return bad("cost_usd is what the call really cost, in dollars");
+        }
+        let account = v.get("account").and_then(Value::as_u64);
+        if credits > 0 && account.is_none() {
+            return bad("credits are charged to an account: give its id");
+        }
+        let now = (self.clock)();
+        let cost = spend::micro(cost_usd.unwrap_or(0.0));
+        let mut store = self.store();
+        let (mut charged, mut free_part, mut failed) = (0, 0, None);
+        if let Some(acc) = account {
+            if store.account(acc).is_none() {
+                return store_error(StoreError::NoAccount);
+            }
+            if credits > 0 {
+                let free_ok = self.free_ok(&store, acc, now);
+                match store.reserve(acc, credits, free_ok) {
+                    Ok(()) => {
+                        free_part = if free_ok { credits.min(store.free_credits(acc)) } else { 0 };
+                        match store.settle(acc, credits, credits, free_ok, &format!("{product}: {feature}"), now) {
+                            Ok(_) => charged = credits,
+                            Err(e) => failed = Some(e),
+                        }
+                    }
+                    Err(e) => failed = Some(e),
+                }
+            }
+        }
+        let free_cost = if charged == 0 { cost } else { (u128::from(cost) * u128::from(free_part) / u128::from(charged)) as u64 };
+        let call = spend::AiCall {
+            at: now,
+            product,
+            feature,
+            model: v.get("model").and_then(Value::as_str).unwrap_or("unknown").chars().take(64).collect(),
+            input_tokens: count("input_tokens"),
+            output_tokens: count("output_tokens"),
+            cost_micro: cost,
+            free_cost_micro: free_cost,
+            credits: charged,
+            account,
+        };
+        // (a test account's calls never count in the family's totals)
+        if !account.is_some_and(|a| store.is_test(a))
+            && let Err(e) = store.record_ai_call(&call)
+        {
+            return store_error(e);
+        }
+        drop(store);
+        self.check_budget(now);
+        match failed {
+            Some(e) => store_error(e),
+            None => Response::json(200, &json!({ "logged": true, "charged": charged })),
+        }
+    }
+
+    /// Whether the request carries the admin secret: `X-Admin-Secret`, or (for the page a browser
+    /// opens) HTTP Basic auth with it as the password.
+    fn admin_allowed(&self, req: &Request) -> bool {
+        let Some(secret) = &self.cfg.admin_secret else { return false };
+        if let Some(given) = req.header("x-admin-secret") {
+            return same_secret(given.trim(), secret);
+        }
+        req.header("authorization")
+            .and_then(|a| a.strip_prefix("Basic ").or_else(|| a.strip_prefix("basic ")))
+            .and_then(|b| sewout::base64_decode(b.trim()))
+            .and_then(|d| String::from_utf8(d).ok())
+            .and_then(|up| up.split_once(':').map(|(_, p)| same_secret(p, secret)))
+            .unwrap_or(false)
+    }
+
+    /// `GET /v1/admin/spend` (JSON) and `GET /admin/spend` (a page): what the family's AI cost today
+    /// and this month, by product and feature, credits sold against used, and the budget.
+    fn admin_spend(&self, req: &Request, page: bool) -> Response {
+        if !self.admin_allowed(req) {
+            if page {
+                let mut r = Response::error(401, "authentication_error", "the admin password is the admin secret");
+                r.headers.push(("WWW-Authenticate".into(), "Basic realm=\"Foundry spend\"".into()));
+                return r;
+            }
+            return not_found();
+        }
+        let now = (self.clock)();
+        let mut v = self.store().ai_summary(now);
+        let budget = self.cfg.ai_budget_cents as f64 / 100.0;
+        let used = v["month"]["costUsd"].as_f64().unwrap_or(0.0);
+        let paused = self.ai_paused(&self.store(), now);
+        v["budget"] = json!({ "usd": budget, "usedPercent": if budget > 0.0 { used / budget * 100.0 } else { 0.0 }, "freeCreditsPaused": paused });
+        if !page {
+            return Response::json(200, &v);
+        }
+        let row = |name: &str, t: &Value| {
+            format!(
+                "<tr><td>{name}</td><td>{}</td><td>${:.2}</td><td>${:.2}</td><td>{}</td></tr>",
+                t["calls"],
+                t["costUsd"].as_f64().unwrap_or(0.0),
+                t["freeCostUsd"].as_f64().unwrap_or(0.0),
+                t["credits"]
+            )
+        };
+        let table = |title: &str, m: &Value| {
+            let rows: String = m.as_object().map(|o| o.iter().map(|(k, t)| row(k, t)).collect()).unwrap_or_default();
+            format!("<h2>{title}</h2><table><tr><th></th><th>calls</th><th>cost</th><th>free-credit cost</th><th>credits</th></tr>{rows}</table>")
+        };
+        let body = format!(
+            "<!doctype html><html lang=\"en\"><meta charset=\"utf-8\"><meta name=\"viewport\" content=\"width=device-width\"><title>Foundry AI spend</title>\
+             <body style=\"font-family:sans-serif;max-width:48em;margin:2em auto;padding:0 1em\"><style>td,th{{padding:.2em .8em;text-align:left}}</style>\
+             <h1>Foundry AI spend, {}</h1><p>Budget: {} (used {:.0}%){}</p>\
+             <p>Credits sold this month: {} · used: {}</p>{}{}{}{}</body></html>",
+            v["monthName"].as_str().unwrap_or_default(),
+            if budget > 0.0 { format!("${budget:.2}") } else { "none set".into() },
+            v["budget"]["usedPercent"].as_f64().unwrap_or(0.0),
+            if paused { " · <b>free credits paused</b>" } else { "" },
+            v["creditsSold"],
+            v["creditsUsed"],
+            table("Today", &json!({"all": v["today"]})),
+            table("This month", &json!({"all": v["month"]})),
+            table("By product (month)", &v["byProduct"]),
+            table("By feature (month)", &v["byFeature"]),
+        );
+        Response { status: 200, content_type: "text/html; charset=utf-8", body, raw: Vec::new(), headers: page_headers() }
+    }
+
     /// Check My Sew-out: a check's requests, with the service's own instructions; the month's
     /// first checks free, then a flat price a check (see `sewout.rs`).
     fn sewout(&self, req: &Request) -> Response {
@@ -1489,7 +1699,7 @@ impl Service {
     #[allow(clippy::too_many_arguments)]
     fn forward(&self, req: &Request, id: u64, key: String, body: &Value, max_tokens: u64, charge: Charge, note: &str) -> Response {
         let most = pricing::estimate(&self.cfg, &self.cfg.dearest(), body, max_tokens);
-        let hold = {
+        let (hold, reserved_free_ok) = {
             let mut flying = self.in_flight.lock().unwrap_or_else(std::sync::PoisonError::into_inner);
             let n = flying.entry(id).or_default();
             if *n >= MAX_IN_FLIGHT {
@@ -1512,7 +1722,7 @@ impl Service {
                 return store_error(e);
             }
             *n += 1;
-            hold
+            (hold, free_ok)
         };
         let headers = [
             ("content-type", "application/json".to_string()),
@@ -1531,11 +1741,46 @@ impl Service {
             _ => 0,
         };
         let now = (self.clock)();
+        let mut logged = false;
         let left = {
             let mut store = self.store();
-            let free_ok = self.free_ok(&store, id, now);
-            store.settle(id, hold, spent.min(hold), free_ok, note, now).map(|l| l.saturating_sub(store.account(id).map_or(0, |a| a.reserved)))
+            // (a request that started on free credits finishes on them, even if the budget ran out meanwhile)
+            let free_ok = reserved_free_ok;
+            let spent = spent.min(hold);
+            let free_part = if free_ok { spent.min(store.free_credits(id)) } else { 0 };
+            let left = store.settle(id, hold, spent, free_ok, note, now).map(|l| l.saturating_sub(store.account(id).map_or(0, |a| a.reserved)));
+            if let Ok((200..=299, text)) = &answer
+                && left.is_ok()
+                && !store.is_test(id)
+                && let Ok(r) = serde_json::from_str::<Value>(text)
+            {
+                let price = r.get("model").and_then(Value::as_str).and_then(|m| self.cfg.model(m)).cloned().unwrap_or_else(|| self.cfg.dearest());
+                let usage = r.get("usage").unwrap_or(&Value::Null);
+                let cost = pricing::cost_micro(&price, usage);
+                let free_cost = if spent == 0 { cost } else { (u128::from(cost) * u128::from(free_part) / u128::from(spent)) as u64 };
+                let n = |k: &str| usage.get(k).and_then(Value::as_u64).unwrap_or(0);
+                let call = spend::AiCall {
+                    at: now,
+                    product: "stitchfoundry".into(),
+                    feature: spend::feature_of(note),
+                    model: r.get("model").and_then(Value::as_str).unwrap_or("unknown").chars().take(64).collect(),
+                    input_tokens: n("input_tokens").saturating_add(n("cache_read_input_tokens")).saturating_add(n("cache_creation_input_tokens")),
+                    output_tokens: n("output_tokens"),
+                    cost_micro: cost,
+                    free_cost_micro: free_cost,
+                    credits: spent,
+                    account: Some(id),
+                };
+                match store.record_ai_call(&call) {
+                    Ok(()) => logged = true,
+                    Err(e) => log::error!("ai cost log: {e}"),
+                }
+            }
+            left
         };
+        if logged {
+            self.check_budget(now);
+        }
         // (the locks are always taken in-flight first, then the store: never the other way round)
         if let Some(n) = self.in_flight.lock().unwrap_or_else(std::sync::PoisonError::into_inner).get_mut(&id) {
             *n = n.saturating_sub(1);
@@ -2977,5 +3222,129 @@ mod tests {
         for _ in 0..3 {
             assert_eq!(s.handle(&ai(&t)).status, 200);
         }
+    }
+
+    const LASER_KEY: &str = "laser-product-key-0123456789abcdef";
+
+    /// A service with a $0.20 monthly AI budget, an owner to email, and a Laser product key.
+    fn budgeted() -> (Service, Calls) {
+        let reply = json!({"type": "message", "model": "claude-opus-5-5", "content": [{"type": "text", "text": "ok"}], "usage": {"input_tokens": 10_000, "output_tokens": 2_000}});
+        let calls: Calls = Arc::default();
+        let cfg = Config::from_env(|k| match k {
+            "RESEND_API_KEY" => Some("re_test".into()),
+            "ANTHROPIC_API_KEY" => Some("sk-ant-service".into()),
+            "SF_CLOUD_AI_BUDGET_CENTS" => Some("20".into()),
+            "SF_CLOUD_OWNER_EMAIL" => Some("owner@example.com".into()),
+            "SF_CLOUD_ADMIN_SECRET" => Some(ADMIN.into()),
+            "SF_CLOUD_PRODUCT_KEYS" => Some(format!("laserfoundry:{LASER_KEY}")),
+            _ => None,
+        })
+        .unwrap();
+        let s = Service::with_clock(
+            cfg,
+            Store::in_memory(),
+            Box::new(Fake { calls: calls.clone(), reply: (200, reply.to_string()) }),
+            Box::new(|| 1_000_000),
+        );
+        (s, calls)
+    }
+
+    fn confirmed_account(s: &Service) -> String {
+        let t = sign_up_as(s, "denise@example.com");
+        s.store().confirm(1).unwrap();
+        t
+    }
+
+    fn budget_emails(calls: &Calls) -> Vec<String> {
+        emails(calls).into_iter().filter(|e| e.1.contains("AI budget")).map(|e| e.1).collect()
+    }
+
+    fn with_header(mut r: Request, k: &str, v: &str) -> Request {
+        r.headers.push((k.into(), v.into()));
+        r
+    }
+
+    /// StitchFoundry's own requests are logged; the owner is emailed once at 80% and once at 100%;
+    /// at 100% free credits stop paying while bought credits keep working.
+    #[test]
+    fn the_ai_budget_emails_at_80_and_pauses_free_credits_at_100() {
+        let (s, calls) = budgeted();
+        let t = confirmed_account(&s);
+        // each request costs $0.08 of the $0.20 budget
+        assert_eq!(s.handle(&ai(&t)).status, 200);
+        assert!(budget_emails(&calls).is_empty(), "40%");
+        assert_eq!(s.handle(&ai(&t)).status, 200);
+        assert_eq!(budget_emails(&calls), vec!["Foundry AI budget at 80% for 1970-01"], "80%, once");
+        assert_eq!(emails(&calls).iter().filter(|e| e.1.contains("AI budget")).map(|e| e.0.clone()).collect::<Vec<_>>(), vec!["owner@example.com"]);
+        assert_eq!(s.handle(&ai(&t)).status, 200);
+        assert_eq!(budget_emails(&calls).len(), 2, "100%, once");
+        // free credits are paused (28 left, all free); bought ones aren't
+        let r = s.handle(&ai(&t));
+        assert_eq!(r.status, 429, "{}", r.body);
+        s.store().add_credits(1, 500, "purchase", "cs_a", "pack", 1_000_000).unwrap();
+        assert_eq!(s.handle(&ai(&t)).status, 200, "bought credits keep working");
+        assert_eq!(budget_emails(&calls).len(), 2, "no more emails this month");
+        let spend = json_of(&s.handle(&with_header(req("GET", "/v1/admin/spend", None, json!({})), "x-admin-secret", ADMIN)));
+        assert_eq!(spend["month"]["calls"], 4);
+        assert_eq!(spend["byFeature"]["stitchfoundry/ai-request"]["calls"], 4);
+        assert_eq!(spend["creditsSold"], 500);
+        assert_eq!(spend["creditsUsed"], 20, "{spend}");
+        assert_eq!(spend["budget"]["freeCreditsPaused"], true);
+        // the last call was paid with bought credits, so its cost isn't free-credit cost
+        assert!((spend["freeCreditCostUsd"].as_f64().unwrap() - 0.24).abs() < 1e-9, "{spend}");
+    }
+
+    /// Another product reports a call, charged through the shared wallet.
+    #[test]
+    fn a_product_logs_a_call_and_charges_the_shared_wallet() {
+        let (s, _) = budgeted();
+        let _ = confirmed_account(&s);
+        let call = |key: &str, body: Value| s.handle(&with_header(req("POST", "/v1/ai/log", None, body), "x-product-key", key));
+        let body = json!({"feature": "trace", "model": "m", "input_tokens": 100, "output_tokens": 50, "cost_usd": 0.01, "credits": 5, "account": 1});
+        assert_eq!(call("wrong-key-wrong-key-wrong-key", body.clone()).status, 404, "unknown key");
+        assert_eq!(call(LASER_KEY, json!({"feature": "Bad Name", "cost_usd": 0.01})).status, 400);
+        assert_eq!(call(LASER_KEY, json!({"feature": "trace", "cost_usd": -1})).status, 400);
+        assert_eq!(call(LASER_KEY, json!({"feature": "trace", "cost_usd": 0.01, "credits": 5})).status, 400, "credits need an account");
+        let r = call(LASER_KEY, body);
+        assert_eq!((r.status, json_of(&r)["charged"].clone()), (200, json!(5)), "{}", r.body);
+        let t = sign_up_as(&s, "b@example.com");
+        assert_eq!(account_of(&s, &t)["credits"], 100);
+        // an unknown account is refused and nothing is logged for it
+        assert_eq!(call(LASER_KEY, json!({"feature": "trace", "cost_usd": 0.01, "credits": 5, "account": 99})).status, 401);
+        // a wallet that can't pay still logs the cost
+        let r = call(LASER_KEY, json!({"feature": "trace", "cost_usd": 0.02, "credits": 500, "account": 1}));
+        assert_eq!(r.status, 402, "{}", r.body);
+        let spend = json_of(&s.handle(&with_header(req("GET", "/v1/admin/spend", None, json!({})), "x-admin-secret", ADMIN)));
+        assert_eq!(spend["byProduct"]["laserfoundry"]["calls"], 2);
+        assert_eq!(spend["byFeature"]["laserfoundry/trace"]["credits"], 5);
+        assert!((spend["byProduct"]["laserfoundry"]["costUsd"].as_f64().unwrap() - 0.03).abs() < 1e-9);
+        // 0.01 was paid with 5 free credits; the 0.02 nobody paid is free cost too
+        assert!((spend["freeCreditCostUsd"].as_f64().unwrap() - 0.03).abs() < 1e-9, "{spend}");
+        let a = json_of(&s.handle(&req(
+            "GET",
+            "/v1/account",
+            Some(&{
+                let t2 = s.handle(&req("POST", "/v1/signin", None, json!({"email": "denise@example.com", "password": "fire truck 1"})));
+                json_of(&t2)["token"].as_str().unwrap().to_string()
+            }),
+            json!({}),
+        )));
+        assert_eq!(a["credits"], 95);
+    }
+
+    #[test]
+    fn the_spend_page_needs_the_admin_secret() {
+        let (s, _) = budgeted();
+        assert_eq!(s.handle(&req("GET", "/v1/admin/spend", None, json!({}))).status, 404);
+        let r = s.handle(&req("GET", "/admin/spend", None, json!({})));
+        assert!(r.status == 401 && r.headers.iter().any(|(k, _)| k == "WWW-Authenticate"));
+        let basic = format!("Basic {}", sewout::base64_encode(format!("admin:{ADMIN}").as_bytes()));
+        let r = s.handle(&with_header(req("GET", "/admin/spend", None, json!({})), "authorization", &basic));
+        assert!(r.status == 200 && r.body.contains("Foundry AI spend") && r.body.contains("$0.20"), "{} {}", r.status, r.body);
+        let bad = format!("Basic {}", sewout::base64_encode(b"admin:nope"));
+        assert_eq!(s.handle(&with_header(req("GET", "/admin/spend", None, json!({})), "authorization", &bad)).status, 401);
+        // not routed at all without the secret
+        let (plain, _) = service((200, String::new()), false);
+        assert_eq!(plain.handle(&req("GET", "/admin/spend", None, json!({}))).status, 404);
     }
 }

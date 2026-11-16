@@ -169,6 +169,9 @@ struct State {
     /// Requests paid with free credits, by account: `(day, count)`.
     #[serde(default)]
     free_requests: BTreeMap<u64, (u64, u64)>,
+    /// The family-wide AI cost log's totals.
+    #[serde(default)]
+    ai: crate::spend::Spend,
 }
 
 /// The day number of `now` (unix seconds), for the daily limits.
@@ -234,6 +237,7 @@ pub struct Store {
 const SCHEMA: &str = "\
 CREATE TABLE IF NOT EXISTS sf_state (id INT PRIMARY KEY, data TEXT NOT NULL);
 CREATE TABLE IF NOT EXISTS sf_ledger (id BIGSERIAL PRIMARY KEY, at BIGINT NOT NULL, account BIGINT NOT NULL, entry TEXT NOT NULL);
+CREATE TABLE IF NOT EXISTS sf_ai_calls (id BIGSERIAL PRIMARY KEY, at BIGINT NOT NULL, entry TEXT NOT NULL);
 CREATE TABLE IF NOT EXISTS sf_shared_files (check_id TEXT NOT NULL, name TEXT NOT NULL, data BYTEA NOT NULL, PRIMARY KEY (check_id, name));
 CREATE TABLE IF NOT EXISTS sf_shared_rounds (id BIGSERIAL PRIMARY KEY, check_id TEXT NOT NULL, line TEXT NOT NULL);";
 
@@ -319,6 +323,56 @@ impl Store {
             }
         }
         Ok(())
+    }
+
+    // ---------- the family-wide AI cost log ----------
+
+    /// Adds `call` to the log (the file or table, and the totals).
+    pub fn record_ai_call(&mut self, call: &crate::spend::AiCall) -> Result<(), StoreError> {
+        self.state.ai.record(call);
+        let line = serde_json::to_string(call).map_err(|e| StoreError::Io(e.to_string()))?;
+        match &self.backend {
+            Backend::Memory(_) => {}
+            Backend::Dir(dir) => {
+                let mut f = std::fs::OpenOptions::new()
+                    .create(true)
+                    .append(true)
+                    .open(dir.join("ai_calls.jsonl"))
+                    .map_err(|e| StoreError::Io(e.to_string()))?;
+                writeln!(f, "{line}").map_err(|e| StoreError::Io(e.to_string()))?;
+            }
+            Backend::Db(c) => {
+                let mut c = c.lock().unwrap_or_else(std::sync::PoisonError::into_inner);
+                let at = call.at as i64;
+                c.execute("INSERT INTO sf_ai_calls (at, entry) VALUES ($1, $2)", &[&at, &line]).map_err(db_error)?;
+            }
+        }
+        self.save()
+    }
+
+    /// What every product's AI calls cost in `month` (micro-dollars).
+    pub fn ai_month_cost(&self, month: &str) -> u64 {
+        self.state.ai.month_cost(month)
+    }
+
+    /// The highest budget level (80, 100) emailed for `month`, 0 for none.
+    pub fn budget_mailed(&self, month: &str) -> u8 {
+        self.state.ai.mailed(month)
+    }
+
+    pub fn set_budget_mailed(&mut self, month: &str, level: u8) -> Result<(), StoreError> {
+        self.state.ai.set_mailed(month, level);
+        self.save()
+    }
+
+    /// The spend page's numbers (see [`crate::spend::Spend::summary`]).
+    pub fn ai_summary(&self, now: u64) -> serde_json::Value {
+        self.state.ai.summary(now)
+    }
+
+    /// Credits of `account` that were not bought (free ones).
+    pub fn free_credits(&self, account: u64) -> u64 {
+        self.state.accounts.get(&account).map_or(0, |a| a.credits.saturating_sub(a.paid))
     }
 
     // ---------- the free offers' budget ----------
@@ -865,6 +919,7 @@ impl Store {
         a.credits = a.credits.saturating_add(credits);
         if kind == "purchase" {
             a.paid = a.paid.saturating_add(credits);
+            self.state.ai.add_sold(&crate::sewout::month(now), credits);
         }
         let balance = a.credits;
         if !key.is_empty() {
