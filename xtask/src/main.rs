@@ -12,6 +12,7 @@ mod ico;
 mod layers;
 mod pdf_deps;
 mod pngsuite;
+mod qa_hoops;
 mod sha256;
 mod stats;
 mod version;
@@ -31,6 +32,8 @@ commands:
                   broken scan; ci runs it too)
   pdf-deps        verify immutable shared PDF writer and patched Krilla sources
   layers          enforce the crate dependency layering (plan/architecture.md §3)
+  qa-hoops        Add-on 40 QA: the full hoop matrix (every hoop × rotate/flip/scale × DST and PES: inside the
+                  field, round trip); writes docs/qa/addon-40-report.md. ci runs a 3-hoop subset
   wasm            cargo check --target wasm32-unknown-unknown for the wasm-safe crates and the web app
   test            the workspace tests (cargo nextest when installed, else cargo test), then the doctests
   ci              fmt --check, clippy -D warnings, test, doctests, no-bundled-fonts, pdf-deps, assets, brands, cursors (warnings only), layers, wasm (stops at first failure)
@@ -57,6 +60,7 @@ fn main() -> ExitCode {
         Some("i18n-report") => cmd_i18n_report(),
         Some("layers") => cmd_layers(),
         Some("pdf-deps") => pdf_deps::run(&root()),
+        Some("qa-hoops") => qa_hoops::run_full(&root()),
         Some("wasm") => cmd_wasm(),
         Some("test") => cmd_test().and_then(|()| cmd_doctests()),
         Some("ci") => cmd_ci(),
@@ -111,7 +115,7 @@ pub fn cargo() -> Command {
 }
 
 /// Prints `what` and runs `cmd`, which must exit successfully.
-fn run(mut cmd: Command, what: &str) -> Result<(), String> {
+pub fn run(mut cmd: Command, what: &str) -> Result<(), String> {
     eprintln!("$ {what}");
     let status = cmd.status().map_err(|e| format!("{what}: failed to spawn: {e}"))?;
     if status.success() { Ok(()) } else { Err(format!("{what}: exited with {status}")) }
@@ -273,6 +277,7 @@ fn cmd_ci() -> Result<(), String> {
         ),
         ("test", Box::new(cmd_test)),
         ("doctests", Box::new(cmd_doctests)),
+        ("qa-hoops-fast", Box::new(qa_hoops::fast)),
         (
             "no-bundled-fonts",
             Box::new(|| {
