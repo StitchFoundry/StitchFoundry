@@ -142,9 +142,74 @@ impl Throttle {
     }
 }
 
+/// Disposable email domains that can't sign up (`disposable_domains.txt`: one a line, `#` starts a
+/// comment). Easy to update: add a line.
+const DISPOSABLE_DOMAINS: &str = include_str!("disposable_domains.txt");
+
+/// Whether `email` (as [`clean_email`] gives it) is at a disposable domain, or a subdomain of one.
+pub fn is_disposable(email: &str) -> bool {
+    let Some((_, domain)) = email.rsplit_once('@') else { return false };
+    let domain = domain.trim_end_matches('.').to_lowercase();
+    let listed: Vec<&str> = DISPOSABLE_DOMAINS.lines().map(str::trim).filter(|l| !l.is_empty() && !l.starts_with('#')).collect();
+    // the domain itself, then each parent of it (`a.b.mailinator.com` → `b.mailinator.com` → …)
+    let mut rest = domain.as_str();
+    loop {
+        if listed.contains(&rest) {
+            return true;
+        }
+        match rest.split_once('.') {
+            Some((_, parent)) if parent.contains('.') => rest = parent,
+            _ => return false,
+        }
+    }
+}
+
+/// How often something happened lately, by key (an address): at most `max` a `window` seconds.
+#[derive(Default)]
+pub struct Quota {
+    hits: HashMap<String, Vec<u64>>,
+}
+
+impl Quota {
+    /// Counts one more for `key` and says whether it is within `max` in the last `window` seconds.
+    /// A `max` of 0 means no limit. Refused tries aren't counted, so waiting is enough.
+    pub fn take(&mut self, key: &str, now: u64, max: u64, window: u64) -> bool {
+        if max == 0 {
+            return true;
+        }
+        let list = self.hits.entry(key.to_string()).or_default();
+        list.retain(|t| now.saturating_sub(*t) < window);
+        if list.len() as u64 >= max {
+            return false;
+        }
+        list.push(now);
+        // keep the map from growing without end
+        if self.hits.len() > 100_000 {
+            self.hits.retain(|_, l| l.iter().any(|t| now.saturating_sub(*t) < window));
+        }
+        true
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn disposable_domains_and_their_subdomains_are_found() {
+        assert!(is_disposable("x@mailinator.com") && is_disposable("x@MAILINATOR.com.") && is_disposable("x@a.b.mailinator.com"));
+        assert!(!is_disposable("x@gmail.com") && !is_disposable("x@notmailinator.com") && !is_disposable("x@com") && !is_disposable("nope"));
+    }
+
+    #[test]
+    fn a_quota_counts_per_key_and_window() {
+        let mut q = Quota::default();
+        assert!(q.take("a", 0, 2, 100) && q.take("a", 1, 2, 100));
+        assert!(!q.take("a", 2, 2, 100), "third in the window");
+        assert!(q.take("b", 2, 2, 100), "another key");
+        assert!(q.take("a", 101, 2, 100), "the first has aged out");
+        assert!((0..50).all(|i| q.take("c", i, 0, 100)), "0 is no limit");
+    }
 
     #[test]
     fn passwords_are_hashed_and_checked() {

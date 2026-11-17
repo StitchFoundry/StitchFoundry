@@ -205,6 +205,7 @@ target/release/stitchfoundry-cloud
 | `SF_CLOUD_FREE_CHECKS`, `SF_CLOUD_CHECK_CREDITS` | sew-out checks free a month (3) and a check's price after them (10) |
 | `SF_CLOUD_FREE_BUDGET_CENTS` | the most the free offers may cost in AI a month (2500: $25; see Prices) |
 | `SF_CLOUD_SIGNUP_DAILY_CAP` | sign-ups given their starting credits a day (100); later ones are queued and get them the next day (account shows `creditsQueued`, "Free credits are back tomorrow") |
+| `SF_CLOUD_SIGNUPS_PER_IP` | sign-ups one IP address may make a day (10; 0 = no limit); more get 429 "too many sign-ups from your network today". The address is the last `X-Forwarded-For` entry (set by your TLS proxy), else the connection's. Not applied in test mode or to `SF_CLOUD_INTERNAL_EMAILS` |
 | `SF_CLOUD_FREE_DAILY_REQUESTS` | AI requests one account may pay with free credits a day (50; 0 = no limit); bought credits are never limited (429 when used up and nothing bought) |
 | `SF_CLOUD_MAIL_FROM` | who account emails (confirmation links, password resets) come from (`StitchFoundry <accounts@stitchfoundry.app>`), through Resend (`RESEND_API_KEY`); without the key there's no reset by email, and new accounts start confirmed |
 | `SF_CLOUD_MAIL_CATCHER_URL` | **staging only**: a Mailpit test mailbox's address (`http://mailpit.railway.internal:8025`, or `http://user:password@host:port` when its send API has a password). Every email (confirmation links, resets, reports) goes to its send API instead of Resend, so nobody real gets staging mail and the end-to-end tests can read it. Setting it turns email on by itself and `RESEND_API_KEY` is ignored (never sent anywhere). Never set it in production (CLOUD-11) |
@@ -337,3 +338,6 @@ the web app to call from a browser (CORS; sessions are bearer tokens, never cook
 in the Anthropic API's shape, `{"type": "error", "error": {"type", "message"}}`: 401 to sign in
 again, 402 for too few credits, 403 (`permission_error`) until the email is confirmed, with a
 message to show as it is, 429 to wait, 503 for what isn't set up.
+
+
+**Disposable emails.** Sign-up refuses throwaway email domains (400, "temporary email addresses can't be used…"), subdomains too. The list is `apps/stitchfoundry-cloud/src/disposable_domains.txt`: add a line and redeploy. Not applied in test mode (staging QA) or to internal emails.

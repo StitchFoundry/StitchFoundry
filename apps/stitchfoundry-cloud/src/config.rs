@@ -62,6 +62,9 @@ pub struct Config {
     /// The most sign-ups given their starting credits in one day (`SF_CLOUD_SIGNUP_DAILY_CAP`,
     /// 100). Later sign-ups are queued and get them the next day.
     pub signup_daily_cap: u64,
+    /// The most sign-ups one IP address may make a day (`SF_CLOUD_SIGNUPS_PER_IP`, 10; 0 means no
+    /// limit). More get 429. Not applied in test mode (a staging QA run) or to internal emails.
+    pub signups_per_ip: u64,
     /// The most AI requests one account may pay with free credits in a day
     /// (`SF_CLOUD_FREE_DAILY_REQUESTS`, 50; 0 means no limit). Bought credits are never limited.
     pub free_daily_requests: u64,
@@ -268,6 +271,7 @@ impl Config {
             check_credits: num("SF_CLOUD_CHECK_CREDITS", 10.0)? as u64,
             free_budget_cents: num("SF_CLOUD_FREE_BUDGET_CENTS", 2500.0)? as u64,
             signup_daily_cap: num("SF_CLOUD_SIGNUP_DAILY_CAP", 100.0)? as u64,
+            signups_per_ip: num("SF_CLOUD_SIGNUPS_PER_IP", 10.0)? as u64,
             free_daily_requests: num("SF_CLOUD_FREE_DAILY_REQUESTS", 50.0)? as u64,
             database_url: nonempty("DATABASE_URL"),
             // (with a test mailbox, email is on and no Resend key is kept)
