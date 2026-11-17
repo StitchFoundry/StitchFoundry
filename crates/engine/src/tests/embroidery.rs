@@ -2918,7 +2918,11 @@ fn machine_profile_names_and_count_are_limited() {
     let long = "M".repeat(10_000);
     let r = s.execute("embroidery.machine.save", &json!({"name": long, "format": "dst"})).unwrap();
     assert_eq!(r["name"].as_str().map(|n| n.chars().count()), Some(80), "a long name is cut");
-    for p in [json!({"name": "A\nB", "format": "dst"}), json!({"name": "Tab\there", "format": "pes"}), json!({"name": "Shop", "format": "dst", "newName": "X\u{0}"})] {
+    for p in [
+        json!({"name": "A\nB", "format": "dst"}),
+        json!({"name": "Tab\there", "format": "pes"}),
+        json!({"name": "Shop", "format": "dst", "newName": "X\u{0}"}),
+    ] {
         assert!(s.execute("embroidery.machine.save", &p).is_err(), "{p}");
     }
     assert!(s.execute("embroidery.machine.save", &json!({"name": "M".repeat(80), "newName": "Line\nbreak"})).is_err());
