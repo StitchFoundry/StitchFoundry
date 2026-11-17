@@ -2609,7 +2609,7 @@ tool list for all parameters):
 | `embroidery.autoDigitize {colors, …}` | trace a selected image into stitches |
 | `embroidery.placeArt {svg, size?, at?, frame?, name?, minArea?}` | place flat-colour SVG art and digitize it, as Design from Prompt does with Claude's drawing (its linked files are never read); `frame` fits the SVG's page into a rectangle, as Redraw Image does over the image |
 | `embroidery.settings {hoop, fabric, chart, machine, …}`, `embroidery.applyFabric {name}` | design settings |
-| `embroidery.machine.list`, `embroidery.machine.save {name, newName?, format?, fromDesign?, …}`, `embroidery.machine.delete {name}` | machine profiles: change the standard ones, make, rename and delete your own |
+| `embroidery.machine.list`, `embroidery.machine.save {name, newName?, format?, fromDesign?, …}`, `embroidery.machine.delete {name}` | machine profiles: change the standard ones, make, rename and delete your own (names up to 80 characters, 100 of your own at most) |
 | `embroidery.crossStitch.new {cols?, rows?, cell?, style?, at?}`, `.paint {at? \| cells?, color?, erase?, size?}`, `.fromImage {cols?, colors?, background?}`, `.set {cell?, style?}`, `.info` | cross-stitch patterns: an empty grid, squares painted or erased, a picture as a pattern, square size and style, the colours and their squares |
 | `embroidery.sortByColor` | sew each colour in one go |
 | `embroidery.autoSequence {ids?}` | reorder for the fewest colour changes and the shortest travel, overlaps kept; with `ids`, only inside those groups |

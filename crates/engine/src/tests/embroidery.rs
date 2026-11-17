@@ -2911,6 +2911,28 @@ fn machine_profiles_can_be_changed_and_made() {
     assert_eq!(s.prefs.embroidery_machines.len(), 1);
 }
 
+/// Issue 187: machine profile names are kept short and on one line, and one's own are capped.
+#[test]
+fn machine_profile_names_and_count_are_limited() {
+    let mut s = session();
+    let long = "M".repeat(10_000);
+    let r = s.execute("embroidery.machine.save", &json!({"name": long, "format": "dst"})).unwrap();
+    assert_eq!(r["name"].as_str().map(|n| n.chars().count()), Some(80), "a long name is cut");
+    for p in [json!({"name": "A\nB", "format": "dst"}), json!({"name": "Tab\there", "format": "pes"}), json!({"name": "Shop", "format": "dst", "newName": "X\u{0}"})] {
+        assert!(s.execute("embroidery.machine.save", &p).is_err(), "{p}");
+    }
+    assert!(s.execute("embroidery.machine.save", &json!({"name": "M".repeat(80), "newName": "Line\nbreak"})).is_err());
+    for i in 1..100 {
+        s.execute("embroidery.machine.save", &json!({"name": format!("Machine {i}"), "format": "dst"})).unwrap();
+    }
+    assert!(s.execute("embroidery.machine.save", &json!({"name": "One too many", "format": "dst"})).is_err(), "100 of one's own at most");
+    // changing one already kept, or a standard profile, still works
+    s.execute("embroidery.machine.save", &json!({"name": "Machine 5", "speed": 700.0})).unwrap();
+    s.execute("embroidery.machine.save", &json!({"name": "pes", "speed": 700.0})).unwrap();
+    s.execute("embroidery.machine.delete", &json!({"name": "Machine 5"})).unwrap();
+    s.execute("embroidery.machine.save", &json!({"name": "One more", "format": "dst"})).unwrap();
+}
+
 /// An object's own stitches: (x, y, command) in document points.
 fn own(s: &mut Session, id: NodeId) -> (bool, Vec<(f64, f64, String)>) {
     let r = s.execute("embroidery.stitches", &json!({"id": id.0})).unwrap();
