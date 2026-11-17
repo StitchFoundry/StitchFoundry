@@ -206,7 +206,7 @@ fn hoop_overlay_defaults_on_toggles_and_clamps() {
     let r = s.execute("embroidery.hoopOverlay", &json!({"show": true, "opacity": 0.0})).unwrap();
     assert_eq!(r["show"], true);
     assert!((r["opacity"].as_f64().unwrap() - 0.1).abs() < 1e-6);
-    s.execute("embroidery.hoopOverlay", &json!({"opacity": 0.5})).unwrap();
+    s.execute("embroidery.hoopOverlay", &json!({"show": true, "opacity": 0.5})).unwrap();
     assert!(s.prefs.embroidery_hoop_overlay && s.prefs.embroidery_hoop_overlay_opacity == 0.5);
     assert!(s.execute("embroidery.hoopOverlay", &json!({"show": "yes"})).is_err());
 }
