@@ -41,3 +41,5 @@
 - 2026-11-17 nightly sweep: no reports to triage; main green through fmt, clippy and 69 test suites (then the disk filled); cargo audit: no vulnerabilities (6 unmaintained). Filed #187; #184 waits on the owner's OK to add chrono to the cloud crate.
 - Fix #187: `embroidery.machine.save` cuts names to 80 characters, refuses control characters and keeps at most 100 machine profiles of one's own, like the custom hoops.
 - Issue 100: free starter pack in `assets/starter-pack/`: 12 original hand-drawn SVGs with DST and PES stitch files and preview PNGs (made by `build.sh` with the CLI), all in ASSETS.md. Draft page `website/free-samples.html` and a "Free samples" button on the Home screen. Still to do: the owner publishes the page; samples aren't test-sewn yet.
+- 2026-11-18 nightly sweep: no reports to triage; clippy clean on main, tests rerun after the disk filled; cargo audit: no vulnerabilities, wasmi 2.0.0 yanked (filed #192).
+- Fix #192: Cargo.lock moves wasmi (and wasmi_core, wasmi_collections, wasmi_ir) from the yanked 2.0.0 to 2.0.1 (`cargo audit -D yanked` passes).
