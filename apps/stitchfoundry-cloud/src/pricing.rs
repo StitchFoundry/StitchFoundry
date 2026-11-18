@@ -75,6 +75,11 @@ fn usd(price: &ModelPrice, usage: &Value) -> f64 {
         + usage.pointer("/server_tool_use/web_search_requests").and_then(Value::as_u64).unwrap_or(0) as f64 * SEARCH_USD
 }
 
+/// What a reply's `usage` cost Anthropic's way (micro-dollars).
+pub fn cost_micro(price: &ModelPrice, usage: &Value) -> u64 {
+    crate::spend::micro(usd(price, usage))
+}
+
 /// What a reply's `usage` cost (credits).
 pub fn charge(cfg: &Config, price: &ModelPrice, usage: &Value) -> u64 {
     credits(cfg, usd(price, usage))
