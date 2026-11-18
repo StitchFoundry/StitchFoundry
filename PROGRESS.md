@@ -39,3 +39,7 @@
 - 2026-11-15 nightly sweep: no reports to triage; `cargo xtask ci` on main green through fmt and clippy, 103 test suites passed before the disk filled; cargo audit: no vulnerabilities (6 unmaintained notices). One cloud-service finding kept private for the owner.
 - Fix #157: `help.bugReport.queue` only numbers from the eight-digit `report-NNNNNNNN.json` names it writes and refuses a report past 99,999,999 instead of overflowing.
 - Issue 98: cloud sign-up guard. Disposable email domains are refused (400; list in `apps/stitchfoundry-cloud/src/disposable_domains.txt`, subdomains too) and one IP may sign up `SF_CLOUD_SIGNUPS_PER_IP` (10) times a day (429). Skipped in test mode and for internal emails. IP = last `X-Forwarded-For` entry, else the connection's. Needs review (auth).
+- 2026-11-17 nightly sweep: no reports to triage; main green through fmt, clippy and 69 test suites (then the disk filled); cargo audit: no vulnerabilities (6 unmaintained). Filed #187; #184 waits on the owner's OK to add chrono to the cloud crate.
+- Fix #187: `embroidery.machine.save` cuts names to 80 characters, refuses control characters and keeps at most 100 machine profiles of one's own, like the custom hoops.
+- 2026-11-18 nightly sweep: no reports to triage; clippy clean on main, tests rerun after the disk filled; cargo audit: no vulnerabilities, wasmi 2.0.0 yanked (filed #192).
+- Fix #192: Cargo.lock moves wasmi (and wasmi_core, wasmi_collections, wasmi_ir) from the yanked 2.0.0 to 2.0.1 (`cargo audit -D yanked` passes).
