@@ -58,10 +58,20 @@ fn run() -> Result<(), String> {
                 // (a body cut short is answered as the bad JSON it is)
                 let _ = incoming.as_reader().take(MAX_BODY as u64 + 1).read_to_end(&mut body);
             }
+            // (the connection's address goes in a header of ours; one the client sent is dropped)
+            let mut headers: Vec<(String, String)> = incoming
+                .headers()
+                .iter()
+                .map(|h| (h.field.as_str().as_str().to_string(), h.value.as_str().to_string()))
+                .filter(|(k, _)| !k.eq_ignore_ascii_case("x-peer-addr"))
+                .collect();
+            if let Some(peer) = incoming.remote_addr() {
+                headers.push(("X-Peer-Addr".into(), peer.ip().to_string()));
+            }
             let req = Request {
                 method: incoming.method().as_str().to_uppercase(),
                 path: incoming.url().to_string(),
-                headers: incoming.headers().iter().map(|h| (h.field.as_str().as_str().to_string(), h.value.as_str().to_string())).collect(),
+                headers,
                 body: if too_big { vec![0; MAX_BODY + 1] } else { body },
             };
             let resp = service.handle(&req);
