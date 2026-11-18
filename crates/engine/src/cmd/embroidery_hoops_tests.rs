@@ -196,3 +196,27 @@ fn a_design_over_the_field_is_fitted_and_undoes() {
     let again = s.execute("embroidery.hoop.fit", &json!({})).unwrap();
     assert_eq!(again["scaled"], false);
 }
+
+#[test]
+fn hoop_overlay_defaults_on_toggles_and_clamps() {
+    let mut s = Session::new();
+    assert!(s.prefs.embroidery_hoop_overlay && s.prefs.embroidery_hoop_overlay_opacity == 1.0);
+    let r = s.execute("embroidery.hoopOverlay", &json!({})).unwrap();
+    assert_eq!(r["show"], false);
+    let r = s.execute("embroidery.hoopOverlay", &json!({"show": true, "opacity": 0.0})).unwrap();
+    assert_eq!(r["show"], true);
+    assert!((r["opacity"].as_f64().unwrap() - 0.1).abs() < 1e-6);
+    s.execute("embroidery.hoopOverlay", &json!({"show": true, "opacity": 0.5})).unwrap();
+    assert!(s.prefs.embroidery_hoop_overlay && s.prefs.embroidery_hoop_overlay_opacity == 0.5);
+    assert!(s.execute("embroidery.hoopOverlay", &json!({"show": "yes"})).is_err());
+}
+
+#[test]
+fn hoop_overlay_prefs_round_trip_and_old_files_default() {
+    let mut s = Session::new();
+    s.execute("embroidery.hoopOverlay", &json!({"show": false, "opacity": 0.4})).unwrap();
+    let back: crate::prefs::Prefs = serde_json::from_str(&serde_json::to_string(&s.prefs).unwrap()).unwrap();
+    assert!(!back.embroidery_hoop_overlay && back.embroidery_hoop_overlay_opacity == 0.4);
+    let old: crate::prefs::Prefs = serde_json::from_str("{}").unwrap();
+    assert!(old.embroidery_hoop_overlay && old.embroidery_hoop_overlay_opacity == 1.0);
+}

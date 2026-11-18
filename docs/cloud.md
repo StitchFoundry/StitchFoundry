@@ -206,6 +206,7 @@ target/release/stitchfoundry-cloud
 | `SF_CLOUD_PRODUCT_KEYS` | the Foundry apps allowed to report AI calls (`product:key` apart by commas, keys 24+ characters; a product's name is `a-z`, `0-9`, `.`, `_`, `-`), sent as `X-Product-Key` |
 | `SF_CLOUD_FREE_BUDGET_CENTS` | the most the free offers may cost in AI a month (2500: $25; see Prices) |
 | `SF_CLOUD_SIGNUP_DAILY_CAP` | sign-ups given their starting credits a day (100); later ones are queued and get them the next day (account shows `creditsQueued`, "Free credits are back tomorrow") |
+| `SF_CLOUD_SIGNUPS_PER_IP` | sign-ups one IP address may make a day (10; 0 = no limit); more get 429 "too many sign-ups from your network today". The address is the last `X-Forwarded-For` entry (set by your TLS proxy), else the connection's. Not applied in test mode or to `SF_CLOUD_INTERNAL_EMAILS` |
 | `SF_CLOUD_FREE_DAILY_REQUESTS` | AI requests one account may pay with free credits a day (50; 0 = no limit); bought credits are never limited (429 when used up and nothing bought) |
 | `SF_CLOUD_MAIL_FROM` | who account emails (confirmation links, password resets) come from (`StitchFoundry <accounts@stitchfoundry.app>`), through Resend (`RESEND_API_KEY`); without the key there's no reset by email, and new accounts start confirmed |
 | `SF_CLOUD_MAIL_CATCHER_URL` | **staging only**: a Mailpit test mailbox's address (`http://mailpit.railway.internal:8025`, or `http://user:password@host:port` when its send API has a password). Every email (confirmation links, resets, reports) goes to its send API instead of Resend, so nobody real gets staging mail and the end-to-end tests can read it. Setting it turns email on by itself and `RESEND_API_KEY` is ignored (never sent anywhere). Never set it in production (CLOUD-11) |
@@ -339,6 +340,8 @@ in the Anthropic API's shape, `{"type": "error", "error": {"type", "message"}}`:
 again, 402 for too few credits, 403 (`permission_error`) until the email is confirmed, with a
 message to show as it is, 429 to wait, 503 for what isn't set up.
 
+**Disposable emails.** Sign-up refuses throwaway email domains (400, "temporary email addresses can't be used…"), subdomains too. The list is `apps/stitchfoundry-cloud/src/disposable_domains.txt`: add a line and redeploy. Not applied in test mode (staging QA) or to internal emails.
+
 ## AI cost log (every Foundry app)
 
 Each Foundry app (LaserFoundry, PatternFoundry, ScreenFoundry…) can report the AI calls it makes with its own Anthropic key, so the owner sees the whole family's spend in one place, and charge them to the shared wallet. StitchFoundry's own requests (`/v1/messages`, sew-out checks) are logged the same way as product `stitchfoundry`.
@@ -350,4 +353,3 @@ To adopt it, a product asks for a key (`SF_CLOUD_PRODUCT_KEYS`) and, after each 
 - `feature` is the product's own name for what ran (`trace`, `ask`; `a-z`, `0-9`, `.`, `_`, `-`, up to 32); `cost_usd` is what the call really cost; `credits` is the price the product set for that feature, taken from the account's shared wallet (free credits first, bought ones after) and needing `account`, the Foundry Account id.
 - → `{logged: true, charged}`. A wallet that can't pay answers 402 (not enough credits), 403 (email not confirmed) or 429 (free credits used up today); the call is still logged, at 0 credits charged. An unknown account is 401 and nothing is logged. A wrong key is 404. Test accounts' calls are never logged.
 - The log is `ai_calls.jsonl` (or the `sf_ai_calls` table), append-only; the totals are by day, product and feature.
-

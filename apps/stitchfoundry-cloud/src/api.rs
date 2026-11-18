@@ -7,6 +7,8 @@
 //!   (`commit`, from Railway's `RAILWAY_GIT_COMMIT_SHA`; `null` elsewhere), so a staging test run
 //!   knows which commit it tested.
 //! - `POST /v1/signup {email, password}`, `POST /v1/signin {email, password}` → `{token, account}`.
+//!   Sign-up refuses disposable email domains (400) and more than `SF_CLOUD_SIGNUPS_PER_IP` a day
+//!   from one address (429); neither applies in test mode.
 //! - `POST /v1/signout` (with the token).
 //! - `POST /v1/password/forgot {email}`: a link to reset the password, emailed if the account
 //!   exists (the answer is the same either way); `GET /reset?token=…` is the page it opens, and
@@ -47,7 +49,7 @@ use std::sync::Mutex;
 
 use serde_json::{Value, json};
 
-use crate::auth::{self, Throttle};
+use crate::auth::{self, Quota, Throttle};
 use crate::config::Config;
 use crate::store::{Check, PHONE_TTL, Phone, Store, StoreError};
 use crate::{pricing, sewout, spend, stripe};
@@ -270,6 +272,8 @@ pub struct Service {
     resets: Mutex<Throttle>,
     /// Confirmation emails lately, by address (sign-up's and the ones sent again).
     verifies: Mutex<Throttle>,
+    /// Sign-ups lately, by IP address.
+    signups: Mutex<Quota>,
     in_flight: Mutex<HashMap<u64, u32>>,
     upstream: Box<dyn Upstream>,
     clock: Box<dyn Fn() -> u64 + Send + Sync>,
@@ -389,6 +393,21 @@ fn link_html(title: &str, body: &str) -> Response {
 
 /// What an account sees when its sign-up credits wait for tomorrow.
 const QUEUED_MESSAGE: &str = "Free credits are back tomorrow";
+/// What a sign-up with a throwaway email address sees.
+const DISPOSABLE_MESSAGE: &str = "temporary email addresses can't be used to sign up: please use your own email address";
+/// What a sign-up sees when its address has made too many today.
+const SIGNUP_LIMIT_MESSAGE: &str = "too many sign-ups from your network today: try again tomorrow";
+/// The day a sign-up limit counts over, in seconds.
+const SIGNUP_WINDOW: u64 = 24 * 60 * 60;
+
+/// Where a request came from: the last `X-Forwarded-For` entry (what the TLS proxy in front added;
+/// earlier ones are the client's own to make up), else the connection's address (`X-Peer-Addr`,
+/// set by `main` over anything the client sent), else one shared "unknown".
+fn client_ip(req: &Request) -> String {
+    let forwarded = req.header("x-forwarded-for").and_then(|v| v.rsplit(',').next()).map(str::trim).filter(|v| !v.is_empty());
+    forwarded.or_else(|| req.header("x-peer-addr").map(str::trim)).unwrap_or("unknown").to_string()
+}
+
 /// What an account sees when its day's free AI requests are used.
 const FREE_LIMIT_MESSAGE: &str = "you've used today's free AI requests: they're back tomorrow, or buy credits in Account";
 
@@ -418,6 +437,7 @@ impl Service {
             throttle: Mutex::default(),
             resets: Mutex::default(),
             verifies: Mutex::default(),
+            signups: Mutex::default(),
             in_flight: Mutex::default(),
             upstream,
             clock,
@@ -853,11 +873,23 @@ impl Service {
         if let Err(e) = auth::check_password(&password) {
             return Response::error(400, "invalid_request_error", e);
         }
+        // a staging QA run (test mode) and the owner's own addresses aren't guarded
+        let guarded = !self.cfg.test_mode && !self.cfg.internal_emails.contains(&email);
+        if guarded && auth::is_disposable(&email) {
+            return Response::error(400, "invalid_request_error", DISPOSABLE_MESSAGE);
+        }
+        let now = (self.clock)();
+        if guarded {
+            let ip = client_ip(req);
+            let mut signups = self.signups.lock().unwrap_or_else(std::sync::PoisonError::into_inner);
+            if !signups.take(&ip, now, self.cfg.signups_per_ip, SIGNUP_WINDOW) {
+                return Response::error(429, "rate_limit_error", SIGNUP_LIMIT_MESSAGE);
+            }
+        }
         let hash = match auth::hash_password(&password) {
             Ok(h) => h,
             Err(e) => return Response::error(500, "api_error", e),
         };
-        let now = (self.clock)();
         let month = sewout::month(now);
         // with email set up, the account waits for its address to be confirmed; without, nobody
         // could confirm it, so it starts confirmed
@@ -3004,6 +3036,102 @@ mod tests {
 
     fn account_of(s: &Service, t: &str) -> Value {
         json_of(&s.handle(&req("GET", "/v1/account", Some(t), json!({}))))
+    }
+
+    fn signup_from(s: &Service, email: &str, ip: Option<&str>) -> Response {
+        let mut r = req("POST", "/v1/signup", None, json!({"email": email, "password": "fire truck 1"}));
+        if let Some(ip) = ip {
+            r.headers.push(("X-Forwarded-For".into(), format!("6.6.6.6, {ip}")));
+        }
+        s.handle(&r)
+    }
+
+    #[test]
+    fn disposable_email_domains_cant_sign_up() {
+        let (s, _) = service((200, String::new()), true);
+        for email in ["a@mailinator.com", "A@Yopmail.COM", "a@x.guerrillamail.com"] {
+            let r = signup_from(&s, email, None);
+            assert_eq!(r.status, 400, "{email}");
+            assert!(r.body.contains("temporary email"), "{}", r.body);
+            assert!(s.store().by_email(&email.to_lowercase()).is_none(), "{email}: no account");
+        }
+        assert_eq!(signup_from(&s, "a@example.com", None).status, 200);
+    }
+
+    #[test]
+    fn a_disposable_domain_in_the_list_file_is_a_whole_domain_not_a_suffix_of_text() {
+        assert!(!auth::is_disposable("a@notmailinator.com"));
+        assert!(auth::is_disposable("a@mailinator.com"));
+    }
+
+    #[test]
+    fn signups_from_one_ip_are_limited_a_day() {
+        let (s, clock) = limited(1000, 0);
+        let cfg_limit = s.cfg.signups_per_ip;
+        assert_eq!(cfg_limit, 10);
+        for i in 0..cfg_limit {
+            assert_eq!(signup_from(&s, &format!("u{i}@example.com"), Some("1.2.3.4")).status, 200, "sign-up {i}");
+        }
+        let r = signup_from(&s, "late@example.com", Some("1.2.3.4"));
+        assert_eq!(r.status, 429, "{}", r.body);
+        assert!(r.body.contains("too many sign-ups") && s.store().by_email("late@example.com").is_none());
+        // another address is its own count, and the client's own forged first entry changes nothing
+        assert_eq!(signup_from(&s, "other@example.com", Some("5.6.7.8")).status, 200);
+        assert_eq!(signup_from(&s, "late@example.com", Some("1.2.3.4")).status, 429);
+        // a day later it is allowed again
+        clock.fetch_add(SIGNUP_WINDOW + 1, std::sync::atomic::Ordering::SeqCst);
+        assert_eq!(signup_from(&s, "late@example.com", Some("1.2.3.4")).status, 200);
+    }
+
+    #[test]
+    fn the_ip_limit_is_configurable_and_zero_means_none() {
+        let mk = |n: &str| {
+            let cfg = Config::from_env(|k| (k == "SF_CLOUD_SIGNUPS_PER_IP").then(|| n.to_string())).unwrap();
+            Service::with_clock(
+                cfg,
+                Store::in_memory(),
+                Box::new(Fake { calls: Arc::default(), reply: (200, String::new()) }),
+                Box::new(|| 1_000_000),
+            )
+        };
+        let s = mk("2");
+        assert_eq!(signup_from(&s, "a@example.com", Some("9.9.9.9")).status, 200);
+        assert_eq!(signup_from(&s, "b@example.com", Some("9.9.9.9")).status, 200);
+        assert_eq!(signup_from(&s, "c@example.com", Some("9.9.9.9")).status, 429);
+        let s = mk("0");
+        for i in 0..30 {
+            assert_eq!(signup_from(&s, &format!("u{i}@example.com"), Some("9.9.9.9")).status, 200);
+        }
+    }
+
+    #[test]
+    fn a_connection_address_counts_when_no_proxy_header_is_sent() {
+        let (s, _) = service((200, String::new()), true);
+        let mut r = req("POST", "/v1/signup", None, json!({"email": "a@example.com", "password": "fire truck 1"}));
+        r.headers.push(("X-Peer-Addr".into(), "7.7.7.7".into()));
+        assert_eq!(client_ip(&r), "7.7.7.7");
+        assert_eq!(s.handle(&r).status, 200);
+        assert_eq!(client_ip(&req("GET", "/", None, json!({}))), "unknown");
+    }
+
+    #[test]
+    fn staging_test_mode_and_internal_emails_are_not_guarded() {
+        let (s, _) = test_service(Store::in_memory(), false);
+        assert_eq!(signup_from(&s, "qa@mailinator.com", Some("1.1.1.1")).status, 200, "test mode: a disposable address is fine");
+        for i in 0..15 {
+            assert_eq!(signup_from(&s, &format!("q{i}@example.com"), Some("1.1.1.1")).status, 200, "test mode: no per-IP limit");
+        }
+        let cfg = Config::from_env(|k| match k {
+            "SF_CLOUD_INTERNAL_EMAILS" => Some("staff@mailinator.com".into()),
+            "SF_CLOUD_SIGNUPS_PER_IP" => Some("1".into()),
+            _ => None,
+        })
+        .unwrap();
+        let s = Service::with_clock(cfg, Store::in_memory(), Box::new(Fake { calls: Arc::default(), reply: (200, String::new()) }), Box::new(|| 1));
+        assert_eq!(signup_from(&s, "staff@mailinator.com", Some("2.2.2.2")).status, 200);
+        assert_eq!(signup_from(&s, "staff@mailinator.com", Some("2.2.2.2")).status, 409, "(taken, not limited)");
+        assert_eq!(signup_from(&s, "one@example.com", Some("2.2.2.2")).status, 200);
+        assert_eq!(signup_from(&s, "two@example.com", Some("2.2.2.2")).status, 429);
     }
 
     /// Sign-ups over the day's cap start without credits, are queued, and get them next day.
