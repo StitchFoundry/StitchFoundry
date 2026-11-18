@@ -24,7 +24,7 @@ pub fn specs() -> Vec<CommandSpec> {
             "Save Machine Profile",
             [],
             None,
-            "{name, newName?, format?, fromDesign?, maxStitch?, maxJump?, speed?, trimSeconds?, advanced?: {minStitch?, trimThreshold?, tieIn?, tieOff?, tieLength?, tieStyle?, colorChangeSeconds?} | null} change a machine profile, or make one of your own: a new name with `format` (dst|exp|u01|pes|jef|vp3|xxx; it starts from that format's profile). fromDesign: the values of the design's machine settings first. A standard profile keeps its name, format and kind, and is as it ships again once its values are; the design using a profile follows its new name and format → {name, format, standard, edited, created}",
+            "{name, newName?, format?, fromDesign?, maxStitch?, maxJump?, speed?, trimSeconds?, advanced?: {minStitch?, trimThreshold?, tieIn?, tieOff?, tieLength?, tieStyle?, colorChangeSeconds?} | null} change a machine profile, or make one of your own: a new name with `format` (dst|exp|u01|pes|jef|vp3|xxx; it starts from that format's profile; names up to 80 characters, 100 of your own at most). fromDesign: the values of the design's machine settings first. A standard profile keeps its name, format and kind, and is as it ships again once its values are; the design using a profile follows its new name and format → {name, format, standard, edited, created}",
             always,
             save
         ),
@@ -55,6 +55,20 @@ fn list(s: &mut Session, _p: &Value) -> Result<Value> {
     Ok(json!({ "machines": machines::profiles(saved).iter().map(|m| machine_json(m, saved)).collect::<Vec<_>>() }))
 }
 
+/// The most machine profiles of one's own (standard ones changed don't count).
+const MAX_OWN: usize = 100;
+/// The longest profile name, in characters (longer ones are cut).
+const MAX_NAME: usize = 80;
+
+/// `n` trimmed and cut to [`MAX_NAME`] characters; an error for one with control characters.
+fn clean_name(n: &str, cmd: &str) -> Result<String> {
+    let n: String = n.trim().chars().take(MAX_NAME).collect();
+    if n.chars().any(char::is_control) {
+        return Err(bad(cmd, "the name can't hold control characters"));
+    }
+    Ok(n.trim_end().to_string())
+}
+
 fn formats_list() -> String {
     machines::formats().collect::<Vec<_>>().join(", ")
 }
@@ -66,7 +80,8 @@ fn taken(all: &[MachineProfile], n: &str, own: Option<&str>) -> bool {
 
 fn save(s: &mut Session, p: &Value) -> Result<Value> {
     const CMD: &str = "embroidery.machine.save";
-    let name = str_param(p, "name").map(str::trim).filter(|n| !n.is_empty()).ok_or_else(|| bad(CMD, "missing `name`"))?.to_string();
+    let name = str_param(p, "name").map(str::trim).filter(|n| !n.is_empty()).ok_or_else(|| bad(CMD, "missing `name`"))?;
+    let name = clean_name(name, CMD)?;
     let saved = s.prefs.embroidery_machines.clone();
     let all = machines::profiles(&saved);
     let existing = machines::find(&saved, &name);
@@ -92,6 +107,9 @@ fn save(s: &mut Session, p: &Value) -> Result<Value> {
         }
         // one of your own: it starts from the profile of its format
         None => {
+            if saved.iter().filter(|m| !m.is_standard()).count() >= MAX_OWN {
+                return Err(bad(CMD, format!("{MAX_OWN} machine profiles of your own at most: delete one first")));
+            }
             let f =
                 format.ok_or_else(|| bad(CMD, format!("no machine profile is named `{name}`: give a `format` to make one ({})", formats_list())))?;
             let base = machines::find(&saved, f).ok_or_else(|| bad(CMD, format!("unknown format `{f}`")))?;
@@ -138,7 +156,8 @@ fn save(s: &mut Session, p: &Value) -> Result<Value> {
         }
     }
     let old_name = m.name.clone();
-    if let Some(n) = str_param(p, "newName").map(str::trim).filter(|n| *n != old_name) {
+    let new_name = str_param(p, "newName").map(|n| clean_name(n, CMD)).transpose()?;
+    if let Some(n) = new_name.as_deref().filter(|n| *n != old_name) {
         if m.is_standard() {
             return Err(bad(CMD, format!("`{old_name}` is a standard profile and keeps its name: save it as a new one instead")));
         }
