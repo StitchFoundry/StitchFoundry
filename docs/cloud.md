@@ -203,6 +203,7 @@ target/release/stitchfoundry-cloud
 | `SF_CLOUD_CENTS_PER_CREDIT`, `SF_CLOUD_MARKUP` | a credit's price in cents (1) and the markup on the AI's cost (3) |
 | `SF_CLOUD_PACKS` | the packs on sale (see Prices) |
 | `SF_CLOUD_FREE_CHECKS`, `SF_CLOUD_CHECK_CREDITS` | sew-out checks free a month (3) and a check's price after them (10) |
+| `SF_CLOUD_PRODUCT_KEYS` | the Foundry apps allowed to report AI calls (`product:key` apart by commas, keys 24+ characters; a product's name is `a-z`, `0-9`, `.`, `_`, `-`), sent as `X-Product-Key` |
 | `SF_CLOUD_FREE_BUDGET_CENTS` | the most the free offers may cost in AI a month (2500: $25; see Prices) |
 | `SF_CLOUD_SIGNUP_DAILY_CAP` | sign-ups given their starting credits a day (100); later ones are queued and get them the next day (account shows `creditsQueued`, "Free credits are back tomorrow") |
 | `SF_CLOUD_SIGNUPS_PER_IP` | sign-ups one IP address may make a day (10; 0 = no limit); more get 429 "too many sign-ups from your network today". The address is the last `X-Forwarded-For` entry (set by your TLS proxy), else the connection's. Not applied in test mode or to `SF_CLOUD_INTERNAL_EMAILS` |
@@ -339,5 +340,18 @@ in the Anthropic API's shape, `{"type": "error", "error": {"type", "message"}}`:
 again, 402 for too few credits, 403 (`permission_error`) until the email is confirmed, with a
 message to show as it is, 429 to wait, 503 for what isn't set up.
 
-
 **Disposable emails.** Sign-up refuses throwaway email domains (400, "temporary email addresses can't be used…"), subdomains too. The list is `apps/stitchfoundry-cloud/src/disposable_domains.txt`: add a line and redeploy. Not applied in test mode (staging QA) or to internal emails.
+
+## AI cost log (every Foundry app)
+
+Each Foundry app (LaserFoundry, PatternFoundry, ScreenFoundry…) can report the AI calls it makes with its own Anthropic key, so the owner sees the whole family's spend in one place, and charge them to the shared wallet. StitchFoundry's own requests (`/v1/messages`, sew-out checks) are logged the same way as product `stitchfoundry`.
+
+To adopt it, a product asks for a key (`SF_CLOUD_PRODUCT_KEYS`) and, after each AI call, posts:
+
+`POST /v1/ai/log` with `X-Product-Key` and the signed-in user's `Authorization: Bearer sfs_…` (the session token the app already holds, as for `/v1/messages`), body `{id, feature, model?, input_tokens?, output_tokens?, cost_usd, credits?}`
+
+- The product's key names the product; the token names the account that is charged. A key alone never charges anyone (401 without a valid token), and the body has no `account`: one that isn't the token's is refused (400).
+- `id` is made by the product for each call (8 to 64 of `a-z`, `0-9`, `-`, `_`, e.g. a UUID). A repeat of the same id (a retry after a lost reply) gets the first answer and is neither charged nor logged again. The last 10,000 ids of each product are remembered; answers that say "try again" (5xx) are not.
+- `feature` is the product's own name for what ran (`trace`, `ask`; `a-z`, `0-9`, `.`, `_`, `-`, up to 32); `cost_usd` is what the call really cost; `credits` is the price the product set for that feature, taken from the user's shared wallet (free credits first, bought ones after). If settling the charge fails, the held credits are released.
+- → `{logged: true, charged}`. A wallet that can't pay answers 402 (not enough credits), 403 (email not confirmed) or 429 (free credits used up today); the call is still logged, at 0 credits charged. A wrong product key is 404. Test accounts' calls are never logged.
+- The log is `ai_calls.jsonl` (or the `sf_ai_calls` table), append-only; the totals are by day, product and feature.

@@ -169,6 +169,9 @@ struct State {
     /// Requests paid with free credits, by account: `(day, count)`.
     #[serde(default)]
     free_requests: BTreeMap<u64, (u64, u64)>,
+    /// The family-wide AI cost log's totals.
+    #[serde(default)]
+    ai: crate::spend::Spend,
 }
 
 /// The day number of `now` (unix seconds), for the daily limits.
@@ -234,6 +237,7 @@ pub struct Store {
 const SCHEMA: &str = "\
 CREATE TABLE IF NOT EXISTS sf_state (id INT PRIMARY KEY, data TEXT NOT NULL);
 CREATE TABLE IF NOT EXISTS sf_ledger (id BIGSERIAL PRIMARY KEY, at BIGINT NOT NULL, account BIGINT NOT NULL, entry TEXT NOT NULL);
+CREATE TABLE IF NOT EXISTS sf_ai_calls (id BIGSERIAL PRIMARY KEY, at BIGINT NOT NULL, entry TEXT NOT NULL);
 CREATE TABLE IF NOT EXISTS sf_shared_files (check_id TEXT NOT NULL, name TEXT NOT NULL, data BYTEA NOT NULL, PRIMARY KEY (check_id, name));
 CREATE TABLE IF NOT EXISTS sf_shared_rounds (id BIGSERIAL PRIMARY KEY, check_id TEXT NOT NULL, line TEXT NOT NULL);";
 
@@ -319,6 +323,73 @@ impl Store {
             }
         }
         Ok(())
+    }
+
+    // ---------- the family-wide AI cost log ----------
+
+    /// Adds `call` to the log (the file or table, and the totals).
+    pub fn record_ai_call(&mut self, call: &crate::spend::AiCall) -> Result<(), StoreError> {
+        self.state.ai.record(call);
+        let line = serde_json::to_string(call).map_err(|e| StoreError::Io(e.to_string()))?;
+        match &self.backend {
+            Backend::Memory(_) => {}
+            Backend::Dir(dir) => {
+                let mut f = std::fs::OpenOptions::new()
+                    .create(true)
+                    .append(true)
+                    .open(dir.join("ai_calls.jsonl"))
+                    .map_err(|e| StoreError::Io(e.to_string()))?;
+                writeln!(f, "{line}").map_err(|e| StoreError::Io(e.to_string()))?;
+            }
+            Backend::Db(c) => {
+                let mut c = c.lock().unwrap_or_else(std::sync::PoisonError::into_inner);
+                let at = call.at as i64;
+                c.execute("INSERT INTO sf_ai_calls (at, entry) VALUES ($1, $2)", &[&at, &line]).map_err(db_error)?;
+            }
+        }
+        self.save()
+    }
+
+    /// The answer already given to call `id` of `product` by `account`: `(status, body)`.
+    pub fn ai_seen(&self, product: &str, account: u64, id: &str) -> Option<(u16, String)> {
+        self.state.ai.seen(product, &format!("{account}:{id}"))
+    }
+
+    /// Remembers the answer given to call `id` of `product` by `account` (kept with the next save).
+    pub fn ai_remember(&mut self, product: &str, account: u64, id: &str, status: u16, body: &str) -> Result<(), StoreError> {
+        self.state.ai.remember(product, &format!("{account}:{id}"), status, body);
+        self.save()
+    }
+
+    /// Takes `credits` from the account's shared wallet (free ones first when `free_ok`): holds them,
+    /// then settles. When settling fails, a hold still standing is released, so no credits stay held.
+    pub fn charge(&mut self, account: u64, credits: u64, free_ok: bool, note: &str, now: u64) -> Result<(), StoreError> {
+        self.reserve(account, credits, free_ok)?;
+        let held = self.state.accounts.get(&account).map_or(0, |a| a.reserved);
+        let settled = self.settle(account, credits, credits, free_ok, note, now);
+        if settled.is_err()
+            && let Some(a) = self.state.accounts.get_mut(&account)
+            && a.reserved == held
+        {
+            // (settle gives the hold up first, so only a hold it never reached is still here)
+            a.reserved = a.reserved.saturating_sub(credits);
+        }
+        settled.map(|_| ())
+    }
+
+    /// What every product's AI calls cost in `month` (micro-dollars).
+    pub fn ai_month_cost(&self, month: &str) -> u64 {
+        self.state.ai.month_cost(month)
+    }
+
+    /// The spend page's numbers (see [`crate::spend::Spend::summary`]).
+    pub fn ai_summary(&self, now: u64) -> serde_json::Value {
+        self.state.ai.summary(now)
+    }
+
+    /// Credits of `account` that were not bought (free ones).
+    pub fn free_credits(&self, account: u64) -> u64 {
+        self.state.accounts.get(&account).map_or(0, |a| a.credits.saturating_sub(a.paid))
     }
 
     // ---------- the free offers' budget ----------
@@ -865,6 +936,7 @@ impl Store {
         a.credits = a.credits.saturating_add(credits);
         if kind == "purchase" {
             a.paid = a.paid.saturating_add(credits);
+            self.state.ai.add_sold(&crate::sewout::month(now), credits);
         }
         let balance = a.credits;
         if !key.is_empty() {
@@ -1205,5 +1277,22 @@ mod tests {
         let mut s = Store::open_db(&url).unwrap();
         assert!(s.account(1).unwrap().verified, "an old account is confirmed");
         assert_eq!(s.reserve(1, 10, true), Ok(()));
+    }
+
+    /// A hold never stays when the charge can't be settled (here the ledger can't be written).
+    #[test]
+    fn a_charge_that_cannot_settle_leaves_no_hold() {
+        let dir = std::env::temp_dir().join(format!("sf-cloud-store-charge-{}", std::process::id()));
+        let _ = std::fs::remove_dir_all(&dir);
+        let mut s = Store::open(&dir).unwrap();
+        let id = s.create("a@b.c", "hash".into(), 50, true, 1000).unwrap();
+        // a directory where the ledger file goes: appending to it fails
+        std::fs::remove_file(dir.join("ledger.jsonl")).unwrap();
+        std::fs::create_dir_all(dir.join("ledger.jsonl")).unwrap();
+        assert!(matches!(s.charge(id, 5, true, "x", 1001), Err(StoreError::Io(_))));
+        assert_eq!(s.account(id).unwrap().reserved, 0, "nothing stays held");
+        assert_eq!(s.charge(id, 500, true, "x", 1001), Err(StoreError::NotEnough), "a refused hold holds nothing either");
+        assert_eq!(s.account(id).unwrap().reserved, 0);
+        let _ = std::fs::remove_dir_all(&dir);
     }
 }
