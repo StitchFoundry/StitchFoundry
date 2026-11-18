@@ -40,3 +40,4 @@
 - Fix #157: `help.bugReport.queue` only numbers from the eight-digit `report-NNNNNNNN.json` names it writes and refuses a report past 99,999,999 instead of overflowing.
 - 2026-11-17 nightly sweep: no reports to triage; main green through fmt, clippy and 69 test suites (then the disk filled); cargo audit: no vulnerabilities (6 unmaintained). Filed #187; #184 waits on the owner's OK to add chrono to the cloud crate.
 - Fix #187: `embroidery.machine.save` cuts names to 80 characters, refuses control characters and keeps at most 100 machine profiles of one's own, like the custom hoops.
+- Issue 100: free starter pack in `assets/starter-pack/`: 12 original hand-drawn SVGs with DST and PES stitch files and preview PNGs (made by `build.sh` with the CLI), all in ASSETS.md. Draft page `website/free-samples.html` and a "Free samples" button on the Home screen. Still to do: the owner publishes the page; samples aren't test-sewn yet.
