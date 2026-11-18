@@ -348,8 +348,10 @@ Each Foundry app (LaserFoundry, PatternFoundry, ScreenFoundry…) can report the
 
 To adopt it, a product asks for a key (`SF_CLOUD_PRODUCT_KEYS`) and, after each AI call, posts:
 
-`POST /v1/ai/log` with `X-Product-Key`, body `{feature, model?, input_tokens?, output_tokens?, cost_usd, credits?, account?}`
+`POST /v1/ai/log` with `X-Product-Key` and the signed-in user's `Authorization: Bearer sfs_…` (the session token the app already holds, as for `/v1/messages`), body `{id, feature, model?, input_tokens?, output_tokens?, cost_usd, credits?}`
 
-- `feature` is the product's own name for what ran (`trace`, `ask`; `a-z`, `0-9`, `.`, `_`, `-`, up to 32); `cost_usd` is what the call really cost; `credits` is the price the product set for that feature, taken from the account's shared wallet (free credits first, bought ones after) and needing `account`, the Foundry Account id.
-- → `{logged: true, charged}`. A wallet that can't pay answers 402 (not enough credits), 403 (email not confirmed) or 429 (free credits used up today); the call is still logged, at 0 credits charged. An unknown account is 401 and nothing is logged. A wrong key is 404. Test accounts' calls are never logged.
+- The product's key names the product; the token names the account that is charged. A key alone never charges anyone (401 without a valid token), and the body has no `account`: one that isn't the token's is refused (400).
+- `id` is made by the product for each call (8 to 64 of `a-z`, `0-9`, `-`, `_`, e.g. a UUID). A repeat of the same id (a retry after a lost reply) gets the first answer and is neither charged nor logged again. The last 10,000 ids of each product are remembered; answers that say "try again" (5xx) are not.
+- `feature` is the product's own name for what ran (`trace`, `ask`; `a-z`, `0-9`, `.`, `_`, `-`, up to 32); `cost_usd` is what the call really cost; `credits` is the price the product set for that feature, taken from the user's shared wallet (free credits first, bought ones after). If settling the charge fails, the held credits are released.
+- → `{logged: true, charged}`. A wallet that can't pay answers 402 (not enough credits), 403 (email not confirmed) or 429 (free credits used up today); the call is still logged, at 0 credits charged. A wrong product key is 404. Test accounts' calls are never logged.
 - The log is `ai_calls.jsonl` (or the `sf_ai_calls` table), append-only; the totals are by day, product and feature.

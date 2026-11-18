@@ -1238,22 +1238,35 @@ impl Service {
         self.forward(req, id, key, &body, max_tokens, Charge::Metered, "AI request")
     }
 
-    /// `POST /v1/ai/log {feature, model?, input_tokens?, output_tokens?, cost_usd, credits?, account?}`
-    /// (`X-Product-Key`: the key of a product in `SF_CLOUD_PRODUCT_KEYS`, which names the product):
-    /// a Foundry app reports an AI call it made with its own key. With `account` and `credits`, the
-    /// credits are taken from the account's shared wallet (free ones first, as for StitchFoundry's
-    /// own requests); the call is logged either way, and a wallet that can't pay answers 402 or 429
-    /// with the call logged at 0 credits. → `{logged, charged}`.
+    /// `POST /v1/ai/log {id, feature, model?, input_tokens?, output_tokens?, cost_usd, credits?}`
+    /// (`X-Product-Key`: the key of a product in `SF_CLOUD_PRODUCT_KEYS`, which names the product,
+    /// and `Authorization: Bearer`: the signed-in user's session, as for `/v1/messages`): a Foundry
+    /// app reports an AI call it made for that user. With `credits`, they are taken from the
+    /// user's shared wallet (free ones first, as for StitchFoundry's own requests); the call is
+    /// logged either way, and a wallet that can't pay answers 402 or 429 with the call logged at 0
+    /// credits. `id` (8 to 64 of a-z, 0-9, `-`, `_`) makes a repeat of the call harmless: it gets
+    /// the first answer and is neither charged nor logged again. → `{logged, charged}`.
     fn ai_log(&self, req: &Request) -> Response {
         let given = req.header("x-product-key").map(str::trim).unwrap_or_default();
         let Some(product) = self.cfg.product_keys.iter().find(|(_, k)| same_secret(given, k)).map(|(p, _)| p.clone()) else {
             return not_found();
+        };
+        // a product's key alone never reaches an account: the charge is to the token's account
+        let account = match self.signed_in(req) {
+            Ok(id) => id,
+            Err(r) => return r,
         };
         let v = match body_json(req) {
             Ok(v) => v,
             Err(r) => return r,
         };
         let bad = |why: &str| Response::error(400, "invalid_request_error", why.to_string());
+        let Some(call_id) = v.get("id").and_then(Value::as_str).filter(|i| spend::good_id(i)) else {
+            return bad("id is 8 to 64 of a-z, 0-9, - and _, new for each call");
+        };
+        if v.get("account").is_some_and(|a| a.as_u64() != Some(account)) {
+            return bad("account isn't sent: the call is charged to the signed-in user");
+        }
         let Some(feature) = v.get("feature").and_then(Value::as_str).and_then(spend::good_name) else {
             return bad("feature is 1 to 32 of a-z, 0-9, . _ and -");
         };
@@ -1263,36 +1276,25 @@ impl Service {
         if !cost_usd.is_some_and(|c| c.is_finite() && c >= 0.0) {
             return bad("cost_usd is what the call really cost, in dollars");
         }
-        let account = v.get("account").and_then(Value::as_u64);
-        if credits > 0 && account.is_none() {
-            return bad("credits are charged to an account: give its id");
-        }
         let now = (self.clock)();
         let cost = spend::micro(cost_usd.unwrap_or(0.0));
         let mut store = self.store();
+        if let Some((status, body)) = store.ai_seen(&product, account, call_id) {
+            return Response { status, content_type: "application/json", body, raw: Vec::new(), headers: Vec::new() };
+        }
         let (mut charged, mut free_part, mut failed) = (0, 0, None);
-        if let Some(acc) = account {
-            if store.account(acc).is_none() {
-                return store_error(StoreError::NoAccount);
-            }
-            if credits > 0 {
-                let free_ok = self.free_ok(&store, acc, now);
-                match store.reserve(acc, credits, free_ok) {
-                    Ok(()) => {
-                        free_part = if free_ok { credits.min(store.free_credits(acc)) } else { 0 };
-                        match store.settle(acc, credits, credits, free_ok, &format!("{product}: {feature}"), now) {
-                            Ok(_) => charged = credits,
-                            Err(e) => failed = Some(e),
-                        }
-                    }
-                    Err(e) => failed = Some(e),
-                }
+        if credits > 0 {
+            let free_ok = self.free_ok(&store, account, now);
+            let free = if free_ok { credits.min(store.free_credits(account)) } else { 0 };
+            match store.charge(account, credits, free_ok, &format!("{product}: {feature}"), now) {
+                Ok(()) => (charged, free_part) = (credits, free),
+                Err(e) => failed = Some(e),
             }
         }
         let free_cost = if charged == 0 { cost } else { (u128::from(cost) * u128::from(free_part) / u128::from(charged)) as u64 };
         let call = spend::AiCall {
             at: now,
-            product,
+            product: product.clone(),
             feature,
             model: v.get("model").and_then(Value::as_str).unwrap_or("unknown").chars().take(64).collect(),
             input_tokens: count("input_tokens"),
@@ -1300,19 +1302,25 @@ impl Service {
             cost_micro: cost,
             free_cost_micro: free_cost,
             credits: charged,
-            account,
+            account: Some(account),
         };
         // (a test account's calls never count in the family's totals)
-        if !account.is_some_and(|a| store.is_test(a))
+        if !store.is_test(account)
             && let Err(e) = store.record_ai_call(&call)
         {
             return store_error(e);
         }
-        drop(store);
-        match failed {
+        let answer = match failed {
             Some(e) => store_error(e),
             None => Response::json(200, &json!({ "logged": true, "charged": charged })),
+        };
+        // (an answer that only says "try again" is not remembered: a failure of ours may pass)
+        if answer.status < 500
+            && let Err(e) = store.ai_remember(&product, account, call_id, answer.status, &answer.body)
+        {
+            return store_error(e);
         }
+        answer
     }
 
     /// Check My Sew-out: a check's requests, with the service's own instructions; the month's
@@ -3271,20 +3279,17 @@ mod tests {
     fn a_product_logs_a_call_and_charges_the_shared_wallet() {
         let (s, _) = budgeted();
         let denise = confirmed_account(&s);
-        let call = |key: &str, body: Value| s.handle(&with_header(req("POST", "/v1/ai/log", None, body), "x-product-key", key));
-        let body = json!({"feature": "trace", "model": "m", "input_tokens": 100, "output_tokens": 50, "cost_usd": 0.01, "credits": 5, "account": 1});
+        let call = |key: &str, body: Value| s.handle(&with_header(req("POST", "/v1/ai/log", Some(&denise), body), "x-product-key", key));
+        let body =
+            json!({"id": "call-0001", "feature": "trace", "model": "m", "input_tokens": 100, "output_tokens": 50, "cost_usd": 0.01, "credits": 5});
         assert_eq!(call("wrong-key-wrong-key-wrong-key", body.clone()).status, 404, "unknown key");
-        assert_eq!(call(LASER_KEY, json!({"feature": "Bad Name", "cost_usd": 0.01})).status, 400);
-        assert_eq!(call(LASER_KEY, json!({"feature": "trace", "cost_usd": -1})).status, 400);
-        assert_eq!(call(LASER_KEY, json!({"feature": "trace", "cost_usd": 0.01, "credits": 5})).status, 400, "credits need an account");
+        assert_eq!(call(LASER_KEY, json!({"id": "call-0002", "feature": "Bad Name", "cost_usd": 0.01})).status, 400);
+        assert_eq!(call(LASER_KEY, json!({"id": "call-0002", "feature": "trace", "cost_usd": -1})).status, 400);
+        assert_eq!(call(LASER_KEY, json!({"id": "x", "feature": "trace", "cost_usd": 0.01})).status, 400, "id is 8 to 64");
         let r = call(LASER_KEY, body);
         assert_eq!((r.status, json_of(&r)["charged"].clone()), (200, json!(5)), "{}", r.body);
-        let t = sign_up_as(&s, "b@example.com");
-        assert_eq!(account_of(&s, &t)["credits"], 100);
-        // an unknown account is refused and nothing is logged for it
-        assert_eq!(call(LASER_KEY, json!({"feature": "trace", "cost_usd": 0.01, "credits": 5, "account": 99})).status, 401);
         // a wallet that can't pay still logs the cost
-        let r = call(LASER_KEY, json!({"feature": "trace", "cost_usd": 0.02, "credits": 500, "account": 1}));
+        let r = call(LASER_KEY, json!({"id": "call-0003", "feature": "trace", "cost_usd": 0.02, "credits": 500}));
         assert_eq!(r.status, 402, "{}", r.body);
         let spend = s.store().ai_summary(1_000_000);
         assert_eq!(spend["byProduct"]["laserfoundry"]["calls"], 2);
@@ -3292,7 +3297,56 @@ mod tests {
         assert!((spend["byProduct"]["laserfoundry"]["costUsd"].as_f64().unwrap() - 0.03).abs() < 1e-9);
         // 0.01 was paid with 5 free credits; the 0.02 nobody paid is free cost too
         assert!((spend["freeCreditCostUsd"].as_f64().unwrap() - 0.03).abs() < 1e-9, "{spend}");
-        let a = account_of(&s, &denise);
-        assert_eq!(a["credits"], 95);
+        assert_eq!(account_of(&s, &denise)["credits"], 95);
+    }
+
+    /// The product's key alone charges no one: the signed-in user's token names the account.
+    #[test]
+    fn a_log_call_needs_the_users_token_and_charges_that_account() {
+        let (s, _) = budgeted();
+        let denise = confirmed_account(&s);
+        let other = sign_up_as(&s, "b@example.com");
+        let call = |token: Option<&str>, body: Value| s.handle(&with_header(req("POST", "/v1/ai/log", token, body), "x-product-key", LASER_KEY));
+        let body = |id: &str, account: Option<u64>| {
+            let mut b = json!({"id": id, "feature": "trace", "cost_usd": 0.01, "credits": 5});
+            if let Some(a) = account {
+                b["account"] = json!(a);
+            }
+            b
+        };
+        assert_eq!(call(None, body("call-0001", None)).status, 401, "no token");
+        assert_eq!(call(Some("sfs_nope"), body("call-0001", None)).status, 401, "wrong token");
+        assert_eq!(call(None, body("call-0001", Some(1))).status, 401, "the product key plus an account id is not enough");
+        // the token's account pays; naming another account is refused
+        assert_eq!(call(Some(&other), body("call-0002", Some(1))).status, 400, "an account that isn't the token's");
+        assert_eq!(call(Some(&denise), body("call-0002", Some(1))).status, 200, "the token's own account is fine");
+        assert_eq!(account_of(&s, &denise)["credits"], 95);
+        assert_eq!(account_of(&s, &other)["credits"], 100, "the other account paid nothing");
+        assert_eq!(s.store().ai_summary(1_000_000)["month"]["calls"], 1);
+    }
+
+    /// A repeat of a product's call id gets the first answer and is neither charged nor logged again.
+    #[test]
+    fn a_repeated_call_id_is_answered_once() {
+        let (s, _) = budgeted();
+        let denise = confirmed_account(&s);
+        let call = |id: &str, credits: u64| {
+            let b = json!({"id": id, "feature": "trace", "cost_usd": 0.01, "credits": credits});
+            s.handle(&with_header(req("POST", "/v1/ai/log", Some(&denise), b), "x-product-key", LASER_KEY))
+        };
+        let first = call("call-0001", 5);
+        for _ in 0..3 {
+            let again = call("call-0001", 5);
+            assert_eq!((again.status, &again.body), (first.status, &first.body));
+        }
+        assert_eq!(account_of(&s, &denise)["credits"], 95, "charged once");
+        assert_eq!(s.store().ai_summary(1_000_000)["month"]["calls"], 1, "logged once");
+        // a failure's answer is kept too: the retry isn't logged again
+        assert_eq!(call("call-0002", 5000).status, 402);
+        assert_eq!(call("call-0002", 5000).status, 402);
+        assert_eq!(s.store().ai_summary(1_000_000)["month"]["calls"], 2);
+        // another id is another call
+        assert_eq!(call("call-0003", 5).status, 200);
+        assert_eq!(account_of(&s, &denise)["credits"], 90);
     }
 }

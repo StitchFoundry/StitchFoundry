@@ -350,6 +350,33 @@ impl Store {
         self.save()
     }
 
+    /// The answer already given to call `id` of `product` by `account`: `(status, body)`.
+    pub fn ai_seen(&self, product: &str, account: u64, id: &str) -> Option<(u16, String)> {
+        self.state.ai.seen(product, &format!("{account}:{id}"))
+    }
+
+    /// Remembers the answer given to call `id` of `product` by `account` (kept with the next save).
+    pub fn ai_remember(&mut self, product: &str, account: u64, id: &str, status: u16, body: &str) -> Result<(), StoreError> {
+        self.state.ai.remember(product, &format!("{account}:{id}"), status, body);
+        self.save()
+    }
+
+    /// Takes `credits` from the account's shared wallet (free ones first when `free_ok`): holds them,
+    /// then settles. When settling fails, a hold still standing is released, so no credits stay held.
+    pub fn charge(&mut self, account: u64, credits: u64, free_ok: bool, note: &str, now: u64) -> Result<(), StoreError> {
+        self.reserve(account, credits, free_ok)?;
+        let held = self.state.accounts.get(&account).map_or(0, |a| a.reserved);
+        let settled = self.settle(account, credits, credits, free_ok, note, now);
+        if settled.is_err()
+            && let Some(a) = self.state.accounts.get_mut(&account)
+            && a.reserved == held
+        {
+            // (settle gives the hold up first, so only a hold it never reached is still here)
+            a.reserved = a.reserved.saturating_sub(credits);
+        }
+        settled.map(|_| ())
+    }
+
     /// What every product's AI calls cost in `month` (micro-dollars).
     pub fn ai_month_cost(&self, month: &str) -> u64 {
         self.state.ai.month_cost(month)
@@ -1250,5 +1277,22 @@ mod tests {
         let mut s = Store::open_db(&url).unwrap();
         assert!(s.account(1).unwrap().verified, "an old account is confirmed");
         assert_eq!(s.reserve(1, 10, true), Ok(()));
+    }
+
+    /// A hold never stays when the charge can't be settled (here the ledger can't be written).
+    #[test]
+    fn a_charge_that_cannot_settle_leaves_no_hold() {
+        let dir = std::env::temp_dir().join(format!("sf-cloud-store-charge-{}", std::process::id()));
+        let _ = std::fs::remove_dir_all(&dir);
+        let mut s = Store::open(&dir).unwrap();
+        let id = s.create("a@b.c", "hash".into(), 50, true, 1000).unwrap();
+        // a directory where the ledger file goes: appending to it fails
+        std::fs::remove_file(dir.join("ledger.jsonl")).unwrap();
+        std::fs::create_dir_all(dir.join("ledger.jsonl")).unwrap();
+        assert!(matches!(s.charge(id, 5, true, "x", 1001), Err(StoreError::Io(_))));
+        assert_eq!(s.account(id).unwrap().reserved, 0, "nothing stays held");
+        assert_eq!(s.charge(id, 500, true, "x", 1001), Err(StoreError::NotEnough), "a refused hold holds nothing either");
+        assert_eq!(s.account(id).unwrap().reserved, 0);
+        let _ = std::fs::remove_dir_all(&dir);
     }
 }
