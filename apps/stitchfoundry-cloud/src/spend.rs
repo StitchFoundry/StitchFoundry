@@ -3,7 +3,7 @@
 //! plus what was sold. The calls themselves are appended to `ai_calls.jsonl` (or `sf_ai_calls`),
 //! never rewritten.
 
-use std::collections::BTreeMap;
+use std::collections::{BTreeMap, VecDeque};
 
 use serde::{Deserialize, Serialize};
 use serde_json::{Value, json};
@@ -91,6 +91,17 @@ pub struct Spend {
     totals: BTreeMap<String, Totals>,
     /// Credits bought, by month (`"2026-11"`).
     sold: BTreeMap<String, u64>,
+    /// The answers to the last [`MAX_SEEN`] call ids of each product: `(id, status, body)`.
+    #[serde(default)]
+    seen: BTreeMap<String, VecDeque<(String, u16, String)>>,
+}
+
+/// How many call ids are remembered per product.
+const MAX_SEEN: usize = 10_000;
+
+/// A call id as sent: 8 to 64 of `a-z`, `0-9`, `-` and `_`.
+pub fn good_id(s: &str) -> bool {
+    (8..=64).contains(&s.len()) && s.bytes().all(|c| c.is_ascii_lowercase() || c.is_ascii_digit() || matches!(c, b'-' | b'_'))
 }
 
 fn day_key(key: &str) -> Option<(u64, &str, &str)> {
@@ -110,6 +121,20 @@ impl Spend {
             credits: c.credits,
         };
         self.totals.entry(key).or_default().add(&t);
+    }
+
+    /// The answer already given to call `id` of `product`, if it is still remembered.
+    pub fn seen(&self, product: &str, id: &str) -> Option<(u16, String)> {
+        self.seen.get(product)?.iter().find(|(i, ..)| i == id).map(|(_, st, b)| (*st, b.clone()))
+    }
+
+    /// Remembers the answer to call `id` of `product`, forgetting the oldest past [`MAX_SEEN`].
+    pub fn remember(&mut self, product: &str, id: &str, status: u16, body: &str) {
+        let q = self.seen.entry(product.to_string()).or_default();
+        q.push_back((id.to_string(), status, body.to_string()));
+        while q.len() > MAX_SEEN {
+            q.pop_front();
+        }
     }
 
     pub fn add_sold(&mut self, month: &str, credits: u64) {
