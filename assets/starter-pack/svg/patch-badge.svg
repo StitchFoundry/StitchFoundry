@@ -1,0 +1,3 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="80mm" height="80mm" viewBox="0 0 100 100">
+<path d="M20 12 H80 Q90 12 90 22 V60 Q90 80 50 92 Q10 80 10 60 V22 Q10 12 20 12 Z" fill="#14532d"/><path d="M26 20 H74 Q82 20 82 28 V58 Q82 72 50 82 Q18 72 18 58 V28 Q18 20 26 20 Z" fill="#facc15"/><circle cx="50" cy="46" r="14" fill="#14532d"/>
+</svg>
