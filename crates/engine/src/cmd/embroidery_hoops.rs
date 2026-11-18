@@ -88,6 +88,15 @@ pub fn specs() -> Vec<CommandSpec> {
             has_doc,
             fit
         ),
+        cmd!(
+            "embroidery.hoopOverlay",
+            "Hoop Overlay",
+            ["Embroidery"],
+            None,
+            "{show?: bool (omit to toggle), opacity?: 0.1–1 (clamped)} show or hide the hoop drawn behind the design, and how strongly; kept in preferences → {show, opacity}",
+            always,
+            hoop_overlay
+        ),
         cmd!("embroidery.hoop.deleteCustom", "Delete Custom Hoop", [], None, "{name} forget a hoop of one's own → {name}", always, delete_custom),
     ]
 }
@@ -449,4 +458,19 @@ fn delete_custom(s: &mut Session, p: &Value) -> Result<Value> {
         return Err(bad(CMD, format!("no hoop of yours is named `{name}`")));
     }
     Ok(json!({ "name": name }))
+}
+
+fn hoop_overlay(s: &mut Session, p: &Value) -> Result<Value> {
+    const CMD: &str = "embroidery.hoopOverlay";
+    let show = match p.get("show") {
+        None | Some(Value::Null) => !s.prefs.embroidery_hoop_overlay,
+        Some(v) => v.as_bool().ok_or_else(|| bad(CMD, "`show` must be true or false"))?,
+    };
+    let opacity = match p.get("opacity") {
+        None | Some(Value::Null) => s.prefs.embroidery_hoop_overlay_opacity,
+        Some(v) => v.as_f64().filter(|o| o.is_finite()).ok_or_else(|| bad(CMD, "`opacity` must be a number"))?.clamp(0.1, 1.0) as f32,
+    };
+    s.prefs.embroidery_hoop_overlay = show;
+    s.prefs.embroidery_hoop_overlay_opacity = opacity;
+    Ok(json!({ "show": show, "opacity": opacity }))
 }
