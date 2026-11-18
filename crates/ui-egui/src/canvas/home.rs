@@ -1,5 +1,8 @@
 use super::{CornerRadius, Tokens, Ui, VectorcraftApp, json, theme, vec2, widgets};
 
+/// The website page with the free starter pack (SVG art, DST and PES files, previews).
+const FREE_SAMPLES_URL: &str = "https://stitchfoundry.app/free-samples.html";
+
 /// The Home screen (`app.home`; with no document open, unless its preference is off). It
 /// scrolls when it is taller than the window (a small window, a tablet, a bigger text size).
 pub(super) fn home(app: &mut VectorcraftApp, ui: &mut Ui, rect: egui::Rect) {
@@ -50,6 +53,10 @@ fn home_body(app: &mut VectorcraftApp, ui: &mut Ui) {
         ui.add_space(8.0);
         if widgets::secondary_button(ui, tl!("Learn")).clicked() {
             app.run("ui.learn", json!({})).ok();
+        }
+        ui.add_space(8.0);
+        if widgets::secondary_button(ui, tl!("Free samples")).clicked() {
+            app.open_url(FREE_SAMPLES_URL);
         }
     });
     ui.add_space(18.0);

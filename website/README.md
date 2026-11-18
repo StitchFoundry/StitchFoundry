@@ -5,6 +5,7 @@ pages wait for approval before they go anywhere.
 
 - `index.html`: the home page (what it does, features, machines and formats, questions).
 - `download.html`: the downloads, and what to do the first time it opens.
+- `free-samples.html`: the free starter pack (`../assets/starter-pack/`, copied next to it as `starter-pack/`).
 - `style.css`: one hand-written stylesheet, light and dark, no scripts, readable at phone width.
 
 The pictures are the README's screenshots (`../docs/images/`, already in `ASSETS.md`); a published

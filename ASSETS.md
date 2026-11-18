@@ -12,6 +12,56 @@ Generated-in-code art is original and has no file to list. This covers the clipa
 
 | Asset | Author | Source | Licence | Notes |
 |---|---|---|---|---|
+| `assets/starter-pack/svg/bone.svg` | SiteSentrix | Original art drawn by hand as SVG shapes for the free starter pack | MIT OR Apache-2.0 | No AI, no third-party art |
+| `assets/starter-pack/dst/bone.dst` | SiteSentrix | Made by `assets/starter-pack/build.sh` from `svg/bone.svg` with StitchFoundry | MIT OR Apache-2.0 | Tajima DST |
+| `assets/starter-pack/pes/bone.pes` | SiteSentrix | Made by `assets/starter-pack/build.sh` from `svg/bone.svg` with StitchFoundry | MIT OR Apache-2.0 | Brother PES |
+| `assets/starter-pack/preview/bone.png` | SiteSentrix | Rendered by StitchFoundry (`embroidery.exportImage`) from the stitches of `svg/bone.svg` | MIT OR Apache-2.0 | Preview of the stitches |
+| `assets/starter-pack/svg/camper.svg` | SiteSentrix | Original art drawn by hand as SVG shapes for the free starter pack | MIT OR Apache-2.0 | No AI, no third-party art |
+| `assets/starter-pack/dst/camper.dst` | SiteSentrix | Made by `assets/starter-pack/build.sh` from `svg/camper.svg` with StitchFoundry | MIT OR Apache-2.0 | Tajima DST |
+| `assets/starter-pack/pes/camper.pes` | SiteSentrix | Made by `assets/starter-pack/build.sh` from `svg/camper.svg` with StitchFoundry | MIT OR Apache-2.0 | Brother PES |
+| `assets/starter-pack/preview/camper.png` | SiteSentrix | Rendered by StitchFoundry (`embroidery.exportImage`) from the stitches of `svg/camper.svg` | MIT OR Apache-2.0 | Preview of the stitches |
+| `assets/starter-pack/svg/compass.svg` | SiteSentrix | Original art drawn by hand as SVG shapes for the free starter pack | MIT OR Apache-2.0 | No AI, no third-party art |
+| `assets/starter-pack/dst/compass.dst` | SiteSentrix | Made by `assets/starter-pack/build.sh` from `svg/compass.svg` with StitchFoundry | MIT OR Apache-2.0 | Tajima DST |
+| `assets/starter-pack/pes/compass.pes` | SiteSentrix | Made by `assets/starter-pack/build.sh` from `svg/compass.svg` with StitchFoundry | MIT OR Apache-2.0 | Brother PES |
+| `assets/starter-pack/preview/compass.png` | SiteSentrix | Rendered by StitchFoundry (`embroidery.exportImage`) from the stitches of `svg/compass.svg` | MIT OR Apache-2.0 | Preview of the stitches |
+| `assets/starter-pack/svg/heart.svg` | SiteSentrix | Original art drawn by hand as SVG shapes for the free starter pack | MIT OR Apache-2.0 | No AI, no third-party art |
+| `assets/starter-pack/dst/heart.dst` | SiteSentrix | Made by `assets/starter-pack/build.sh` from `svg/heart.svg` with StitchFoundry | MIT OR Apache-2.0 | Tajima DST |
+| `assets/starter-pack/pes/heart.pes` | SiteSentrix | Made by `assets/starter-pack/build.sh` from `svg/heart.svg` with StitchFoundry | MIT OR Apache-2.0 | Brother PES |
+| `assets/starter-pack/preview/heart.png` | SiteSentrix | Rendered by StitchFoundry (`embroidery.exportImage`) from the stitches of `svg/heart.svg` | MIT OR Apache-2.0 | Preview of the stitches |
+| `assets/starter-pack/svg/monogram-frame.svg` | SiteSentrix | Original art drawn by hand as SVG shapes for the free starter pack | MIT OR Apache-2.0 | No AI, no third-party art |
+| `assets/starter-pack/dst/monogram-frame.dst` | SiteSentrix | Made by `assets/starter-pack/build.sh` from `svg/monogram-frame.svg` with StitchFoundry | MIT OR Apache-2.0 | Tajima DST |
+| `assets/starter-pack/pes/monogram-frame.pes` | SiteSentrix | Made by `assets/starter-pack/build.sh` from `svg/monogram-frame.svg` with StitchFoundry | MIT OR Apache-2.0 | Brother PES |
+| `assets/starter-pack/preview/monogram-frame.png` | SiteSentrix | Rendered by StitchFoundry (`embroidery.exportImage`) from the stitches of `svg/monogram-frame.svg` | MIT OR Apache-2.0 | Preview of the stitches |
+| `assets/starter-pack/svg/patch-badge.svg` | SiteSentrix | Original art drawn by hand as SVG shapes for the free starter pack | MIT OR Apache-2.0 | No AI, no third-party art |
+| `assets/starter-pack/dst/patch-badge.dst` | SiteSentrix | Made by `assets/starter-pack/build.sh` from `svg/patch-badge.svg` with StitchFoundry | MIT OR Apache-2.0 | Tajima DST |
+| `assets/starter-pack/pes/patch-badge.pes` | SiteSentrix | Made by `assets/starter-pack/build.sh` from `svg/patch-badge.svg` with StitchFoundry | MIT OR Apache-2.0 | Brother PES |
+| `assets/starter-pack/preview/patch-badge.png` | SiteSentrix | Rendered by StitchFoundry (`embroidery.exportImage`) from the stitches of `svg/patch-badge.svg` | MIT OR Apache-2.0 | Preview of the stitches |
+| `assets/starter-pack/svg/paw.svg` | SiteSentrix | Original art drawn by hand as SVG shapes for the free starter pack | MIT OR Apache-2.0 | No AI, no third-party art |
+| `assets/starter-pack/dst/paw.dst` | SiteSentrix | Made by `assets/starter-pack/build.sh` from `svg/paw.svg` with StitchFoundry | MIT OR Apache-2.0 | Tajima DST |
+| `assets/starter-pack/pes/paw.pes` | SiteSentrix | Made by `assets/starter-pack/build.sh` from `svg/paw.svg` with StitchFoundry | MIT OR Apache-2.0 | Brother PES |
+| `assets/starter-pack/preview/paw.png` | SiteSentrix | Rendered by StitchFoundry (`embroidery.exportImage`) from the stitches of `svg/paw.svg` | MIT OR Apache-2.0 | Preview of the stitches |
+| `assets/starter-pack/svg/pine-tree.svg` | SiteSentrix | Original art drawn by hand as SVG shapes for the free starter pack | MIT OR Apache-2.0 | No AI, no third-party art |
+| `assets/starter-pack/dst/pine-tree.dst` | SiteSentrix | Made by `assets/starter-pack/build.sh` from `svg/pine-tree.svg` with StitchFoundry | MIT OR Apache-2.0 | Tajima DST |
+| `assets/starter-pack/pes/pine-tree.pes` | SiteSentrix | Made by `assets/starter-pack/build.sh` from `svg/pine-tree.svg` with StitchFoundry | MIT OR Apache-2.0 | Brother PES |
+| `assets/starter-pack/preview/pine-tree.png` | SiteSentrix | Rendered by StitchFoundry (`embroidery.exportImage`) from the stitches of `svg/pine-tree.svg` | MIT OR Apache-2.0 | Preview of the stitches |
+| `assets/starter-pack/svg/pumpkin.svg` | SiteSentrix | Original art drawn by hand as SVG shapes for the free starter pack | MIT OR Apache-2.0 | No AI, no third-party art |
+| `assets/starter-pack/dst/pumpkin.dst` | SiteSentrix | Made by `assets/starter-pack/build.sh` from `svg/pumpkin.svg` with StitchFoundry | MIT OR Apache-2.0 | Tajima DST |
+| `assets/starter-pack/pes/pumpkin.pes` | SiteSentrix | Made by `assets/starter-pack/build.sh` from `svg/pumpkin.svg` with StitchFoundry | MIT OR Apache-2.0 | Brother PES |
+| `assets/starter-pack/preview/pumpkin.png` | SiteSentrix | Rendered by StitchFoundry (`embroidery.exportImage`) from the stitches of `svg/pumpkin.svg` | MIT OR Apache-2.0 | Preview of the stitches |
+| `assets/starter-pack/svg/snowflake.svg` | SiteSentrix | Original art drawn by hand as SVG shapes for the free starter pack | MIT OR Apache-2.0 | No AI, no third-party art |
+| `assets/starter-pack/dst/snowflake.dst` | SiteSentrix | Made by `assets/starter-pack/build.sh` from `svg/snowflake.svg` with StitchFoundry | MIT OR Apache-2.0 | Tajima DST |
+| `assets/starter-pack/pes/snowflake.pes` | SiteSentrix | Made by `assets/starter-pack/build.sh` from `svg/snowflake.svg` with StitchFoundry | MIT OR Apache-2.0 | Brother PES |
+| `assets/starter-pack/preview/snowflake.png` | SiteSentrix | Rendered by StitchFoundry (`embroidery.exportImage`) from the stitches of `svg/snowflake.svg` | MIT OR Apache-2.0 | Preview of the stitches |
+| `assets/starter-pack/svg/star.svg` | SiteSentrix | Original art drawn by hand as SVG shapes for the free starter pack | MIT OR Apache-2.0 | No AI, no third-party art |
+| `assets/starter-pack/dst/star.dst` | SiteSentrix | Made by `assets/starter-pack/build.sh` from `svg/star.svg` with StitchFoundry | MIT OR Apache-2.0 | Tajima DST |
+| `assets/starter-pack/pes/star.pes` | SiteSentrix | Made by `assets/starter-pack/build.sh` from `svg/star.svg` with StitchFoundry | MIT OR Apache-2.0 | Brother PES |
+| `assets/starter-pack/preview/star.png` | SiteSentrix | Rendered by StitchFoundry (`embroidery.exportImage`) from the stitches of `svg/star.svg` | MIT OR Apache-2.0 | Preview of the stitches |
+| `assets/starter-pack/svg/sun.svg` | SiteSentrix | Original art drawn by hand as SVG shapes for the free starter pack | MIT OR Apache-2.0 | No AI, no third-party art |
+| `assets/starter-pack/dst/sun.dst` | SiteSentrix | Made by `assets/starter-pack/build.sh` from `svg/sun.svg` with StitchFoundry | MIT OR Apache-2.0 | Tajima DST |
+| `assets/starter-pack/pes/sun.pes` | SiteSentrix | Made by `assets/starter-pack/build.sh` from `svg/sun.svg` with StitchFoundry | MIT OR Apache-2.0 | Brother PES |
+| `assets/starter-pack/preview/sun.png` | SiteSentrix | Rendered by StitchFoundry (`embroidery.exportImage`) from the stitches of `svg/sun.svg` | MIT OR Apache-2.0 | Preview of the stitches |
+| `assets/starter-pack/build.sh` | SiteSentrix | Script that makes the pack's stitch files and previews | MIT OR Apache-2.0 | |
+| `assets/starter-pack/README.md` | SiteSentrix | Describes the starter pack | MIT OR Apache-2.0 | |
 | `epaint_default_fonts/fonts/egui-icons.ttf` (egui dependency) | John Slegers (emoji-icon-font) | https://github.com/storytold/egui/blob/6d518fc799681571963842f95b55a6b68431b15a/crates/epaint_default_fonts/fonts/egui-icons.txt; original https://github.com/jslegers/emoji-icon-font | MIT (full text in NOTICE) | Small special-icon subset embedded by default_fonts |
 | `epaint_default_fonts/fonts/emoji-icon-font.ttf` (egui dependency) | John Slegers | https://github.com/storytold/egui/blob/6d518fc799681571963842f95b55a6b68431b15a/crates/epaint_default_fonts/fonts/emoji-icon-font-mit-license.txt; original https://github.com/jslegers/emoji-icon-font | MIT (full text in NOTICE) | Parent face embedded by monochrome_emoji_fonts |
 | `assets/app-icon/LICENSE.txt` | (licence/readme text) | StitchFoundry | MIT OR Apache-2.0 |  |
