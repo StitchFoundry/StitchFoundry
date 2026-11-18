@@ -256,6 +256,12 @@ pub struct Prefs {
     /// local library, not a Preferences dialog field.
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub embroidery_custom_hoops: Vec<sf_core::hoops::Hoop>,
+    /// Whether the hoop overlay is drawn on the canvas (`embroidery.hoopOverlay`); on by default.
+    #[serde(default = "default_true")]
+    pub embroidery_hoop_overlay: bool,
+    /// The hoop overlay's opacity, 0.1 to 1.0 (`embroidery.hoopOverlay`).
+    #[serde(default = "default_one")]
+    pub embroidery_hoop_overlay_opacity: f32,
     /// Thread charts of the user's own (`embroidery.chart.import`, `.save`), listed after the
     /// built-in ones. A local library, not a Preferences dialog field.
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
@@ -531,6 +537,8 @@ impl Default for Prefs {
             embroidery_monogram_templates: vec![],
             embroidery_output_profiles: vec![],
             embroidery_custom_hoops: vec![],
+            embroidery_hoop_overlay: true,
+            embroidery_hoop_overlay_opacity: 1.0,
             embroidery_thread_charts: vec![],
             embroidery_templates: vec![],
             embroidery_default_properties: Default::default(),
@@ -565,4 +573,12 @@ impl Default for Prefs {
             import_matches: vec![],
         }
     }
+}
+
+fn default_true() -> bool {
+    true
+}
+
+fn default_one() -> f32 {
+    1.0
 }
