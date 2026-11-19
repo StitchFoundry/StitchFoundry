@@ -15,6 +15,7 @@
 //! * [`stats`] – stitch counts, thread usage, sewing time.
 //! * [`io`] – native `.sfd` design files.
 //! * [`ai`] – Design from Prompt: the request for stitchable art and reading the reply.
+//! * [`updates`] – the "Get updates" signup and privacy-friendly funnel events.
 
 #![forbid(unsafe_code)]
 pub mod ai;
@@ -39,6 +40,7 @@ pub mod stamps;
 pub mod stats;
 pub mod threads;
 pub mod travel;
+pub mod updates;
 
 pub use geom::{Affine, BBox, Point};
 pub use model::*;
