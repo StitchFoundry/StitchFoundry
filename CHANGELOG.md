@@ -3,6 +3,45 @@
 Release notes for each version, newest first, written for the people who use StitchFoundry. The
 release workflow copies a version's section into its GitHub release (`docs/releasing.md`).
 
+## 0.15.0
+
+Everything since 0.14.0. This is the first full release of 0.15: it has everything in the two test releases (0.15.0-rc.1 and rc.2) below. Please test-sew designs before using them on a garment that matters.
+
+### Hoops and machines
+- **Hoop editor.** Make your own hoops (size, shape, corner radius and frame) and attach them to your machines.
+- **Machine profiles and My Machine.** Edit a machine's profile, including which hoops it owns, choose the save format per machine, and make it the default for Save and Export.
+- **Start a design in the hoop.** Pick machine, hoop and fabric first; new designs remember the last hoop you used on that machine. The Home screen hoop tiles open a ready design.
+- **Warning when a design is bigger than the hoop,** and **Fit to Hoop**: one action that shrinks the whole design (aspect ratio locked) until it fits the sewing field.
+- **Hoop orientation test** and a per-machine export rotation, so designs come out the way the hoop sits in your machine. Test-sew it on scrap first.
+- **Quick rotate, flip and resize** commands for the selection (buttons come in a later build).
+
+### Lettering and art
+- **Multi-line lettering** with font, left, centre or right alignment, line spacing and a different size for each line, in Add Words and in Make a Design. Every font is drawn in its own style with a live preview of your own words.
+- **Clipart:** searchable sets and 20 new original motifs. **Monogram frames:** 11 new decorative templates (20 in the gallery).
+- **Font editor.** Open a font by name or folder as a font document and remove glyphs.
+
+### Embroidery
+- **Jump and trim counts** per colour in the design details.
+- **Stitch advice** (needle, stabilizer and hints by fabric) and plain-language "too stiff" density advice, translated into all supported languages. The advisor screens come in a later build.
+
+### Account and help
+- The **Foundry Account** is now the only AI sign-in. The "use my own API key" option is gone.
+- **Learn** button with a lesson list loaded from stitchfoundry.app. **Report a Bug** and **Suggest a Feature** open the web forms.
+- **Send to my phone** (cloud side): private links that last 24 hours.
+- **Founding members** get a numbered badge and a one-time bonus. There is a daily sign-up cap with a next-day queue, and a per-user daily free AI limit.
+
+### Fixes
+- Scaling lettering scales each line's own size.
+- A very small satin split length is raised to a safe minimum, and very dense plain fills, run, zigzag and satin objects are capped, so a stray setting can't make a runaway stitch count.
+- Embroidery file names can no longer become reserved Windows names (like CON or PRN).
+- A damaged XXX file can no longer overflow on 32-bit builds, and the bug-report queue numbering can't overflow.
+- Customer-facing text says StitchFoundry everywhere; old links and workflow references were updated after the organisation move; a yanked dependency was replaced.
+
+### What has and hasn't been checked
+- **Checked in software:** every hoop with every rotate, flip and resize is written to DST and PES and read back; 600 of 600 combinations stay inside the sewing field and agree between the two formats (`docs/qa/addon-40-report.md`).
+- **Not done yet:** the same check for other file formats, and a real sew-out of the hoop orientation test. Test-sew on scrap first.
+- Buttons for quick rotate, flip and resize, and the Stitch advisor screens, come in a later build.
+
 ## 0.15.0-rc.2 (test release)
 
 Everything since 0.15.0-rc.1. A test release: please tell us what doesn't work, and test-sew designs before using them on a garment that matters.
