@@ -45,3 +45,4 @@
 - 2026-11-18 nightly sweep: no reports to triage; clippy clean on main, tests rerun after the disk filled; cargo audit: no vulnerabilities, wasmi 2.0.0 yanked (filed #192).
 - Fix #192: Cargo.lock moves wasmi (and wasmi_core, wasmi_collections, wasmi_ir) from the yanked 2.0.0 to 2.0.1 (`cargo audit -D yanked` passes).
 - Issue 97 (part 1 of 2): family-wide AI cost log in the cloud service. `POST /v1/ai/log` (per-product `X-Product-Key`, `SF_CLOUD_PRODUCT_KEYS`) logs a call and can charge the shared wallet; StitchFoundry's own AI requests are logged too. Part 2: spend page and monthly AI budget. Needs `needs-review` (credits/billing).
+- Issue 113: web app `index.html` gets a favicon (inline SVG of the app icon), meta description, canonical link, Open Graph/Twitter tags and `og-image.png` (copied by trunk, 1200x630). Static check only; Pages build not run locally.
