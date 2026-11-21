@@ -1424,7 +1424,8 @@ fn multi_hoop(s: &mut Session, p: &Value) -> Result<Value> {
     let (step_x, step_y) = (field.0 - overlap, field.1 - overlap);
     let count = |len: f64, size: f64, step: f64| if len <= size { 1 } else { ((len - overlap) / step).ceil().max(1.0) as usize };
     let (cols, rows) = if multi_position { (1, positions.len()) } else { (count(b.width(), field.0, step_x), count(b.height(), field.1, step_y)) };
-    if cols * rows > 64 {
+    // (saturating: a design spread wide enough would wrap the product under 64)
+    if cols.saturating_mul(rows) > 64 {
         return Err(bad(CMD, format!("{cols} × {rows} hoopings: more than 64; choose a larger hoop")));
     }
     let span = (cols as f64 * step_x + overlap, rows as f64 * step_y + overlap);

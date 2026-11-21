@@ -6674,3 +6674,18 @@ fn clipart_library_has_sets_search_and_digitizable_motifs() {
         assert!(errors.is_empty(), "{name}: {errors:?}");
     }
 }
+
+#[test]
+fn multi_hoop_refuses_a_design_too_far_apart_to_count_its_hoopings() {
+    const PT: f64 = vectorcraft_embroidery::PT_PER_MM;
+    let mut s = session();
+    // two squares so far apart that the columns × rows of hoopings overflow a usize
+    for at in [0.0, 1e24] {
+        rect(&mut s, at * PT, at * PT, 20.0 * PT, 20.0 * PT);
+        s.execute("embroidery.set", &json!({"type": "run"})).unwrap();
+    }
+    let b = s.embroidery_plan().unwrap().built.pattern.bounds();
+    assert!(b.width() > 1e20 && b.height() > 1e20, "{b:?}");
+    let r = s.execute("embroidery.multiHoop", &json!({"width": 130, "height": 180, "marks": false}));
+    assert!(r.as_ref().is_err_and(|e| e.to_string().contains("more than 64")), "{r:?}");
+}
