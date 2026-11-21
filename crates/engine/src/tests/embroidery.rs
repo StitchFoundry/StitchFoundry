@@ -6676,16 +6676,15 @@ fn clipart_library_has_sets_search_and_digitizable_motifs() {
 }
 
 #[test]
-fn multi_hoop_refuses_a_design_too_far_apart_to_count_its_hoopings() {
+fn multi_hoop_refuses_a_design_across_the_whole_canvas() {
     const PT: f64 = vectorcraft_embroidery::PT_PER_MM;
     let mut s = session();
-    // two squares so far apart that the columns × rows of hoopings overflow a usize
-    for at in [0.0, 1e24] {
-        rect(&mut s, at * PT, at * PT, 20.0 * PT, 20.0 * PT);
+    // two squares at opposite corners of the canvas: tens of billions of 20 mm hoopings
+    let far = crate::MAX_COORD * 0.9;
+    for at in [-far, far - 20.0 * PT] {
+        rect(&mut s, at, at, 20.0 * PT, 20.0 * PT);
         s.execute("embroidery.set", &json!({"type": "run"})).unwrap();
     }
-    let b = s.embroidery_plan().unwrap().built.pattern.bounds();
-    assert!(b.width() > 1e20 && b.height() > 1e20, "{b:?}");
-    let r = s.execute("embroidery.multiHoop", &json!({"width": 130, "height": 180, "marks": false}));
+    let r = s.execute("embroidery.multiHoop", &json!({"width": 20, "height": 20, "overlap": 0, "marks": false}));
     assert!(r.as_ref().is_err_and(|e| e.to_string().contains("more than 64")), "{r:?}");
 }
