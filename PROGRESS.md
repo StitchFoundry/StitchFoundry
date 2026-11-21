@@ -47,3 +47,5 @@
 - Issue 97 (part 1 of 2): family-wide AI cost log in the cloud service. `POST /v1/ai/log` (per-product `X-Product-Key`, `SF_CLOUD_PRODUCT_KEYS`) logs a call and can charge the shared wallet; StitchFoundry's own AI requests are logged too. Part 2: spend page and monthly AI budget. Needs `needs-review` (credits/billing).
 - 2026-11-20 nightly sweep: no reports to triage; main fmt + clippy clean, tests stopped on a full disk while linking (main CI green); cargo audit: no vulnerabilities, wasmi 2.0.1 yanked (filed #206).
 - Fix #206: Cargo.lock moves wasmi (and wasmi_core, wasmi_collections, wasmi_ir) from the yanked 2.0.1 to 2.0.2 (`cargo audit -D yanked` passes).
+- 2026-11-21 nightly sweep: no reports to triage; clippy clean on main, full tests stopped on a full disk (engine lib tests 3620 pass); cargo audit: no vulnerabilities (7 unmaintained, chrono newly flagged). Filed #209.
+- Fix #209: `embroidery.multiHoop` counts hoopings with `saturating_mul`, so on wasm32 a design across the whole canvas can't wrap the count past the 64-hooping cap.

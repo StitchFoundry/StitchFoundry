@@ -1390,6 +1390,12 @@ fn sew_object(hp: &mut sf_core::Pattern, stitches: &[sf_core::Stitch], centre: s
     hp.trim();
 }
 
+/// More than 64 hoopings? Saturating: on 32-bit (wasm) a design across the whole canvas makes
+/// columns × rows wrap past `usize::MAX` to a small number, and the cap would let it through.
+fn too_many_hoopings(cols: usize, rows: usize) -> bool {
+    cols.saturating_mul(rows) > 64
+}
+
 fn multi_hoop(s: &mut Session, p: &Value) -> Result<Value> {
     const CMD: &str = "embroidery.multiHoop";
     let cfg = s.doc()?.doc.embroidery.as_deref().cloned().unwrap_or_default();
@@ -1424,7 +1430,7 @@ fn multi_hoop(s: &mut Session, p: &Value) -> Result<Value> {
     let (step_x, step_y) = (field.0 - overlap, field.1 - overlap);
     let count = |len: f64, size: f64, step: f64| if len <= size { 1 } else { ((len - overlap) / step).ceil().max(1.0) as usize };
     let (cols, rows) = if multi_position { (1, positions.len()) } else { (count(b.width(), field.0, step_x), count(b.height(), field.1, step_y)) };
-    if cols * rows > 64 {
+    if too_many_hoopings(cols, rows) {
         return Err(bad(CMD, format!("{cols} × {rows} hoopings: more than 64; choose a larger hoop")));
     }
     let span = (cols as f64 * step_x + overlap, rows as f64 * step_y + overlap);
@@ -3556,5 +3562,18 @@ mod wrap_tests {
         assert_eq!(super::wrap_text("left chest, 9 cm wide\nwhite thread", 12), ["left chest,", "9 cm wide", "white thread"]);
         assert_eq!(super::wrap_text("abcdefghij xy", 4), ["abcd", "efgh", "ij", "xy"]);
         assert_eq!(super::wrap_text("", 10), Vec::<String>::new());
+    }
+}
+
+#[cfg(test)]
+mod multi_hoop_tests {
+    #[test]
+    fn hooping_count_never_wraps_under_the_cap() {
+        // 2^32 × 2^32 wraps to 0 on 64-bit, as 2^16 × 2^16 does on wasm32
+        let half = 1usize << (usize::BITS / 2);
+        assert!(super::too_many_hoopings(half, half));
+        assert!(super::too_many_hoopings(usize::MAX, usize::MAX));
+        assert!(!super::too_many_hoopings(8, 8));
+        assert!(super::too_many_hoopings(13, 5));
     }
 }

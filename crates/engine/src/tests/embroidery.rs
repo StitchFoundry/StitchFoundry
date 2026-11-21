@@ -6674,3 +6674,17 @@ fn clipart_library_has_sets_search_and_digitizable_motifs() {
         assert!(errors.is_empty(), "{name}: {errors:?}");
     }
 }
+
+#[test]
+fn multi_hoop_refuses_a_design_across_the_whole_canvas() {
+    const PT: f64 = vectorcraft_embroidery::PT_PER_MM;
+    let mut s = session();
+    // two squares at opposite corners of the canvas: tens of billions of 20 mm hoopings
+    let far = crate::MAX_COORD * 0.9;
+    for at in [-far, far - 20.0 * PT] {
+        rect(&mut s, at, at, 20.0 * PT, 20.0 * PT);
+        s.execute("embroidery.set", &json!({"type": "run"})).unwrap();
+    }
+    let r = s.execute("embroidery.multiHoop", &json!({"width": 20, "height": 20, "overlap": 0, "marks": false}));
+    assert!(r.as_ref().is_err_and(|e| e.to_string().contains("more than 64")), "{r:?}");
+}
