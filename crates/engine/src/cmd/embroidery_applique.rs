@@ -196,6 +196,7 @@ mod tests {
     #[test]
     fn check_reports_steps_and_flags_a_piece_too_small() {
         let mut s = Session::new();
+        s.execute("embroidery.newDesign", &json!({"hoop": "Brother 130 × 180 (5×7)"})).unwrap();
         let r = s.execute("embroidery.addShape", &json!({"name": "Heart", "applique": true, "size": 40})).unwrap();
         s.execute("select.set", &json!({"ids": [r["id"].clone()]})).unwrap();
         let c = s.execute("embroidery.applique.check", &json!({})).unwrap();
