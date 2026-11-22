@@ -48,3 +48,4 @@
 - 2026-11-20 nightly sweep: no reports to triage; main fmt + clippy clean, tests stopped on a full disk while linking (main CI green); cargo audit: no vulnerabilities, wasmi 2.0.1 yanked (filed #206).
 - Fix #206: Cargo.lock moves wasmi (and wasmi_core, wasmi_collections, wasmi_ir) from the yanked 2.0.1 to 2.0.2 (`cargo audit -D yanked` passes).
 - Issue 113: web app `index.html` gets a favicon (inline SVG of the app icon), meta description, canonical link, Open Graph/Twitter tags and `og-image.png` (copied by trunk, 1200x630). Static check only; Pages build not run locally.
+- Issue 118 (investigation, part 1): automatic satin underlay thresholds (none <1 mm, centre run <2.2, edge run <4.5, edge + zigzag wider; lettering under 6 mm forced to centre run) documented in `satin.rs` and locked by a test. Still to do: sew-out size table, the Underlay control, a decision on whether small text needs more.
