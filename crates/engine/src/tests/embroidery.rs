@@ -2075,6 +2075,32 @@ fn auto_digitize_traces_an_image_into_satin_and_fill() {
     assert!(s.execute("embroidery.autoDigitize", &json!({})).is_err());
 }
 
+#[test]
+fn auto_digitize_presets_set_the_colours_and_explicit_params_win() {
+    let mut s = session();
+    let r = vectorcraft_trace::Raster::from_fn(300, 200, |x, y| {
+        let (dx, dy) = (x as f64 - 90.0, y as f64 - 90.0);
+        if dx * dx + dy * dy <= 60.0 * 60.0 {
+            [20, 40, 200, 255]
+        } else if (60..260).contains(&x) && (170..178).contains(&y) {
+            [220, 30, 30, 255]
+        } else {
+            [255, 255, 255, 255]
+        }
+    });
+    let png = r.encode_png();
+    s.execute("file.place", &json!({"name": "logo.png", "dataBase64": vectorcraft_format::base64_encode(&png)})).unwrap();
+    assert!(s.execute("embroidery.autoDigitize", &json!({"preset": "bogus"})).is_err());
+    let res = s.execute("embroidery.autoDigitize", &json!({"preset": "logo"})).unwrap();
+    assert_eq!(res["objects"], 2, "{res}");
+    assert_eq!(res["satin"], 1, "{res}");
+    assert_eq!(res["fill"], 1, "{res}");
+    s.execute("edit.undo", &json!({})).unwrap();
+    // a given param overrides the preset's
+    let res = s.execute("embroidery.autoDigitize", &json!({"preset": "cartoon", "outline": "design"})).unwrap();
+    assert_eq!(res["outlines"], 1, "{res}");
+}
+
 /// AD-FIX-01: a speck dropped as too small, or a highlight left out, leaves no hole in the shape
 /// round it: the fabric doesn't show through.
 #[test]
