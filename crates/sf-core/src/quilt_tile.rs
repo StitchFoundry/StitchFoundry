@@ -41,7 +41,7 @@ impl Rng {
 pub fn grid_path(cols: usize, rows: usize, seed: u64) -> Vec<(usize, usize)> {
     let mut path: Vec<(usize, usize)> = Vec::with_capacity(cols * rows);
     for r in 0..rows {
-        if r % 2 == 0 {
+        if r.is_multiple_of(2) {
             path.extend((0..cols).map(|c| (c, r)));
         } else {
             path.extend((0..cols).rev().map(|c| (c, r)));
@@ -149,10 +149,10 @@ pub fn self_touches(line: &[Point]) -> bool {
     let n = line.len().saturating_sub(1);
     for i in 0..n {
         for j in i + 2..n {
-            if let (Some(&a), Some(&b), Some(&c), Some(&d)) = (line.get(i), line.get(i + 1), line.get(j), line.get(j + 1)) {
-                if segs_dist(a, b, c, d) < CLEARANCE {
-                    return true;
-                }
+            if let (Some(&a), Some(&b), Some(&c), Some(&d)) = (line.get(i), line.get(i + 1), line.get(j), line.get(j + 1))
+                && segs_dist(a, b, c, d) < CLEARANCE
+            {
+                return true;
             }
         }
     }
@@ -163,7 +163,7 @@ pub fn self_touches(line: &[Point]) -> bool {
 fn one_try(width: f64, height: f64, seed: u64) -> Vec<Point> {
     let cols = ((width / SPACING).round() as usize + 1).clamp(2, 400);
     let mut rows = ((height / SPACING).round() as usize + 1).clamp(3, 400);
-    if rows % 2 == 0 {
+    if rows.is_multiple_of(2) {
         rows += 1;
     }
     let (sx, sy) = (width / (cols - 1) as f64, height / (rows - 1) as f64);
