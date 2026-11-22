@@ -258,6 +258,9 @@ enum Pass {
     ZigzagBack,
 }
 
+/// The underlay passes for a column `width` mm wide. Automatic underlay (#118): under 1 mm
+/// none, 1 to 2.2 mm a centre run, 2.2 to 4.5 mm an edge run, wider an edge run plus
+/// zigzag. Lettering under 6 mm (`small: auto`) is forced to a centre run only.
 fn underlay_passes(params: &SatinParams, width: f64) -> Vec<Pass> {
     let u = &params.underlay;
     if u.auto {
@@ -573,6 +576,21 @@ pub(crate) fn border(pts: &[Point], closed: bool, width: f64, spacing: f64, pull
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    /// #118: the automatic underlay thresholds by column width are locked in.
+    #[test]
+    fn auto_underlay_follows_the_column_width() {
+        let p = SatinParams::default();
+        assert!(p.underlay.auto);
+        assert_eq!(underlay_passes(&p, 0.5), vec![]);
+        assert_eq!(underlay_passes(&p, 1.0), vec![Pass::Center]);
+        assert_eq!(underlay_passes(&p, 2.1), vec![Pass::Center]);
+        assert_eq!(underlay_passes(&p, 2.2), vec![Pass::Edge]);
+        assert_eq!(underlay_passes(&p, 4.4), vec![Pass::Edge]);
+        assert_eq!(underlay_passes(&p, 4.5), vec![Pass::Edge, Pass::Zigzag]);
+        assert_eq!(underlay_passes(&p, 12.0), vec![Pass::Edge, Pass::Zigzag]);
+    }
+
     use crate::geom::{Node, NodeKind};
     use crate::model::{MIN_SPLIT_LENGTH, SatinUnderlay};
     use crate::pattern::Cmd;
