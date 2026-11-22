@@ -146,6 +146,7 @@ pub(crate) mod printadvanced;
 pub mod printpresets;
 pub mod printtiling;
 pub mod quilting;
+pub mod quilting_tile;
 pub mod rasterfx;
 mod recolor;
 pub mod recovery;
@@ -382,6 +383,7 @@ pub fn command_specs() -> &'static [CommandSpec] {
         v.extend(embroidery_chenille::specs());
         v.extend(embroidery_compare::specs());
         v.extend(quilting::specs());
+        v.extend(quilting_tile::specs());
         v.extend(embroidery_testsew::specs());
         v.extend(embroidery_advisor::specs());
         v.extend(embroidery_sheet_setup::specs());
