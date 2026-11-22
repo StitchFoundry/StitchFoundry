@@ -50,3 +50,4 @@
 - 2026-11-21 nightly sweep: no reports to triage; clippy clean on main, full tests stopped on a full disk (engine lib tests 3620 pass); cargo audit: no vulnerabilities (7 unmaintained, chrono newly flagged). Filed #209.
 - Fix #209: `embroidery.multiHoop` counts hoopings with `saturating_mul`, so on wasm32 a design across the whole canvas can't wrap the count past the 64-hooping cap.
 - Issue 113: web app `index.html` gets a favicon (inline SVG of the app icon), meta description, canonical link, Open Graph/Twitter tags and `og-image.png` (copied by trunk, 1200x630). Static check only; Pages build not run locally.
+- Issue 118 (investigation, part 1): automatic satin underlay thresholds (none <1 mm, centre run <2.2, edge run <4.5, edge + zigzag wider; lettering under 6 mm forced to centre run) documented in `satin.rs` and locked by a test. Still to do: sew-out size table, the Underlay control, a decision on whether small text needs more.
