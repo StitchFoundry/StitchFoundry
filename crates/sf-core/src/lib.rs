@@ -18,6 +18,7 @@
 
 #![forbid(unsafe_code)]
 pub mod ai;
+pub mod applique_guide;
 pub mod attr;
 pub mod barcode;
 pub mod brush;
