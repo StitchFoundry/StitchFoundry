@@ -1158,6 +1158,11 @@ software that runs the machine:
 - **Start and End on the Edges** (`quilt.edges {height?}`) leads the line in from the left edge
   of its box and out to the right edge at the height it starts at, so copies set side by side run
   on from one to the next: the motif for rows and borders.
+- **Quilting Tile** (`quilt.tile {width?, height?, seed?, format?, center?, path?}`, issue #199 slice 1):
+  one continuous meander tile (default 6 × 6 in) in round curves, in at the top-left corner and out at
+  the bottom-right, never crossing or touching itself, about 2 mm stitches, written as DST (or any
+  machine format) to `path`. The cells stay 32 mm on every size; the same seed gives the same
+  design. Spirals and motifs come in later slices.
 - **Edge-to-Edge Rows** (`quilt.pantograph {width, height, row?, nest?}`): the selected line
   repeated across a quilt in rows, each row one continuous line; every other row starts half a
   repeat along so the rows nest. The menu has the usual quilt sizes (Crib 36 × 52″ to King 108 ×
