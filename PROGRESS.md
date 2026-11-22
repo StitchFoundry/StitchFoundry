@@ -48,3 +48,5 @@
 - 2026-11-20 nightly sweep: no reports to triage; main fmt + clippy clean, tests stopped on a full disk while linking (main CI green); cargo audit: no vulnerabilities, wasmi 2.0.1 yanked (filed #206).
 - Fix #206: Cargo.lock moves wasmi (and wasmi_core, wasmi_collections, wasmi_ir) from the yanked 2.0.1 to 2.0.2 (`cargo audit -D yanked` passes).
 - Issue 113: web app `index.html` gets a favicon (inline SVG of the app icon), meta description, canonical link, Open Graph/Twitter tags and `og-image.png` (copied by trunk, 1200x630). Static check only; Pages build not run locally.
+- 2026-11-22 nightly sweep: no reports to triage; main fmt + clippy clean, sf-formats/sf-core/cloud/engine lib tests pass (3618 engine); cargo audit: no vulnerabilities (7 unmaintained notices, chrono newly flagged). Filed #214; one private finding for the owner.
+- Fix #214: `embroidery.hoop.saveCustom` refuses renaming a hoop (`was`) to the name of another hoop of one's own instead of replacing it.
