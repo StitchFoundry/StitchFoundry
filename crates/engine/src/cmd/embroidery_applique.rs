@@ -202,7 +202,7 @@ mod tests {
         let c = s.execute("embroidery.applique.check", &json!({})).unwrap();
         assert_eq!(c["ok"], true, "{c}");
         assert_eq!(c["pieces"][0]["steps"].as_array().unwrap().len(), 3, "{c}");
-        let r = s.execute("embroidery.addShape", &json!({"name": "Heart", "applique": true, "size": 2})).unwrap();
+        let r = s.execute("embroidery.addShape", &json!({"name": "Heart", "applique": true, "size": 5})).unwrap();
         s.execute("select.set", &json!({"ids": [r["id"].clone()]})).unwrap();
         let c = s.execute("embroidery.applique.check", &json!({})).unwrap();
         assert_eq!(c["ok"], false, "{c}");
