@@ -249,6 +249,13 @@ mod tests {
             let id = link.split(')').next().unwrap();
             assert!(topics.iter().any(|t| t["id"] == id), "{id}");
         }
+        // the glossary explains each word in plain terms and says to test advice on a scrap
+        let g = s.execute("help.topic", &json!({"id": "glossary"})).unwrap();
+        let text = g["text"].as_str().unwrap().to_lowercase();
+        for word in ["density", "underlay", "pull compensation", "push compensation", "tackdown", "jump", "trim"] {
+            assert!(text.contains(word), "{word}");
+        }
+        assert!(text.contains("scrap"));
         // search: titles first
         let found = s.execute("help.topics", &json!({"query": "appliqué"})).unwrap();
         let found = found["topics"].as_array().unwrap();

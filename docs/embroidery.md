@@ -16,6 +16,7 @@ the control channel, the CLI and the MCP server.
 - [Quilting block by block](#quilting-block-by-block)
 - [My Machine](#my-machine)
 - [Digitizing basics](#digitizing-basics)
+- [Glossary](#glossary)
 - [Stitch types](#stitch-types)
 - [Stitch direction: automatic, then editable](#stitch-direction-automatic-then-editable)
 - [The digitizing widget and brush](#the-digitizing-widget-and-brush)
@@ -64,8 +65,11 @@ sample design. The list is one small JSON file on stitchfoundry.app
 (`https://stitchfoundry.app/learn/lessons.json`: `{"lessons": [{"title", "minutes"?, "thumbnail"?,
 "video"?, "docs"?, "try"?}]}`), so lessons can be added without a release; only YouTube and
 stitchfoundry.app links are opened, `docs` must be a guide topic and `try` a `sample:<id>`. Offline,
-or before the first videos exist, the planned lessons show as "Lessons coming soon": your first design
-in Simple mode, lettering a name, photo to stitches, appliqué and saving to your machine.
+or before the first videos exist, the five planned lessons show, each with **Try it** where there is
+a sample and a link to the written lesson in this guide, which you can follow without the video:
+[your first design in Simple mode](#simple-mode), [lettering a name](#lettering),
+[photo to stitches](#photo-stitch), [appliqué](#appliqué-covers) and
+[saving to your machine](#machine-files). Words you don't know are in the [Glossary](#glossary).
 
 The **Home screen** (shown when no design is open, or with the Home button) starts a design the
 size of your hoop (4×4, 5×7, 6×10, 8×8 or 8×12; `embroidery.newDesign {hoop}`), opens a sample
@@ -159,6 +163,29 @@ order. **Merge Colours** and **Sort by Thread Color** help.
 **Fabric recipes.** The best density, underlay and compensation depend on the fabric, so the
 **Fabric** presets (T-shirt, polo, fleece, towel, denim, leather, cap, silk, woven) set them all
 at once, with the stabiliser to hoop under it. Make your own for the fabrics you sew most.
+
+## Glossary
+
+The words digitizers use, in plain terms. Where a word gives sewing advice, test it on a scrap of
+the same fabric and stabiliser before sewing the real thing.
+
+- **Density**: how close together rows or zigzags lie, as the gap between them in mm (0.4 by
+  default). A smaller gap is denser. Too dense sews stiff and can cut the fabric; too open lets the
+  fabric show through.
+- **Underlay**: stitching sewn first, under the ones you see. It holds the fabric and stabiliser
+  together and gives the top stitches something to sit on.
+- **Pull compensation**: thread pulls the fabric in across the stitches, so a satin comes out
+  narrower than drawn. Pull compensation draws it a little wider to make up for that.
+- **Push compensation**: thread pushes the fabric out along the stitches, so a shape comes out
+  longer than drawn. Push compensation stops stitches a little short to make up for that.
+- **Tackdown** (tack-down): a loose run that holds fabric or a layer in place before the final
+  stitches go over it, as in appliqué, where it pins the patch before the cover stitch.
+- **Jump**: the needle travelling to the next spot without stitching, leaving a loose thread
+  across. Short ones are fine; long ones are better hidden under later stitches.
+- **Trim**: the machine cutting the thread, usually after a jump. Each trim costs time and leaves
+  thread ends to clip, so sew parts that touch together and keep trims for real gaps.
+
+See [Digitizing basics](#digitizing-basics) for where to change each one.
 
 ## Stitch types
 
