@@ -1803,22 +1803,25 @@ fn digitize_preset(name: &str) -> Option<Value> {
     }
 }
 
+/// `p` with its `preset` merged under the params given (those win); `None` when no preset is named.
+fn with_digitize_preset(p: &Value) -> Result<Option<Value>> {
+    let name = match str_param(p, "preset") {
+        None | Some("none") => return Ok(None),
+        Some(name) => name,
+    };
+    let Some(mut base) = digitize_preset(name) else { return Err(bad("embroidery.autoDigitize", "`preset` is none, cartoon or logo")) };
+    if let (Some(b), Some(given)) = (base.as_object_mut(), p.as_object()) {
+        for (k, v) in given.iter().filter(|(_, v)| !v.is_null()) {
+            b.insert(k.clone(), v.clone());
+        }
+    }
+    Ok(Some(base))
+}
+
 fn digitize_image(s: &mut Session, p: &Value) -> Result<Value> {
     const CMD: &str = "embroidery.autoDigitize";
-    let merged;
-    let p = match str_param(p, "preset") {
-        None | Some("none") => p,
-        Some(name) => {
-            let Some(mut base) = digitize_preset(name) else { return Err(bad(CMD, "`preset` is none, cartoon or logo")) };
-            if let (Some(b), Some(given)) = (base.as_object_mut(), p.as_object()) {
-                for (k, v) in given.iter().filter(|(_, v)| !v.is_null()) {
-                    b.insert(k.clone(), v.clone());
-                }
-            }
-            merged = base;
-            &merged
-        }
-    };
+    let merged = with_digitize_preset(p)?;
+    let p = merged.as_ref().unwrap_or(p);
     let colors = p.get("colors").and_then(Value::as_u64).unwrap_or(6).clamp(2, 32);
     let detail = f64_or(p, "detail", 60.0).clamp(0.0, 100.0);
     let noise = p.get("noise").and_then(Value::as_u64).unwrap_or(16).clamp(1, 10_000);
