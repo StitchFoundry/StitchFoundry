@@ -45,6 +45,7 @@ pub mod embroidery_cutout;
 pub mod embroidery_cutwork;
 pub mod embroidery_decor;
 pub mod embroidery_edit;
+pub mod embroidery_outline_gap;
 pub mod embroidery_endless;
 pub mod embroidery_eyelet;
 pub mod embroidery_family;
