@@ -28,6 +28,24 @@ pub fn specs() -> Vec<CommandSpec> {
             rotate
         ),
         cmd!(
+            "embroidery.quick.rotateRight",
+            "Quick Rotate 90° Right",
+            [],
+            Some("Cmd+Alt+Right"),
+            "turn the selection, or the whole design when nothing is selected, 90° clockwise (same answer as embroidery.quick.rotate)",
+            has_doc,
+            rotate_right
+        ),
+        cmd!(
+            "embroidery.quick.rotateLeft",
+            "Quick Rotate 90° Left",
+            [],
+            Some("Cmd+Alt+Left"),
+            "turn the selection, or the whole design when nothing is selected, 90° counter-clockwise (same answer as embroidery.quick.rotate)",
+            has_doc,
+            rotate_left
+        ),
+        cmd!(
             "embroidery.quick.flip",
             "Quick Flip",
             [],
@@ -98,6 +116,14 @@ fn rotate(s: &mut Session, p: &Value) -> Result<Value> {
     on_target(s, |s| s.execute("object.rotate", &json!({ "angle": deg })).map(drop))?;
     recentre(s)?;
     Ok(report(s, json!({})))
+}
+
+fn rotate_right(s: &mut Session, _: &Value) -> Result<Value> {
+    rotate(s, &json!({ "degrees": -90.0 }))
+}
+
+fn rotate_left(s: &mut Session, _: &Value) -> Result<Value> {
+    rotate(s, &json!({ "degrees": 90.0 }))
 }
 
 fn flip(s: &mut Session, p: &Value) -> Result<Value> {
