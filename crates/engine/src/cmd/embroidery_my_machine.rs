@@ -262,6 +262,13 @@ mod tests {
                 let (gw, gh) = (gb.max.x - gb.min.x, gb.max.y - gb.min.y);
                 let (ew, eh) = if swap { (bh, bw) } else { (bw, bh) };
                 assert!((gw - ew).abs() < 3.0 && (gh - eh).abs() < 3.0, "{f} {rot} {mirror}: {gw}x{gh} vs {ew}x{eh}");
+                // every stitch lands where the turn puts it (relative to the design's middle; 0.1 mm formats)
+                let mid = |b: sf_core::geom::BBox| ((b.min.x + b.max.x) / 2.0, (b.min.y + b.max.y) / 2.0);
+                let (wm, gm) = (mid(want.bounds()), mid(gb));
+                for (i, (g, w)) in got.stitches.iter().zip(&want.stitches).enumerate() {
+                    let (dx, dy) = ((g.x - gm.0) - (w.x - wm.0), (g.y - gm.1) - (w.y - wm.1));
+                    assert!(dx.abs() < 6.0 && dy.abs() < 6.0, "{f} {rot} {mirror} stitch {i}: off by {dx},{dy}");
+                }
             }
             s.execute("embroidery.myMachine.setOrientation", &json!({"rotation": 0})).unwrap();
         }
