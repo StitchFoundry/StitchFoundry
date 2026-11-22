@@ -49,3 +49,4 @@
 - Fix #206: Cargo.lock moves wasmi (and wasmi_core, wasmi_collections, wasmi_ir) from the yanked 2.0.1 to 2.0.2 (`cargo audit -D yanked` passes).
 - 2026-11-21 nightly sweep: no reports to triage; clippy clean on main, full tests stopped on a full disk (engine lib tests 3620 pass); cargo audit: no vulnerabilities (7 unmaintained, chrono newly flagged). Filed #209.
 - Fix #209: `embroidery.multiHoop` counts hoopings with `saturating_mul`, so on wasm32 a design across the whole canvas can't wrap the count past the 64-hooping cap.
+- Issue 113: web app `index.html` gets a favicon (inline SVG of the app icon), meta description, canonical link, Open Graph/Twitter tags and `og-image.png` (copied by trunk, 1200x630). Static check only; Pages build not run locally.
