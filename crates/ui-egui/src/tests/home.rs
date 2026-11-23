@@ -460,7 +460,12 @@ fn make_a_design_guide_walks_from_words_to_saving() {
 /// E5 + E6: simple mode's column has Undo, Redo, Start Over and Text size; Start Over asks first;
 /// Keep Safe saves the design in My Designs and Your Design says where.
 /// The texts a frame of `f` draws (a window takes two frames: measured, then drawn).
-fn strings(app: &mut VectorcraftApp, mut f: impl FnMut(&mut VectorcraftApp, &mut egui::Ui)) -> Vec<String> {
+fn strings(app: &mut VectorcraftApp, f: impl FnMut(&mut VectorcraftApp, &mut egui::Ui)) -> Vec<String> {
+    strings_on(app, 900.0, f)
+}
+
+/// `strings` on a screen this tall (text outside the screen is not drawn, so a long window needs room).
+fn strings_on(app: &mut VectorcraftApp, height: f32, mut f: impl FnMut(&mut VectorcraftApp, &mut egui::Ui)) -> Vec<String> {
     fn texts(s: &egui::Shape, out: &mut Vec<String>) {
         match s {
             egui::Shape::Text(t) => out.push(t.galley.text().to_string()),
@@ -470,9 +475,11 @@ fn strings(app: &mut VectorcraftApp, mut f: impl FnMut(&mut VectorcraftApp, &mut
     }
     let ctx = egui::Context::default();
     crate::theme::install_fonts(&ctx);
-    let raw = egui::RawInput { screen_rect: Some(egui::Rect::from_min_size(egui::Pos2::ZERO, egui::vec2(1200.0, 900.0))), ..Default::default() };
-    // a window is measured on its first frame and drawn on the next
-    ctx.run_ui(raw.clone(), |ui| f(app, ui)).textures_delta.clear();
+    let raw = egui::RawInput { screen_rect: Some(egui::Rect::from_min_size(egui::Pos2::ZERO, egui::vec2(1200.0, height))), ..Default::default() };
+    // a window is measured on its first frame and drawn on the next (a long one grows a little each frame)
+    for _ in 0..30 {
+        ctx.run_ui(raw.clone(), |ui| f(app, ui)).textures_delta.clear();
+    }
     let mut out = ctx.run_ui(raw, |ui| f(app, ui));
     out.textures_delta.clear();
     let mut v = vec![];
@@ -547,10 +554,10 @@ fn my_machine_window_offers_the_orientation_wizard() {
     let mut app = VectorcraftApp::new(vectorcraft_engine::Session::new(), crate::Services::default());
     app.run("embroidery.myMachine.set", json!({"machine": null})).unwrap();
     app.run("ui.myMachine", json!({})).unwrap();
-    let window = strings(&mut app, |app, ui| crate::dialogs::my_machine::show(app, ui.ctx()));
+    let window = strings_on(&mut app, 2400.0, |app, ui| crate::dialogs::my_machine::show(app, ui.ctx()));
     assert!(!window.iter().any(|t| t == "Hoop orientation"), "{window:?}");
     app.run("embroidery.myMachine.set", json!({"machine": "Brother or Baby Lock"})).unwrap();
-    let window = strings(&mut app, |app, ui| crate::dialogs::my_machine::show(app, ui.ctx()));
+    let window = strings_on(&mut app, 2400.0, |app, ui| crate::dialogs::my_machine::show(app, ui.ctx()));
     for want in ["Hoop orientation", "Make Orientation Test", "The letters read backwards", "↑", "→", "↓", "←"] {
         assert!(window.iter().any(|t| t == want), "{want}: {window:?}");
     }
