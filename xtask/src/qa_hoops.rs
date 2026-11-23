@@ -13,6 +13,10 @@ fn test_command() -> std::process::Command {
 /// The full matrix, writing the report (slow: not part of `ci`).
 pub fn run_full(root: &Path) -> Result<(), String> {
     let report = root.join("docs/qa/addon-40-report.md");
+    // The golden and overlay checks first: no report is written if they fail.
+    let mut g = cargo();
+    g.args(["test", "-p", "vectorcraft-engine", "--test", "qa_hoops_golden"]);
+    run(g, "cargo test -p vectorcraft-engine --test qa_hoops_golden")?;
     let mut c = test_command();
     c.env("QA_HOOPS_FULL", "1").env("QA_REPORT", &report);
     run(c, "cargo test -p vectorcraft-engine --test qa_hoops (full matrix)")?;

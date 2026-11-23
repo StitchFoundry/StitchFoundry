@@ -702,6 +702,7 @@ fn structured_junk() {
         ("quilt.check", json!({"tolerance": f64::NAN, "ids": [u64::MAX]})),
         ("quilt.join", json!({"tolerance": 1e300})),
         ("quilt.edges", json!({"height": 3})),
+        ("quilt.tile", json!({"width": 1e300, "height": f64::NAN, "seed": 1e300, "format": []})),
         ("quilt.pantograph", json!({"width": 20000, "height": 20000, "row": 1, "nest": "yes"})),
         ("quilt.pantograph", json!({"width": f64::INFINITY, "height": -1})),
         ("quilt.border", json!({"length": 20000, "depth": 2, "down": 20000})),

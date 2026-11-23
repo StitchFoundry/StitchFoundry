@@ -69,6 +69,24 @@ fn validation() {
 }
 
 #[test]
+fn renaming_a_hoop_to_another_ones_name_is_refused() {
+    let mut s = Session::new();
+    s.execute("embroidery.hoop.saveCustom", &json!({"name": "Hat", "width": 200, "height": 60})).unwrap();
+    s.execute("embroidery.hoop.saveCustom", &json!({"name": "Sleeve", "width": 100, "height": 40})).unwrap();
+    s.execute("embroidery.hoop.attach", &json!({"name": "Hat", "machine": DIAMOND})).unwrap();
+    // "Sleeve" renamed to "hat": the other hoop is not replaced, nothing changes
+    let before = s.prefs.embroidery_custom_hoops.clone();
+    let r = s.execute("embroidery.hoop.saveCustom", &json!({"name": "hat", "width": 100, "height": 40, "was": "Sleeve"}));
+    assert!(r.is_err(), "{r:?}");
+    assert_eq!(s.prefs.embroidery_custom_hoops, before);
+    // editing a hoop under its own name (any case) still works
+    s.execute("embroidery.hoop.saveCustom", &json!({"name": "HAT", "width": 210, "height": 60, "was": "Hat"})).unwrap();
+    let hat = s.prefs.embroidery_custom_hoops.iter().find(|h| h.name == "HAT").unwrap();
+    assert_eq!((hat.width, hat.machines.clone()), (210.0, vec![DIAMOND.to_string()]));
+    assert_eq!(s.prefs.embroidery_custom_hoops.len(), 2);
+}
+
+#[test]
 fn export_then_import_is_identical() {
     let mut s = Session::new();
     let p = json!({"name": "Shop frame", "width": 175, "height": 115, "cornerRadius": 12, "frameWidth": 200, "frameHeight": 140});

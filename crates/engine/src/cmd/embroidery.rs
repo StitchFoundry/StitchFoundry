@@ -204,7 +204,7 @@ pub fn specs() -> Vec<CommandSpec> {
             "Auto-Digitize Image",
             ["Embroidery"],
             None,
-            "{colors?: 2-32 (6), detail?: 0-100 (60), noise?: px (16), removeBackground?: bool (true), minArea?: mm² (1), size?: mm (longest side), keepImage?: bool (true), details?: mm (1.2: shapes no thicker, fine lines and details, sewn as a run round them on top of the rest, kept however small when they are lines; 0 none), outline?: none|design|shapes (none: a satin outline round the whole design, or round each filled shape), outlineWidth?: mm (1.5), outlineColor?: \"#rrggbb\" (the design's darkest thread), border?: mm (0: none; else a filled band this wide round the design, as a sticker's or patch's border, as embroidery.addBorder makes), borderColor?: \"#rrggbb\" (#ffffff), borderEdge?: satin|run|none (satin), chart?: a thread chart to match the threads to (none)} trace the selected image into flat colour shapes and give each a stitch type: satin for narrow parts, tatami at its best angle for the rest, details as runs, specks and the background dropped, sewn colour by colour, outlined and matched to a chart if asked, small holes and gaps where nothing is sewn closed in the colour round them → {id, objects, satin, fill, run, outlines, border (its id), removed, holesClosed, gapsFilled, colors, scale}",
+            "{preset?: none|cartoon|logo (none: for flat-colour artwork sets colors, detail, noise, minArea and details in one go: cartoon 8 colours, logo 4 with stronger clean-up; anything also given wins), colors?: 2-32 (6), detail?: 0-100 (60), noise?: px (16), removeBackground?: bool (true), minArea?: mm² (1), size?: mm (longest side), keepImage?: bool (true), details?: mm (1.2: shapes no thicker, fine lines and details, sewn as a run round them on top of the rest, kept however small when they are lines; 0 none), outline?: none|design|shapes (none: a satin outline round the whole design, or round each filled shape), outlineWidth?: mm (1.5), outlineColor?: \"#rrggbb\" (the design's darkest thread), border?: mm (0: none; else a filled band this wide round the design, as a sticker's or patch's border, as embroidery.addBorder makes), borderColor?: \"#rrggbb\" (#ffffff), borderEdge?: satin|run|none (satin), chart?: a thread chart to match the threads to (none)} trace the selected image into flat colour shapes and give each a stitch type: satin for narrow parts, tatami at its best angle for the rest, details as runs, specks and the background dropped, sewn colour by colour, outlined and matched to a chart if asked, small holes and gaps where nothing is sewn closed in the colour round them → {id, objects, satin, fill, run, outlines, border (its id), removed, holesClosed, gapsFilled, colors, scale}",
             has_selection,
             auto_digitize
         ),
@@ -1390,6 +1390,12 @@ fn sew_object(hp: &mut sf_core::Pattern, stitches: &[sf_core::Stitch], centre: s
     hp.trim();
 }
 
+/// More than 64 hoopings? Saturating: on 32-bit (wasm) a design across the whole canvas makes
+/// columns × rows wrap past `usize::MAX` to a small number, and the cap would let it through.
+fn too_many_hoopings(cols: usize, rows: usize) -> bool {
+    cols.saturating_mul(rows) > 64
+}
+
 fn multi_hoop(s: &mut Session, p: &Value) -> Result<Value> {
     const CMD: &str = "embroidery.multiHoop";
     let cfg = s.doc()?.doc.embroidery.as_deref().cloned().unwrap_or_default();
@@ -1424,7 +1430,7 @@ fn multi_hoop(s: &mut Session, p: &Value) -> Result<Value> {
     let (step_x, step_y) = (field.0 - overlap, field.1 - overlap);
     let count = |len: f64, size: f64, step: f64| if len <= size { 1 } else { ((len - overlap) / step).ceil().max(1.0) as usize };
     let (cols, rows) = if multi_position { (1, positions.len()) } else { (count(b.width(), field.0, step_x), count(b.height(), field.1, step_y)) };
-    if cols * rows > 64 {
+    if too_many_hoopings(cols, rows) {
         return Err(bad(CMD, format!("{cols} × {rows} hoopings: more than 64; choose a larger hoop")));
     }
     let span = (cols as f64 * step_x + overlap, rows as f64 * step_y + overlap);
@@ -1792,8 +1798,36 @@ fn auto_digitize(s: &mut Session, p: &Value) -> Result<Value> {
     res
 }
 
+/// Auto-Digitize's presets for flat-colour artwork: the settings each sets when not given.
+fn digitize_preset(name: &str) -> Option<Value> {
+    match name {
+        // few colours, light clean-up so small features survive, details sewn as runs
+        "cartoon" => Some(json!({ "colors": 8, "detail": 70, "noise": 10, "minArea": 0.8, "details": DETAILS })),
+        // fewest colours, crisp paths, stronger clean-up of specks and stray pixels
+        "logo" => Some(json!({ "colors": 4, "detail": 80, "noise": 24, "minArea": 2.0, "details": DETAILS })),
+        _ => None,
+    }
+}
+
+/// `p` with its `preset` merged under the params given (those win); `None` when no preset is named.
+fn with_digitize_preset(p: &Value) -> Result<Option<Value>> {
+    let name = match str_param(p, "preset") {
+        None | Some("none") => return Ok(None),
+        Some(name) => name,
+    };
+    let Some(mut base) = digitize_preset(name) else { return Err(bad("embroidery.autoDigitize", "`preset` is none, cartoon or logo")) };
+    if let (Some(b), Some(given)) = (base.as_object_mut(), p.as_object()) {
+        for (k, v) in given.iter().filter(|(_, v)| !v.is_null()) {
+            b.insert(k.clone(), v.clone());
+        }
+    }
+    Ok(Some(base))
+}
+
 fn digitize_image(s: &mut Session, p: &Value) -> Result<Value> {
     const CMD: &str = "embroidery.autoDigitize";
+    let merged = with_digitize_preset(p)?;
+    let p = merged.as_ref().unwrap_or(p);
     let colors = p.get("colors").and_then(Value::as_u64).unwrap_or(6).clamp(2, 32);
     let detail = f64_or(p, "detail", 60.0).clamp(0.0, 100.0);
     let noise = p.get("noise").and_then(Value::as_u64).unwrap_or(16).clamp(1, 10_000);
@@ -3556,5 +3590,18 @@ mod wrap_tests {
         assert_eq!(super::wrap_text("left chest, 9 cm wide\nwhite thread", 12), ["left chest,", "9 cm wide", "white thread"]);
         assert_eq!(super::wrap_text("abcdefghij xy", 4), ["abcd", "efgh", "ij", "xy"]);
         assert_eq!(super::wrap_text("", 10), Vec::<String>::new());
+    }
+}
+
+#[cfg(test)]
+mod multi_hoop_tests {
+    #[test]
+    fn hooping_count_never_wraps_under_the_cap() {
+        // 2^32 × 2^32 wraps to 0 on 64-bit, as 2^16 × 2^16 does on wasm32
+        let half = 1usize << (usize::BITS / 2);
+        assert!(super::too_many_hoopings(half, half));
+        assert!(super::too_many_hoopings(usize::MAX, usize::MAX));
+        assert!(!super::too_many_hoopings(8, 8));
+        assert!(super::too_many_hoopings(13, 5));
     }
 }
