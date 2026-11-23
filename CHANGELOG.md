@@ -7,6 +7,8 @@ release workflow copies a version's section into its GitHub release (`docs/relea
 
 Everything since 0.14.0. This is the first full release of 0.15: it has everything in the two test releases (0.15.0-rc.1 and rc.2) below. Please test-sew designs before using them on a garment that matters.
 
+StitchFoundry is pre-release embroidery software: test-sew every design on scrap fabric first.
+
 ### Hoops and machines
 - **Hoop editor.** Make your own hoops (size, shape, corner radius and frame) and attach them to your machines.
 - **Machine profiles and My Machine.** Edit a machine's profile, including which hoops it owns, choose the save format per machine, and make it the default for Save and Export.
@@ -41,6 +43,9 @@ Everything since 0.14.0. This is the first full release of 0.15: it has everythi
 - **Checked in software:** every hoop with every rotate, flip and resize is written to DST and PES and read back; 600 of 600 combinations stay inside the sewing field and agree between the two formats (`docs/qa/addon-40-report.md`).
 - **Not done yet:** the same check for other file formats, and a real sew-out of the hoop orientation test. Test-sew on scrap first.
 - Buttons for quick rotate, flip and resize, and the Stitch advisor screens, come in a later build.
+
+### Not in this release
+- The hoop-first workspace (an overlay toggle, zoom presets and embroidery-first toolbars) is coming in the next release.
 
 ## 0.15.0-rc.2 (test release)
 
