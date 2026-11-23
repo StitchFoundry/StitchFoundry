@@ -32,7 +32,7 @@ pub fn specs() -> Vec<CommandSpec> {
             "Quick Rotate 90° Right",
             [],
             Some("Cmd+Alt+Right"),
-            "turn the selection, or the whole design when nothing is selected, 90° clockwise (same answer as embroidery.quick.rotate)",
+            "{} turn the selection, or the whole design when nothing is selected, 90° clockwise → {width, height, widthIn, heightIn, fits, offers: [rotateHoop|fitToHoop]}",
             has_doc,
             rotate_right
         ),
@@ -41,7 +41,7 @@ pub fn specs() -> Vec<CommandSpec> {
             "Quick Rotate 90° Left",
             [],
             Some("Cmd+Alt+Left"),
-            "turn the selection, or the whole design when nothing is selected, 90° counter-clockwise (same answer as embroidery.quick.rotate)",
+            "{} turn the selection, or the whole design when nothing is selected, 90° counter-clockwise → {width, height, widthIn, heightIn, fits, offers: [rotateHoop|fitToHoop]}",
             has_doc,
             rotate_left
         ),
