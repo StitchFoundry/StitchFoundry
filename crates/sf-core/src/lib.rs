@@ -16,6 +16,7 @@
 //! * [`io`] – native `.sfd` design files.
 //! * [`ai`] – Design from Prompt: the request for stitchable art and reading the reply.
 //! * [`updates`] – the "Get updates" signup and privacy-friendly funnel events.
+//! * [`update_check`] – pure "Version X is ready" logic: version rule, signed manifest, download hash.
 
 #![forbid(unsafe_code)]
 pub mod ai;
@@ -43,6 +44,7 @@ pub mod stamps;
 pub mod stats;
 pub mod threads;
 pub mod travel;
+pub mod update_check;
 pub mod updates;
 
 pub use geom::{Affine, BBox, Point};

@@ -106,3 +106,15 @@ fn a_selection_turns_as_one_group_and_the_rest_stays() {
     let after = s.embroidery_plan().unwrap().stats.as_ref().unwrap().bounds;
     assert!((before.width() - after.width()).abs() < 1.0 && (before.height() - after.height()).abs() < 1.0);
 }
+
+#[test]
+fn the_shortcut_commands_turn_ninety_and_undo_each_other() {
+    let mut s = design();
+    let r0 = s.execute("embroidery.quick.rotateRight", &json!({})).unwrap();
+    let (w, h) = (r0["width"].as_f64().unwrap(), r0["height"].as_f64().unwrap());
+    let r1 = s.execute("embroidery.quick.rotateLeft", &json!({})).unwrap();
+    // right then left is the original: width and height swapped and swapped back
+    assert!((r1["width"].as_f64().unwrap() - h).abs() < 1.0 && (r1["height"].as_f64().unwrap() - w).abs() < 1.0, "{r0} {r1}");
+    let spec = |id: &str| crate::cmd::command_specs().iter().find(|c| c.id == id).map(|c| c.shortcut);
+    assert_eq!(spec("embroidery.quick.rotateRight"), Some(Some("Cmd+Alt+Right")));
+}
