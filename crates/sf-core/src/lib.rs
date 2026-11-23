@@ -29,6 +29,7 @@ pub mod density;
 pub mod direction;
 pub mod engine;
 pub mod fabrics;
+pub mod fidelity;
 pub mod geom;
 pub mod hoops;
 pub mod io;
