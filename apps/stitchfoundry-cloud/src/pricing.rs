@@ -118,6 +118,21 @@ mod tests {
     }
 
     #[test]
+    fn each_offered_model_is_charged_at_its_own_price() {
+        let c = cfg();
+        let usage = json!({"input_tokens": 10_000, "output_tokens": 2_000});
+        // (model, cost in cents, credits at the markup of 3)
+        for (name, cents, credits) in [("claude-opus-5-5", 8, 24), ("claude-sonnet-5-5", 4, 12), ("claude-haiku-4-5-20251001", 2, 6)] {
+            assert!(c.allowed.iter().any(|m| m == name), "{name} is offered");
+            let p = c.model(name).unwrap();
+            assert_eq!(cost_cents(p, &usage), cents, "{name} cost");
+            assert_eq!(charge(&c, p, &usage), credits, "{name} charge");
+        }
+        assert!(c.model("claude-haiku-4-5").is_none());
+        assert!(!c.allowed.iter().any(|m| m == "claude-opus-5"));
+    }
+
+    #[test]
     fn what_free_offers_cost_the_service() {
         let c = cfg();
         let p = c.model("claude-opus-5-5").unwrap().clone();

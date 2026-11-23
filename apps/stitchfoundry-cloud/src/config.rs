@@ -43,7 +43,7 @@ pub struct Config {
     pub markup: f64,
     /// The packs on sale (`SF_CLOUD_PACKS`: `id:credits:cents,…`).
     pub packs: Vec<Pack>,
-    /// The models requests may name.
+    /// The models requests may name (Opus 5.5, Sonnet 5.5, Haiku 4.5).
     pub allowed: Vec<String>,
     /// What each model a reply may come from costs (a request the model declines can be answered
     /// by another one).
@@ -262,9 +262,12 @@ impl Config {
             cents_per_credit,
             markup: num("SF_CLOUD_MARKUP", 3.0)?.max(1.0),
             packs,
-            allowed: vec!["claude-opus-5-5".into()],
+            allowed: vec!["claude-opus-5-5".into(), "claude-sonnet-5-5".into(), "claude-haiku-4-5-20251001".into()],
             models: vec![
                 ModelPrice { model: "claude-opus-5-5".into(), input: 4.0, output: 20.0, cache_read: 0.20, cache_write: 5.0 },
+                // Anthropic's list prices, platform.claude.com/docs/en/about-claude/pricing, read 2026-11-23
+                ModelPrice { model: "claude-sonnet-5-5".into(), input: 2.0, output: 10.0, cache_read: 0.10, cache_write: 2.50 },
+                ModelPrice { model: "claude-haiku-4-5-20251001".into(), input: 1.0, output: 5.0, cache_read: 0.10, cache_write: 1.25 },
                 ModelPrice { model: "claude-opus-5".into(), input: 5.0, output: 25.0, cache_read: 0.50, cache_write: 6.25 },
                 ModelPrice { model: "claude-opus-4-8".into(), input: 5.0, output: 25.0, cache_read: 0.50, cache_write: 6.25 },
             ],
