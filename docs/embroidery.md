@@ -1652,6 +1652,8 @@ of them between letters.)
 
 ## Auto-Digitize
 
+**Presets for flat-colour art.** Through the command, `preset: cartoon` (8 colours, detail 70, noise 10, specks under 0.8 mm² dropped) or `preset: logo` (4 colours, detail 80, noise 24, specks under 2 mm² dropped) sets the trace for cartoons and logos in one go. Params you give alongside still win. A picker in the panel is not built yet.
+
 Select a placed image and choose **Embroidery › Create › Auto-Digitize Image** (or use the Embroidery panel
 when an image is selected). The panel's **Thread colors** slider (2 to 32) shows at once what that
 many colours look like: a small preview of the image reduced the way Auto-Digitize reduces it
@@ -2643,7 +2645,7 @@ tool list for all parameters):
 | `embroidery.placeRing {stitch?, diameter?, width?, at?}` | a satin, filled or bean ring |
 | `embroidery.draw {brush, points \| stamp, …}` | a brush stroke, as the widget draws it |
 | `embroidery.column {points: [[x, y, curve?]…], id?}` | a Column A/B satin column from points on its two sides in turn; with `id`, continue that column |
-| `embroidery.autoDigitize {colors, …}` | trace a selected image into stitches |
+| `embroidery.autoDigitize {colors, preset?, …}` | trace a selected image into stitches; `preset` is `cartoon` (8 colours, light clean-up) or `logo` (4 colours, stronger clean-up of specks), and any param you pass overrides it |
 | `embroidery.placeArt {svg, size?, at?, frame?, name?, minArea?}` | place flat-colour SVG art and digitize it, as Design from Prompt does with Claude's drawing (its linked files are never read); `frame` fits the SVG's page into a rectangle, as Redraw Image does over the image |
 | `embroidery.settings {hoop, fabric, chart, machine, …}`, `embroidery.applyFabric {name}` | design settings |
 | `embroidery.machine.list`, `embroidery.machine.save {name, newName?, format?, fromDesign?, …}`, `embroidery.machine.delete {name}` | machine profiles: change the standard ones, make, rename and delete your own (names up to 80 characters, 100 of your own at most) |
