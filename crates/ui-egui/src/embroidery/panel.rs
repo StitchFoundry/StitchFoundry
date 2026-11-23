@@ -4135,6 +4135,7 @@ fn finding_text(f: &Value) -> String {
             &[("n", &f["value"].as_f64().map(|v| format!("{v:.0}")).unwrap_or_default())],
         ),
         "narrowSatin" => crate::i18n::fmt(tl!("Satin only {n} mm wide sinks into the fabric"), &[("n", &num("value"))]),
+        "outlineGap" => crate::i18n::fmt(tl!("Outline {n} mm outside its fill: fabric can show; add pull compensation"), &[("n", &num("value"))]),
         "shortFill" => crate::i18n::fmt(tl!("Fill stitches {n} mm long can ripple after washing"), &[("n", &num("value"))]),
         "tiny" => tl!("Tiny object: may not sew cleanly").to_string(),
         "smallLettering" => crate::i18n::fmt(tl!("Lettering only {n} mm tall is hard to sew clearly"), &[("n", &num("value"))]),

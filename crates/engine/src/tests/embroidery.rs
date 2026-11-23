@@ -6724,6 +6724,43 @@ fn clipart_library_has_sets_search_and_digitizable_motifs() {
 }
 
 #[test]
+fn check_design_flags_an_outline_sewn_away_from_its_fill() {
+    const PT: f64 = vectorcraft_embroidery::PT_PER_MM;
+    let gaps = |s: &mut Session| -> Vec<serde_json::Value> {
+        let r = s.execute("embroidery.check", &json!({})).unwrap();
+        r["findings"].as_array().unwrap().iter().filter(|f| f["kind"] == "outlineGap").cloned().collect()
+    };
+    let run = |s: &mut Session, inset: f64| {
+        // a closed run round a 30 mm square at (10, 10), `inset` mm out from its edge
+        let (a, b) = ((10.0 - inset) * PT, (40.0 + inset) * PT);
+        s.execute("path.create", &json!({"d": format!("M {a} {a} L {b} {a} L {b} {b} L {a} {b} Z")})).unwrap();
+        s.execute("embroidery.set", &json!({"type": "run"})).unwrap();
+    };
+    // an outline 0.1 mm out is hidden by its own thread
+    let mut s = session();
+    rect(&mut s, 10.0 * PT, 10.0 * PT, 30.0 * PT, 30.0 * PT);
+    s.execute("embroidery.set", &json!({"type": "fill"})).unwrap();
+    run(&mut s, 0.1);
+    assert!(gaps(&mut s).is_empty());
+    // 1 mm out leaves a gap, and the advice says what to do and to test on scrap
+    let mut s = session();
+    rect(&mut s, 10.0 * PT, 10.0 * PT, 30.0 * PT, 30.0 * PT);
+    s.execute("embroidery.set", &json!({"type": "fill"})).unwrap();
+    run(&mut s, 1.0);
+    let g = gaps(&mut s);
+    assert_eq!(g.len(), 1, "{g:?}");
+    assert_eq!(g[0]["value"].as_f64(), Some(1.0));
+    let msg = g[0]["message"].as_str().unwrap();
+    assert!(msg.contains("pull compensation") && msg.contains("scrap"), "{msg}");
+    // an outline far from the fill isn't its outline
+    let mut s = session();
+    rect(&mut s, 10.0 * PT, 10.0 * PT, 30.0 * PT, 30.0 * PT);
+    s.execute("embroidery.set", &json!({"type": "fill"})).unwrap();
+    run(&mut s, 8.0);
+    assert!(gaps(&mut s).is_empty());
+}
+
+#[test]
 fn multi_hoop_refuses_a_design_across_the_whole_canvas() {
     const PT: f64 = vectorcraft_embroidery::PT_PER_MM;
     let mut s = session();

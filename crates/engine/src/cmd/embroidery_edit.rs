@@ -554,6 +554,22 @@ fn check(s: &mut Session, _p: &Value) -> Result<Value> {
     // Objects: no stitches, tiny, small lettering.
     object_findings(doc, &plan, (tiny, small_lettering), &mut findings);
 
+    // Outline sewn away from its fill: the fabric shows between them.
+    for g in super::embroidery_outline_gap::outline_gaps(&plan.design).into_iter().take(MAX_PER_KIND) {
+        let ids: Vec<NodeId> = [g.fill, g.outline].iter().filter_map(|i| plan.nodes.get(*i).copied()).collect();
+        findings.push(finding(
+            "outlineGap",
+            "warning",
+            format!(
+                "Outline sits {:.1} mm outside its fill, so fabric can show between them: add pull compensation of about {:.1} mm to the fill, or move the outline in; sew a test on scrap fabric to check",
+                g.gap, g.gap
+            ),
+            &ids,
+            Some(g.at),
+            Some(g.gap),
+        ));
+    }
+
     // Satin too narrow to sit up; tatami stitches short enough to ripple after washing.
     let mut flagged: Vec<(NodeId, &str)> = Vec::new();
     for (id, obj) in plan.nodes.iter().zip(&plan.design.objects) {
