@@ -541,6 +541,25 @@ fn simple_mode_names_threads_and_says_why_my_machine_opened() {
     assert!(window.iter().any(|t| t == "Done"), "{window:?}");
 }
 
+/// The My Machine window offers the hoop orientation wizard once a machine is chosen, and not before.
+#[test]
+fn my_machine_window_offers_the_orientation_wizard() {
+    let mut app = VectorcraftApp::new(vectorcraft_engine::Session::new(), crate::Services::default());
+    app.run("embroidery.myMachine.set", json!({"machine": null})).unwrap();
+    app.run("ui.myMachine", json!({})).unwrap();
+    let window = strings(&mut app, |app, ui| crate::dialogs::my_machine::show(app, ui.ctx()));
+    assert!(!window.iter().any(|t| t == "Hoop orientation"), "{window:?}");
+    app.run("embroidery.myMachine.set", json!({"machine": "Brother or Baby Lock"})).unwrap();
+    let window = strings(&mut app, |app, ui| crate::dialogs::my_machine::show(app, ui.ctx()));
+    for want in ["Hoop orientation", "Make Orientation Test", "The letters read backwards", "↑", "→", "↓", "←"] {
+        assert!(window.iter().any(|t| t == want), "{want}: {window:?}");
+    }
+    // the answer the buttons send is saved on the machine
+    app.run("embroidery.myMachine.setOrientation", json!({"rotation": 90, "mirror": true})).unwrap();
+    let mine = app.session.execute("embroidery.myMachine", &json!({})).unwrap();
+    assert_eq!(mine["orientation"], json!({"rotation": 90, "mirror": true}));
+}
+
 /// QA-01: words too long for the hoop are made smaller, and the guide's next step says so.
 #[test]
 fn the_guide_says_when_words_were_made_smaller() {
