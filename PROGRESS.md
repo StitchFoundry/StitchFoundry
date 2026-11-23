@@ -58,3 +58,4 @@
 - 2026-11-23, issue 237 (slice 1 of 4): `sf-core::update_check`, the pure update check: only a strictly newer x.y.z counts, Ed25519 check of the signed `stitch-release-v1` text, SHA-256 and size check of a download. No menu or network yet.
 - 2026-11-23 nightly sweep: no reports to triage; main fmt + clippy clean; cargo audit flagged url 2.5.8 (filed #242, 7 unmaintained notices).
 - Fix #242: Cargo.lock moves url from 2.5.8 to 2.5.9 (and form_urlencoded 1.2.2 to 1.2.3); `cargo audit` reports no vulnerabilities.
+- 2026-11-23, issue 163: named underlay presets (fill: none, edge run, tatami at 90 degrees, edge run + tatami; satin: automatic, centre run, edge run, zigzag, edge run + zigzag) with a when-to-use note, picker on the fill and satin properties. Redo of closed #229 off current main. Not done: translations, panel test.

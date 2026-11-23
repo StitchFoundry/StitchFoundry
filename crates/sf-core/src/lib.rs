@@ -44,6 +44,7 @@ pub mod stamps;
 pub mod stats;
 pub mod threads;
 pub mod travel;
+pub mod underlay_presets;
 pub mod update_check;
 pub mod updates;
 
