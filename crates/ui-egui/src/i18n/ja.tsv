@@ -7043,3 +7043,7 @@ axis	Y Axis	Y 軸
 @msg	the window's {what} ({points} points × {scale} DPI) cannot size a screenshot	ウィンドウの {what}（{points} ポイント × {scale} DPI）ではスクリーンショットのサイズを決められません
 	Live preview	ライブプレビュー
 	Too dense: the fill may sew stiff. Lower the density (more space between rows) until it just covers the fabric.	密度が高すぎます。塗りつぶしが硬く縫い上がる場合があります。生地がちょうど隠れるまで密度を下げてください(列の間隔を広げます)。
+	Hoop orientation	枠の向き
+	Sew the test design once. Then pick the way its arrow pointed.	テスト用の図案を一度縫います。次に、矢印が向いた方向を選びます。
+	Make Orientation Test	向きテストを作成
+	The letters read backwards	文字が逆向きに読める

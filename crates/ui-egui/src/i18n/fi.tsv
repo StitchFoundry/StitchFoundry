@@ -7350,3 +7350,7 @@ axis	Y Axis	Y-akseli
 @msg	the window's {what} ({points} points × {scale} DPI) cannot size a screenshot	ikkunan {what} ({points} pistettä × {scale} DPI) ei voi määrittää kuvakaappauksen kokoa
 	Live preview	Reaaliaikainen esikatselu
 	Too dense: the fill may sew stiff. Lower the density (more space between rows) until it just covers the fabric.	Liian tiheä: täyte voi tulla jäykäksi. Pienennä tiheyttä (enemmän tilaa rivien välillä), kunnes se juuri peittää kankaan.
+	Hoop orientation	Kehyksen suunta
+	Sew the test design once. Then pick the way its arrow pointed.	Ompele testikuvio kerran. Valitse sitten, mihin nuoli osoitti.
+	Make Orientation Test	Luo suuntatesti
+	The letters read backwards	Kirjaimet ovat peilikuvana

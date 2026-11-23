@@ -6981,3 +6981,7 @@ axis	Y Axis	Asse Y
 @msg	the window's {what} ({points} points × {scale} DPI) cannot size a screenshot	la {what} della finestra ({points} punti × {scale} DPI) non può dimensionare uno screenshot
 	Live preview	Anteprima dal vivo
 	Too dense: the fill may sew stiff. Lower the density (more space between rows) until it just covers the fabric.	Troppo denso: il riempimento può risultare rigido. Riduci la densità (più spazio tra le file) finché copre appena il tessuto.
+	Hoop orientation	Orientamento del telaio
+	Sew the test design once. Then pick the way its arrow pointed.	Ricama una volta il disegno di prova. Poi scegli dove puntava la freccia.
+	Make Orientation Test	Crea il test di orientamento
+	The letters read backwards	Le lettere si leggono al contrario

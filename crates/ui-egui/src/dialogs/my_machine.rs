@@ -108,6 +108,37 @@ fn own_hoops(app: &mut VectorcraftApp, ui: &mut egui::Ui, mine: &Value, t: &Toke
     }
 }
 
+/// "Hoop orientation": make the test design, sew it, then say which way its arrow pointed (and
+/// whether the letters read backwards); exports are turned by the answer
+/// (`embroidery.myMachine.setOrientation`).
+fn orientation(app: &mut VectorcraftApp, ui: &mut egui::Ui, mine: &Value, t: &Tokens) {
+    ui.label(egui::RichText::new(tl!("Hoop orientation")).size(14.0));
+    ui.label(egui::RichText::new(tl!("Sew the test design once. Then pick the way its arrow pointed.")).size(12.0).color(t.text_dim));
+    if ui.button(tl!("Make Orientation Test")).clicked()
+        && let Err(e) = app.run("embroidery.testSew", json!({ "test": "orientation" }))
+    {
+        app.status(e);
+    }
+    let rotation = mine["orientation"]["rotation"].as_u64().unwrap_or(0);
+    let mut mirror = mine["orientation"]["mirror"].as_bool().unwrap_or(false);
+    let mut answer = None;
+    ui.horizontal(|ui| {
+        for (deg, label) in [(0, "↑"), (90, "→"), (180, "↓"), (270, "←")] {
+            if ui.selectable_label(rotation == deg, label).clicked() {
+                answer = Some(deg);
+            }
+        }
+    });
+    if ui.checkbox(&mut mirror, tl!("The letters read backwards")).changed() {
+        answer = Some(rotation);
+    }
+    if let Some(deg) = answer
+        && let Err(e) = app.run("embroidery.myMachine.setOrientation", json!({ "rotation": deg, "mirror": mirror }))
+    {
+        app.status(e);
+    }
+}
+
 /// `ui.myMachine`: opens the window.
 pub fn open(app: &mut VectorcraftApp) -> Result<Value, String> {
     app.ui.my_machine.open = true;
@@ -482,6 +513,10 @@ pub(crate) fn show(app: &mut VectorcraftApp, ctx: &egui::Context) {
                     );
                 }
                 ui.add_space(10.0);
+                if !mine["machine"].is_null() {
+                    orientation(app, ui, &mine, &t);
+                    ui.add_space(10.0);
+                }
                 own_hoops(app, ui, &mine, &t);
             });
             ui.add_space(12.0);

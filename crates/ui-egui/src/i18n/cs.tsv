@@ -7338,3 +7338,7 @@ axis	Y Axis	osa Y
 @msg	the window's {what} ({points} points × {scale} DPI) cannot size a screenshot	okno {what} ({points} bodů × {scale} DPI) nemůže určit velikost snímku
 	Live preview	Živý náhled
 	Too dense: the fill may sew stiff. Lower the density (more space between rows) until it just covers the fabric.	Příliš husté: výplň může být tuhá. Snižte hustotu (větší mezera mezi řadami), až výplň právě pokryje látku.
+	Hoop orientation	Orientace rámečku
+	Sew the test design once. Then pick the way its arrow pointed.	Vyšijte zkušební vzor jednou. Pak vyberte, kam šipka mířila.
+	Make Orientation Test	Vytvořit test orientace
+	The letters read backwards	Písmena jsou zrcadlově obrácená

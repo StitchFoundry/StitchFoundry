@@ -6935,3 +6935,7 @@ axis	Y Axis	Y축
 @msg	the window's {what} ({points} points × {scale} DPI) cannot size a screenshot	창의 {what}({points}포인트 × {scale} DPI)로는 스크린샷 크기를 정할 수 없습니다
 	Live preview	실시간 미리 보기
 	Too dense: the fill may sew stiff. Lower the density (more space between rows) until it just covers the fabric.	밀도가 너무 높습니다. 채움이 뻣뻣하게 수놓일 수 있습니다. 원단이 딱 덮일 때까지 밀도를 낮추세요(줄 사이 간격을 넓힙니다).
+	Hoop orientation	후프 방향
+	Sew the test design once. Then pick the way its arrow pointed.	테스트 도안을 한 번 수놓으세요. 그다음 화살표가 가리킨 방향을 고르세요.
+	Make Orientation Test	방향 테스트 만들기
+	The letters read backwards	글자가 거꾸로 읽힘

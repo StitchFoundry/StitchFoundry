@@ -7345,3 +7345,7 @@ axis	Y Axis	Y-axel
 @msg	the window's {what} ({points} points × {scale} DPI) cannot size a screenshot	fönstrets {what} ({points} punkter × {scale} DPI) kan inte bestämma en skärmbilds storlek
 	Live preview	Direkt förhandsgranskning
 	Too dense: the fill may sew stiff. Lower the density (more space between rows) until it just covers the fabric.	För tätt: fyllningen kan bli stel. Sänk tätheten (mer utrymme mellan raderna) tills den precis täcker tyget.
+	Hoop orientation	Ramens riktning
+	Sew the test design once. Then pick the way its arrow pointed.	Brodera testmönstret en gång. Välj sedan vart pilen pekade.
+	Make Orientation Test	Skapa riktningstest
+	The letters read backwards	Bokstäverna läses spegelvänt

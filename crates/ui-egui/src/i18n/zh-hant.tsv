@@ -6942,3 +6942,7 @@ axis	Y Axis	Y 軸
 @msg	the window's {what} ({points} points × {scale} DPI) cannot size a screenshot	視窗的{what}（{points} 點 × {scale} DPI）無法決定螢幕擷取畫面的大小
 	Live preview	即時預覽
 	Too dense: the fill may sew stiff. Lower the density (more space between rows) until it just covers the fabric.	密度過高:填充可能變硬。請降低密度(加大行距),直到剛好蓋住布料。
+	Hoop orientation	繡框方向
+	Sew the test design once. Then pick the way its arrow pointed.	先繡一次測試圖案，然後選擇箭頭指向的方向。
+	Make Orientation Test	建立方向測試
+	The letters read backwards	文字是反的

@@ -6961,3 +6961,7 @@ axis	Y Axis	Вісь Y
 @msg	the window's {what} ({points} points × {scale} DPI) cannot size a screenshot	{what} вікна ({points} пунктів × {scale} DPI) не дозволяє задати розмір знімка
 	Live preview	Перегляд у реальному часі
 	Too dense: the fill may sew stiff. Lower the density (more space between rows) until it just covers the fabric.	Надто щільно: заливка може вийти жорсткою. Зменште щільність (більше місця між рядами), доки вона лише ледве вкриває тканину.
+	Hoop orientation	Орієнтація п'яльців
+	Sew the test design once. Then pick the way its arrow pointed.	Вишийте тестовий малюнок один раз. Потім виберіть, куди вказувала стрілка.
+	Make Orientation Test	Створити тест орієнтації
+	The letters read backwards	Літери читаються дзеркально

@@ -7329,3 +7329,7 @@ swatch	[None]	[Нет]
 swatch	[Registration]	[Приводка]
 theme	Appearance	Оформление
 	Too dense: the fill may sew stiff. Lower the density (more space between rows) until it just covers the fabric.	Слишком плотно: заливка может получиться жёсткой. Уменьшите плотность (больше места между рядами), пока она только-только закрывает ткань.
+	Hoop orientation	Ориентация пялец
+	Sew the test design once. Then pick the way its arrow pointed.	Вышейте тестовый рисунок один раз. Затем выберите, куда указывала стрелка.
+	Make Orientation Test	Создать тест ориентации
+	The letters read backwards	Буквы читаются зеркально
