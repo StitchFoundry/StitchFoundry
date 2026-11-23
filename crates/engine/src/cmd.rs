@@ -72,6 +72,7 @@ pub mod embroidery_mp4;
 pub mod embroidery_my_machine;
 pub mod embroidery_orders;
 pub mod embroidery_outline;
+pub mod embroidery_outline_gap;
 pub mod embroidery_output;
 pub mod embroidery_patches;
 pub mod embroidery_photo;
