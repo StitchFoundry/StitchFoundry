@@ -37,6 +37,7 @@ pub mod pattern;
 pub mod quilt;
 pub mod quilt_tile;
 pub mod satin_line;
+pub mod scorecard;
 pub mod sequence;
 pub mod stamps;
 pub mod stats;
