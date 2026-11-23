@@ -7179,3 +7179,7 @@ axis	Y Axis	Oś Y
 @msg	the window's {what} ({points} points × {scale} DPI) cannot size a screenshot	{what} okna ({points} punktów × {scale} DPI) nie pozwala ustalić rozmiaru zrzutu ekranu
 	Live preview	Podgląd na żywo
 	Too dense: the fill may sew stiff. Lower the density (more space between rows) until it just covers the fabric.	Za gęsto: wypełnienie może wyjść sztywne. Zmniejsz gęstość (więcej miejsca między rzędami), aż tylko pokryje tkaninę.
+	Hoop orientation	Ułożenie tamborka
+	Sew the test design once. Then pick the way its arrow pointed.	Wyhaftuj wzór testowy raz. Potem wybierz, w którą stronę wskazywała strzałka.
+	Make Orientation Test	Utwórz test ułożenia
+	The letters read backwards	Litery są odwrócone lustrzanie

@@ -5642,3 +5642,7 @@ swatch	Yellow	Groc
 swatch	Yellow Green	Verd groc
 theme	Appearance	Aparença
 	Too dense: the fill may sew stiff. Lower the density (more space between rows) until it just covers the fabric.	Massa dens: el farciment pot quedar rígid. Baixeu la densitat (més espai entre files) fins que just cobreixi el teixit.
+	Hoop orientation	Orientació del bastidor
+	Sew the test design once. Then pick the way its arrow pointed.	Brodeu el disseny de prova una vegada. Després trieu cap on apuntava la fletxa.
+	Make Orientation Test	Crea la prova d'orientació
+	The letters read backwards	Les lletres es llegeixen al revés

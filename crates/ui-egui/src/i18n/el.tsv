@@ -7284,3 +7284,7 @@ axis	Y Axis	Άξονας Y
 @msg	the window's {what} ({points} points × {scale} DPI) cannot size a screenshot	το {what} του παραθύρου ({points} σημεία × {scale} DPI) δεν μπορεί να καθορίσει μέγεθος στιγμιότυπου
 	Live preview	Ζωντανή προεπισκόπηση
 	Too dense: the fill may sew stiff. Lower the density (more space between rows) until it just covers the fabric.	Πολύ πυκνό: το γέμισμα μπορεί να βγει σκληρό. Μειώστε την πυκνότητα (περισσότερος χώρος ανάμεσα στις σειρές) μέχρι να καλύπτει ακριβώς το ύφασμα.
+	Hoop orientation	Προσανατολισμός τελάρου
+	Sew the test design once. Then pick the way its arrow pointed.	Κεντήστε το δοκιμαστικό σχέδιο μία φορά. Μετά διαλέξτε πού έδειχνε το βέλος.
+	Make Orientation Test	Δημιουργία δοκιμής προσανατολισμού
+	The letters read backwards	Τα γράμματα διαβάζονται ανάποδα

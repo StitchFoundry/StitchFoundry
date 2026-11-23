@@ -6938,3 +6938,7 @@ axis	Y Axis	Trục Y
 @msg	the window's {what} ({points} points × {scale} DPI) cannot size a screenshot	{what} của cửa sổ ({points} điểm × {scale} DPI) không thể định cỡ ảnh chụp
 	Live preview	Xem trước trực tiếp
 	Too dense: the fill may sew stiff. Lower the density (more space between rows) until it just covers the fabric.	Quá dày: phần tô có thể bị cứng. Giảm mật độ (tăng khoảng cách giữa các hàng) cho đến khi vừa đủ phủ vải.
+	Hoop orientation	Hướng khung thêu
+	Sew the test design once. Then pick the way its arrow pointed.	Thêu mẫu thử một lần. Sau đó chọn mũi tên đã chỉ về hướng nào.
+	Make Orientation Test	Tạo mẫu thử hướng
+	The letters read backwards	Chữ đọc bị ngược

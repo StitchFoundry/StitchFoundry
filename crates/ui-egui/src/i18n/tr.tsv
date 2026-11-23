@@ -5594,3 +5594,7 @@ axis	Y Axis	Y ekseni
 @msg	the window's {what} ({points} points × {scale} DPI) cannot size a screenshot	pencerenin {what} ({points} nokta × {scale} DPI) bir ekran görüntüsünü boyutlandıramaz
 	Live preview	Canlı önizleme
 	Too dense: the fill may sew stiff. Lower the density (more space between rows) until it just covers the fabric.	Fazla yoğun: dolgu sert dikilebilir. Kumaşı tam kapatana kadar yoğunluğu düşürün (sıralar arasında daha fazla boşluk).
+	Hoop orientation	Çember yönü
+	Sew the test design once. Then pick the way its arrow pointed.	Deneme desenini bir kez işleyin. Sonra okun nereyi gösterdiğini seçin.
+	Make Orientation Test	Yön testi oluştur
+	The letters read backwards	Harfler ters okunuyor
