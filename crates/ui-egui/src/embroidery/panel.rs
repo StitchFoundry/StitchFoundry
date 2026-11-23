@@ -12,6 +12,8 @@ use vectorcraft_embroidery::sf_core::model::{
 };
 use vectorcraft_embroidery::sf_core::threads::Rgb;
 
+use vectorcraft_embroidery::sf_core::underlay_presets::{FillUnderlayPreset, SatinUnderlayPreset};
+
 use super::{ArtView, ColourPreview, CutoutPreview, StitchView};
 use crate::VectorcraftApp;
 use crate::theme::Tokens;
@@ -2913,6 +2915,19 @@ fn satin_edge_rows(app: &mut VectorcraftApp, ui: &mut Ui, target: Target, s: &Sa
 /// A satin's underlay: automatic, or the runs and zigzags chosen.
 fn satin_underlay_rows(app: &mut VectorcraftApp, ui: &mut Ui, target: Target, s: &SatinParams) {
     let u = &s.underlay;
+    let names: Vec<&str> = SatinUnderlayPreset::ALL.iter().map(|p| crate::i18n::t(p.label())).collect();
+    let current = SatinUnderlayPreset::of(u);
+    let cur = current.and_then(|c| SatinUnderlayPreset::ALL.iter().position(|p| *p == c)).unwrap_or(0);
+    if let Some(i) = pick(ui, tl!("Underlay preset"), "satin-underlay-preset", cur, &names)
+        && let Some(p) = SatinUnderlayPreset::ALL.get(i)
+    {
+        let mut n = u.clone();
+        p.apply(&mut n);
+        set(app, target, json!({ "underlay": { "auto": n.auto, "center_run": n.center_run, "edge_run": n.edge_run, "zigzag": n.zigzag } }));
+    }
+    if let Some(p) = current {
+        ui.label(egui::RichText::new(crate::i18n::t(p.description())).small());
+    }
     if let Some(v) = check(ui, tl!("Automatic underlay"), u.auto) {
         set(app, target, json!({ "underlay": { "auto": v } }));
     }
@@ -3093,6 +3108,19 @@ fn fill_comp_rows(app: &mut VectorcraftApp, ui: &mut Ui, target: Target, e: &Emb
     // cross, meander and motif fills are sewn without underlay
     let u = &f.underlay;
     if !matches!(f.kind, FillKind::Cross | FillKind::Meander | FillKind::Motif) {
+        let names: Vec<&str> = FillUnderlayPreset::ALL.iter().map(|p| crate::i18n::t(p.label())).collect();
+        let current = FillUnderlayPreset::of(u);
+        let cur = current.and_then(|c| FillUnderlayPreset::ALL.iter().position(|p| *p == c)).unwrap_or(0);
+        if let Some(i) = pick(ui, tl!("Underlay preset"), "fill-underlay-preset", cur, &names)
+            && let Some(p) = FillUnderlayPreset::ALL.get(i)
+        {
+            let mut n = u.clone();
+            p.apply(&mut n);
+            set(app, target, json!({ "underlay": { "edge_run": n.edge_run, "tatami": n.tatami, "angle_offset": n.angle_offset } }));
+        }
+        if let Some(p) = current {
+            ui.label(egui::RichText::new(crate::i18n::t(p.description())).small());
+        }
         ui.horizontal(|ui| {
             if let Some(v) = check(ui, tl!("Edge run underlay"), u.edge_run) {
                 set(app, target, json!({ "underlay": { "edge_run": v } }));

@@ -378,7 +378,7 @@ not started · **Out** out of scope (reason given). **Phase** points to [§8](#8
 | RE-01 | Backtrack / repeat outlines | Done | Passes 1–9 on every run style; 2 = backtrack | 1 |
 | RE-02 | Reverse stitch direction | Done | `embroidery.reverse` swaps where sewing starts and stops; Swap Satin Sides (`embroidery.swapSides`, D4) starts a satin column's zigzag on its other side so it ends on the other side; Convert to Satin Column (`embroidery.toColumn`, D3) turns a closed turning-satin shape into a column between two editable rails; Density Map (`embroidery.densityMap`, D2) colours the design by thread layers | 1 |
 | RE-03 | Automatic underlay | Done | | – |
-| RE-04 | Underlay by shape (choose per object), double zigzag | Done | Centre/edge/zigzag/double zigzag/tatami, automatic by width; per-type underlay presets through the current properties (SYS-02) | 1 |
+| RE-04 | Underlay by shape (choose per object), double zigzag | Done | Centre/edge/zigzag/double zigzag/tatami, automatic by width; per-type underlay presets through the current properties (SYS-02); named underlay presets (edge run, tatami at 90 degrees, edge run + tatami; satin centre run, edge run, zigzag) with a when-to-use note, issue 163 | 1 |
 | RE-05 | Pull compensation, twin-sided (different per side) | Done | Pull compensation per side (`pull_comp_2`) | 1 |
 | RE-06 | Laydown (open base stitching for pile fabrics) | Done | Embroidery › Add to Design › Add Laydown: an open tatami under the selected shapes and type, a margin beyond them, sewn first | – |
 | SQ-01 | Remove underlying stitching (cut lower fills where upper objects cover) | Done | Per-object option with overlap (default 1 mm): fills sewn before it are cut by what it covers, live | 1 |
