@@ -54,3 +54,4 @@
 - 2026-11-22 nightly sweep: no reports to triage; main fmt + clippy clean, sf-formats/sf-core/cloud/engine lib tests pass (3618 engine); cargo audit: no vulnerabilities (7 unmaintained notices, chrono newly flagged). Filed #214; one private finding for the owner.
 - Fix #214: `embroidery.hoop.saveCustom` refuses renaming a hoop (`was`) to the name of another hoop of one's own instead of replacing it.
 - Issue 118 (investigation, part 1): automatic satin underlay thresholds (none <1 mm, centre run <2.2, edge run <4.5, edge + zigzag wider; lettering under 6 mm forced to centre run) documented in `satin.rs` and locked by a test. Still to do: sew-out size table, the Underlay control, a decision on whether small text needs more.
+- 2026-11-23, issue 237 (slice 1 of 4): `sf-core::update_check`, the pure update check: only a strictly newer x.y.z counts, Ed25519 check of the signed `stitch-release-v1` text, SHA-256 and size check of a download. No menu or network yet.
