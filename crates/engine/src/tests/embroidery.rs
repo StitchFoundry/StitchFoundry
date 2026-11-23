@@ -6323,6 +6323,28 @@ fn touching_shapes_of_one_thread_need_no_trim() {
     assert_eq!(trims(&mut s), cut, "apart");
 }
 
+/// The Design panel's jump and trim readout: `embroidery.info` gives the design's jumps and trims and
+/// the same counts per colour, and the colours' counts add up to the design's.
+#[test]
+fn info_counts_jumps_and_trims_per_colour() {
+    let mut s = Session::new();
+    s.execute("embroidery.newDesign", &json!({"hoop": {"width": 130, "height": 180}})).unwrap();
+    for (x, color) in [(10.0, "#1f3a93"), (150.0, "#b3202a")] {
+        let a = s.execute("shape.rectangle", &json!({"x": x, "y": 100, "width": 40, "height": 40})).unwrap()["id"].as_u64().unwrap();
+        let b = s.execute("shape.rectangle", &json!({"x": x + 100.0, "y": 100, "width": 40, "height": 40})).unwrap()["id"].as_u64().unwrap();
+        s.execute("select.set", &json!({"ids": [a, b]})).unwrap();
+        s.execute("embroidery.set", &json!({"type": "fill"})).unwrap();
+        s.execute("embroidery.setThread", &json!({"color": color})).unwrap();
+    }
+    let info = s.execute("embroidery.info", &json!({})).unwrap();
+    let colors = info["colors"].as_array().unwrap();
+    assert!(colors.len() >= 2, "{info}");
+    let sum = |k: &str| colors.iter().map(|c| c[k].as_u64().unwrap()).sum::<u64>();
+    assert_eq!(sum("jumps"), info["jumps"].as_u64().unwrap(), "{info}");
+    assert_eq!(sum("trims"), info["trims"].as_u64().unwrap(), "{info}");
+    assert!(info["jumps"].as_u64().unwrap() > 0, "separate shapes need a jump: {info}");
+}
+
 /// Add Words in an arc up, an arc down or a circle: the words on a curve made for them, sewn,
 /// all of them on it.
 #[test]
@@ -6699,4 +6721,18 @@ fn clipart_library_has_sets_search_and_digitizable_motifs() {
         let errors: Vec<&Value> = check["findings"].as_array().map(|f| f.iter().filter(|x| x["severity"] == "error").collect()).unwrap_or_default();
         assert!(errors.is_empty(), "{name}: {errors:?}");
     }
+}
+
+#[test]
+fn multi_hoop_refuses_a_design_across_the_whole_canvas() {
+    const PT: f64 = vectorcraft_embroidery::PT_PER_MM;
+    let mut s = session();
+    // two squares at opposite corners of the canvas: tens of billions of 20 mm hoopings
+    let far = crate::MAX_COORD * 0.9;
+    for at in [-far, far - 20.0 * PT] {
+        rect(&mut s, at, at, 20.0 * PT, 20.0 * PT);
+        s.execute("embroidery.set", &json!({"type": "run"})).unwrap();
+    }
+    let r = s.execute("embroidery.multiHoop", &json!({"width": 20, "height": 20, "overlap": 0, "marks": false}));
+    assert!(r.as_ref().is_err_and(|e| e.to_string().contains("more than 64")), "{r:?}");
 }

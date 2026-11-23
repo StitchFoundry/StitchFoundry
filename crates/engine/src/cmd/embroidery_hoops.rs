@@ -48,7 +48,7 @@ pub fn specs() -> Vec<CommandSpec> {
             "Save Custom Hoop",
             [],
             None,
-            "{name, width, height?: 20–2000 mm (a round or square hoop needs just width), unit?: mm|in (mm), shape?: rect|oval|round|square (rect), cornerRadius?: rectangle corners, frameWidth?, frameHeight?: the outer frame, was?: the name of the hoop being renamed} a hoop of one's own (a new one, or the one of that name edited), listed with the standard ones (a standard hoop's name can't be taken); 100 at most → {name}",
+            "{name, width, height?: 20–2000 mm (a round or square hoop needs just width), unit?: mm|in (mm), shape?: rect|oval|round|square (rect), cornerRadius?: rectangle corners, frameWidth?, frameHeight?: the outer frame, was?: the name of the hoop being renamed (a name another of your hoops has is refused)} a hoop of one's own (a new one, or the one of that name edited), listed with the standard ones (a standard hoop's name can't be taken); 100 at most → {name}",
             always,
             save_custom
         ),
@@ -359,6 +359,10 @@ fn save_custom(s: &mut Session, p: &Value) -> Result<Value> {
         && !s.prefs.embroidery_custom_hoops.iter().any(|h| h.name.eq_ignore_ascii_case(was))
     {
         return Err(bad(CMD, format!("no hoop of yours is named `{was}`")));
+    }
+    // a rename never replaces another of one's hoops
+    if was.is_some() && s.prefs.embroidery_custom_hoops.iter().any(|h| h.name.eq_ignore_ascii_case(&name)) {
+        return Err(bad(CMD, format!("you already have a hoop named `{name}`: give this one another name")));
     }
     let mut hoop = hoop;
     if let Some(was) = was

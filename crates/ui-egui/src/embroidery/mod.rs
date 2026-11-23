@@ -13,6 +13,7 @@ pub mod panel;
 pub mod profile_curve;
 pub mod prompt;
 pub mod publish;
+pub mod quick;
 pub mod sequence;
 pub mod sewout;
 pub mod stitch_list;

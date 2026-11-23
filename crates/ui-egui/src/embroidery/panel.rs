@@ -214,6 +214,8 @@ pub fn show(app: &mut VectorcraftApp, ui: &mut Ui) {
         egui::CollapsingHeader::new(tl!("Job Orders")).id_salt("emb-jobs").show(ui, |ui| jobs_body(app, ui));
     }
     ui.add_space(6.0);
+    super::quick::show(app, ui);
+    ui.add_space(6.0);
     object_section(app, ui);
     ui.add_space(6.0);
     design_section(app, ui, &t);

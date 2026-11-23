@@ -99,6 +99,15 @@ When a task lands, update in the same PR: the area row in `docs/target-app-parit
 - Work comes from open issues labelled `claude-queue` (p1 before p2 before p3, oldest first). Relabel to `claude-working` before any code; finish with `claude-done` or `claude-blocked` (plus a comment). `claude-proposed` issues are suggestions: only the owner promotes them.
 - The platform names the branch. Put "issue <n>" in the PR title and `Closes #<n>` (or `Fixes #<n>`) in the body. Never merge, never force-push, never touch `main` directly.
 - Record each landed task in `PROGRESS.md` (nightly log).
+
+### PR size rules (hard limits)
+- One issue = one small PR. Target under 300 changed lines and under 10 files (lockfiles, generated files and tests excluded from the count).
+- Before coding, estimate the size. If it will be bigger, STOP and split: comment on the issue with a numbered list of slices, each independently mergeable and green on main, then open the slices as new `claude-proposed` issues ("Part 1 of N: ..."). Work only slice 1 in this run.
+- Never leave main broken between slices: gate unfinished work behind a flag or keep it unreferenced.
+- Save and commit after every file; open a DRAFT PR early so a step-limit cut-off keeps the work. Resume the same branch instead of restarting.
+- Before opening or updating a PR: `git fetch` and rebase/merge main so the branch is current; run the repo's CI command locally first (`cargo xtask ci`).
+- Do not run the full heavy test suite more than once per run; run only the affected package's tests while iterating.
+- If you hit your step limit, write a handoff comment (done, left, next command) on the PR.
 - Private-repo note: GitHub Free has no required checks on private repos, so never use `gh pr merge --auto` there; keep PR CI short and run heavy jobs on main, nightly or path filters.
 - The gate is `cargo xtask ci`; CI runs the same steps.
 
