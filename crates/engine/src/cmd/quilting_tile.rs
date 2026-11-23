@@ -14,7 +14,7 @@ pub fn specs() -> Vec<CommandSpec> {
         "Quilting Tile…",
         ["Embroidery", "Longarm Quilting"],
         None,
-        "{width?: mm (152.4 = 6 in; 40 to 1000), height?: mm (152.4), seed?: whole number (1; the same seed gives the same design), format?: a machine format (dst), center?: bool (false: the top-left start corner is the file's origin, so the needle starts on the line; true: the tile's middle is, and the machine jumps to the start), path?: file to write (left out: the file comes back as dataBase64 only)} one continuous line meandering in round curves over the tile, in at the top-left corner and out at the bottom-right, never crossing or touching itself, about 2 mm stitches (the cells stay the same size on every tile size) → {path?, dataBase64, format, bytes, stitches, seed (the first seed from the one given whose line stays clear of itself), widthMm, heightMm}",
+        "{width?: mm (152.4 = 6 in; 40 to 1000), height?: mm (152.4), seed?: whole number (1; the same seed gives the same design), format?: a machine format (dst), spirals?: bool (true: small double spirals, about 11 mm, hang off the line; false: the plain meander), center?: bool (false: the top-left start corner is the file's origin, so the needle starts on the line; true: the tile's middle is, and the machine jumps to the start), path?: file to write (left out: the file comes back as dataBase64 only)} one continuous line meandering in round curves over the tile, in at the top-left corner and out at the bottom-right, never crossing or touching itself, about 2 mm stitches (the cells stay the same size on every tile size) → {path?, dataBase64, format, bytes, stitches, seed (the first seed from the one given whose line stays clear of itself), widthMm, heightMm}",
         always,
         tile
     )]
@@ -30,7 +30,8 @@ fn tile(s: &mut Session, p: &Value) -> Result<Value> {
     let key = str_param(p, "format").unwrap_or("dst").trim_start_matches('.').to_ascii_lowercase();
     let format =
         sf_formats::Format::from_extension(&key).filter(|f| f.writable()).ok_or_else(|| bad(CMD, format!("`format` can't be written: {key}")))?;
-    let (line, used) = quilt_tile::tile_line(width, height, seed as u64).ok_or_else(|| {
+    let make = if bool_or(p, "spirals", true) { quilt_tile::tile_line_spirals } else { quilt_tile::tile_line };
+    let (line, used) = make(width, height, seed as u64).ok_or_else(|| {
         bad(
             CMD,
             format!("`width` and `height` are {} to {} mm, and the line must come out clear of itself", quilt_tile::MIN_SIDE, quilt_tile::MAX_SIDE),

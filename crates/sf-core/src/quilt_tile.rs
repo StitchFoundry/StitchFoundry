@@ -118,8 +118,15 @@ fn resample(pts: &[Point], step: f64) -> Vec<Point> {
             need = step;
         }
     }
-    if out.last() != Some(&last) {
-        out.push(last);
+    match out.last().copied() {
+        // a last stitch shorter than a tenth of a step (still within the stitch limit) replaces the one before it instead of making a sliver
+        Some(prev) if out.len() > 1 && (prev.x - last.x).hypot(prev.y - last.y) < step * 0.1 => {
+            if let Some(l) = out.last_mut() {
+                *l = last;
+            }
+        }
+        Some(prev) if prev != last => out.push(last),
+        _ => {}
     }
     out
 }
@@ -198,6 +205,94 @@ pub fn tile_line(width: f64, height: f64, seed: u64) -> Option<(Vec<Point>, u64)
     })
 }
 
+/// Spiral arm pitch parameter: arm `r = A * theta`, so the two interleaved arms are `PI * A` apart.
+const SPIRAL_A: f64 = 0.7;
+/// Where the inward arm starts and the outward arm ends (radians); the outward arm is a turn and a
+/// bit longer, ending short of the straight-up angle so the line can reach the inward arm from above.
+const SPIRAL_IN: f64 = 5.0;
+const SPIRAL_OUT: f64 = 6.95;
+/// Least distance (mm) from a spiral to the rest of the line.
+pub const SPIRAL_CLEARANCE: f64 = 1.7;
+/// Stitches kept free of spirals between two of them, and at each end of the line.
+const SPIRAL_GAP: usize = 24;
+
+/// A double spiral hung off the line at `m` (tangent `u`, side `v`): in along one arm, out along the
+/// interleaved arm, then a short hook back onto the line at `b`. Starts at `a`, ends at `b`.
+fn double_spiral(a: Point, b: Point, m: Point, u: Point, v: Point) -> Vec<Point> {
+    let c = Point::new(m.x + v.x * (SPIRAL_A * SPIRAL_OUT + 3.0), m.y + v.y * (SPIRAL_A * SPIRAL_OUT + 3.0));
+    // local x along the tangent, local y towards the line
+    let at = |lx: f64, ly: f64| Point::new(c.x + u.x * lx - v.x * ly, c.y + u.y * lx - v.y * ly);
+    let mut pts = vec![a];
+    let n = 300;
+    // the inward arm is the outward arm turned half a turn, walked from its outer end to the middle
+    for i in (0..=n).rev() {
+        let th = SPIRAL_IN * i as f64 / n as f64;
+        let rr = SPIRAL_A * th;
+        pts.push(at(-rr * th.cos(), -rr * th.sin()));
+    }
+    for i in 1..=n {
+        let th = SPIRAL_OUT * i as f64 / n as f64;
+        let rr = SPIRAL_A * th;
+        pts.push(at(rr * th.cos(), rr * th.sin()));
+    }
+    pts.push(b);
+    resample(&pts, STITCH)
+}
+
+/// Hangs small double spirals (about 11 mm) off near-straight stretches of the line, each at least
+/// [`SPIRAL_CLEARANCE`] from the rest of the line and inside the tile. Stretches where a spiral
+/// would touch anything are skipped.
+pub fn add_spirals(line: &[Point], width: f64, height: f64) -> Vec<Point> {
+    let mut cur = line.to_vec();
+    let mut k = SPIRAL_GAP;
+    while k + SPIRAL_GAP < cur.len() {
+        let placed = (|| {
+            let (&a, &m, &b) = (cur.get(k - 3)?, cur.get(k)?, cur.get(k + 3)?);
+            let (&p, &q) = (cur.get(k - 8)?, cur.get(k + 8)?);
+            let len = (q.x - p.x).hypot(q.y - p.y);
+            if len < 14.0 || [a, m, b].iter().any(|&x| seg_dist(x, p, q) > 0.8) {
+                return None;
+            }
+            let u = Point::new((q.x - p.x) / len, (q.y - p.y) / len);
+            for side in [1.0, -1.0] {
+                let v = Point::new(-u.y * side, u.x * side);
+                let piece = double_spiral(a, b, m, u, v);
+                let inside = piece.iter().all(|t| t.x >= 1.0 && t.y >= 1.0 && t.x <= width - 1.0 && t.y <= height - 1.0);
+                // the stitches before `k - 3` and after `k + 3` are the rest of the line
+                let (head, tail) = (cur.get(..k - 3)?, cur.get(k + 4..)?);
+                let clear =
+                    |q: &[Point]| piece.windows(2).skip(2).all(|s| q.windows(2).all(|t| segs_dist(s[0], s[1], t[0], t[1]) >= SPIRAL_CLEARANCE));
+                if inside && !self_touches(&piece) && clear(head) && clear(tail) {
+                    return Some(piece);
+                }
+            }
+            None
+        })();
+        match placed {
+            Some(piece) => {
+                let (head, tail) = (cur.get(..k - 3).unwrap_or_default().to_vec(), cur.get(k + 4..).unwrap_or_default().to_vec());
+                // the old stitches k-3..=k+3 are replaced; `piece` runs from a to b, so drop the doubles
+                let mut next = head;
+                let at = next.len();
+                next.extend(piece);
+                next.extend(tail);
+                k = at + SPIRAL_GAP;
+                cur = next;
+            }
+            None => k += 2,
+        }
+    }
+    cur
+}
+
+/// Like [`tile_line`], with double spirals hung on the line. The seed's line is searched until the
+/// whole result, spirals included, doesn't touch itself.
+pub fn tile_line_spirals(width: f64, height: f64, seed: u64) -> Option<(Vec<Point>, u64)> {
+    let (line, used) = tile_line(width, height, seed)?;
+    let with = add_spirals(&line, width, height);
+    if !self_touches(&with) { Some((with, used)) } else { Some((line, used)) }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -239,5 +334,28 @@ mod tests {
     fn the_touch_check_sees_a_crossing() {
         let x = [Point::new(0.0, 0.0), Point::new(10.0, 10.0), Point::new(10.0, 0.0), Point::new(0.0, 10.0)];
         assert!(self_touches(&x));
+    }
+
+    #[test]
+    fn spirals_are_small_clear_and_keep_the_line_one_untouched_piece() {
+        for (w, h) in [(152.4, 152.4), (203.2, 355.6)] {
+            let (plain, _) = tile_line(w, h, 1).expect("a tile");
+            let (line, _) = tile_line_spirals(w, h, 1).expect("a tile");
+            assert!(line.len() > plain.len() + 100, "{w}x{h}: spirals were added");
+            assert!(!self_touches(&line));
+            let (a, z) = (line[0], line[line.len() - 1]);
+            assert!(a.x.hypot(a.y) < 1e-9 && (z.x - w).hypot(z.y - h) < 1e-9);
+            assert!(line.windows(2).all(|s| (s[1].x - s[0].x).hypot(s[1].y - s[0].y) <= MAX_STITCH));
+            assert!(line.iter().all(|p| p.x >= 0.0 && p.y >= 0.0 && p.x <= w && p.y <= h));
+        }
+    }
+
+    #[test]
+    fn one_spiral_is_about_eleven_mm_across() {
+        let (m, u, v) = (Point::new(0.0, 0.0), Point::new(1.0, 0.0), Point::new(0.0, 1.0));
+        let piece = double_spiral(Point::new(-6.0, 0.0), Point::new(6.0, 0.0), m, u, v);
+        let (lo, hi) = piece.iter().fold((f64::MAX, f64::MIN), |(lo, hi), p| (lo.min(p.y), hi.max(p.y)));
+        assert!(hi - lo > 9.0 && hi - lo < 16.0, "{}", hi - lo);
+        assert!(!self_touches(&piece));
     }
 }
