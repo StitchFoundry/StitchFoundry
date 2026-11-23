@@ -573,6 +573,11 @@ stops each. Pieces of one compound path combine with *Sew the pieces together* i
 **Prepare Appliqué** (`embroidery.applique.prepare {close?, breakUp?}`) makes pieces ready to
 sew: open outlines are closed, and where pieces overlap, each is cut away under the pieces in
 front of it, so every piece lies flat in its own layer.
+**Check Appliqué** (`embroidery.applique.check {ids?}` → `{pieces: [{id, steps, warnings}], ok}`)
+lists the sewing steps in order (placement line, tack-down, cover) and warns when: the piece is
+too small for the tack-down to catch the fabric on every side, the tack-down is wider than its
+inset so its outer stitches fall off the fabric, the tack-down reaches further in than the cover
+so it shows, or the placement line, tack-down, cover or the stop after the tack-down is missing.
 
 ## Click to stitch
 

@@ -33,6 +33,15 @@ pub fn specs() -> Vec<CommandSpec> {
             has_selection,
             prepare
         ),
+        cmd!(
+            "embroidery.applique.check",
+            "Check Appliqué",
+            [],
+            None,
+            "{ids?} the sewing steps (placement line, tack-down, cover) for the selected appliqué pieces, and warnings where the cut fabric is too small for the tack-down to catch it, the tack-down spills off the fabric or shows past the cover → {pieces: [{id, steps: [text], warnings: [text]}], ok}",
+            has_selection,
+            check
+        ),
     ]
 }
 
@@ -157,4 +166,46 @@ fn prepare(s: &mut Session, p: &Value) -> Result<Value> {
         out = r["ids"].as_array().map(|a| a.iter().filter_map(Value::as_u64).collect()).unwrap_or_default();
     }
     Ok(json!({ "closed": closed, "ids": out }))
+}
+
+fn check(s: &mut Session, p: &Value) -> Result<Value> {
+    use sf_core::applique_guide::{Level, advise};
+    let ids = applique_targets(s, p, "embroidery.applique.check")?;
+    let plan = s.embroidery_plan().ok_or_else(|| bad("embroidery.applique.check", "no embroidery design"))?;
+    let mut pieces = Vec::new();
+    let mut ok = true;
+    for (node, o) in plan.nodes.iter().zip(&plan.design.objects) {
+        let sf_core::model::ObjectKind::Applique(a) = &o.kind else { continue };
+        if !ids.contains(node) {
+            continue;
+        }
+        let polys: Vec<_> = a.pieces().map(|sh| sh.polygon(sf_core::geom::FLATTEN_TOLERANCE)).collect();
+        let notes = advise(&sf_core::geom::poly::clean(&polys), &a.params);
+        let text = |l: Level| notes.iter().filter(|n| n.level == l).map(|n| n.text.clone()).collect::<Vec<_>>();
+        let warnings = text(Level::Warning);
+        ok &= warnings.is_empty();
+        pieces.push(json!({ "id": node.0, "steps": text(Level::Step), "warnings": warnings }));
+    }
+    Ok(json!({ "pieces": pieces, "ok": ok }))
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn check_reports_steps_and_flags_a_piece_too_small() {
+        let mut s = Session::new();
+        s.execute("embroidery.newDesign", &json!({"hoop": "Brother 130 × 180 (5×7)"})).unwrap();
+        let r = s.execute("embroidery.addShape", &json!({"name": "Heart", "applique": true, "size": 40})).unwrap();
+        s.execute("select.set", &json!({"ids": [r["id"].clone()]})).unwrap();
+        let c = s.execute("embroidery.applique.check", &json!({})).unwrap();
+        assert_eq!(c["ok"], true, "{c}");
+        assert_eq!(c["pieces"][0]["steps"].as_array().unwrap().len(), 3, "{c}");
+        let r = s.execute("embroidery.addShape", &json!({"name": "Heart", "applique": true, "size": 5})).unwrap();
+        s.execute("select.set", &json!({"ids": [r["id"].clone()]})).unwrap();
+        let c = s.execute("embroidery.applique.check", &json!({})).unwrap();
+        assert_eq!(c["ok"], false, "{c}");
+        assert!(c["pieces"][0]["warnings"][0].as_str().unwrap().contains("too small"), "{c}");
+    }
 }
