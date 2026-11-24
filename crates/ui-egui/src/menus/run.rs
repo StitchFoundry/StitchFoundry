@@ -63,7 +63,11 @@ pub fn run_ui_command(app: &mut VectorcraftApp, id: &str, p: &Value) -> Option<R
             }
         }
         let ext = p.get("format").and_then(Value::as_str).unwrap_or("dst").to_ascii_lowercase();
-        return Some(io::save_command_output(app, "embroidery.export", &ext, p).map(|path| json!({ "path": path })));
+        let r = io::save_command_output(app, "embroidery.export", &ext, p).map(|path| json!({ "path": path }));
+        if r.is_ok() {
+            crate::embroidery::share_prompt::after_export(app);
+        }
+        return Some(r);
     }
     if id == "file.export.quilt" {
         let ext = p.get("format").and_then(Value::as_str).unwrap_or("plt").to_ascii_lowercase();
