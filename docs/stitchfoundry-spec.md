@@ -2,7 +2,7 @@
 
 The hand-off document for anyone, person or Claude Code session, continuing StitchFoundry. It
 says what the product is, the rules, what exists today, everything still to build to reach
-feature parity with the reference digitizing suite (Wilcom EmbroideryStudio 2026), in what
+the full professional digitizing feature set, in what
 order, and how to verify it.
 
 State described: branch `stitchforge/embroidery-core`, end of the first build session (2026-10-11).
@@ -31,9 +31,9 @@ fork of [VectorCraft](https://github.com/storytold/vectorcraft), a pure-Rust, cl
 vector illustration app, with embroidery built into its document model, engine and UI. It runs
 natively on macOS, Windows, Linux and FreeBSD, and in the browser through WebAssembly.
 
-**Goal:** the complete workflow of a professional digitizing suite, using the feature set of
-Wilcom EmbroideryStudio 2026 (Designing level, all add-on Elements, multi-decoration) as the
-checklist, written clean-room. On top of that:
+**Goal:** the complete workflow of a professional digitizing suite, covering the full professional
+digitizing feature set (all stitch types, lettering, add-on elements, multi-decoration), written
+clean-room. On top of that:
 
 - the digitizing **widget** of Embroidery Legacy (radial dial of brushes, widths, densities,
   stitch lengths and shapes);
