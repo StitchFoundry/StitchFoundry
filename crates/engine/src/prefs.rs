@@ -262,6 +262,10 @@ pub struct Prefs {
     /// The hoop overlay's opacity, 0.1 to 1.0 (`embroidery.hoopOverlay`).
     #[serde(default = "default_one")]
     pub embroidery_hoop_overlay_opacity: f32,
+    /// After the first export to a machine file in a project, offer once to share it on
+    /// MakerFoundry (Settings › MakerFoundry); on by default.
+    #[serde(default = "default_true")]
+    pub offer_share_after_export: bool,
     /// Thread charts of the user's own (`embroidery.chart.import`, `.save`), listed after the
     /// built-in ones. A local library, not a Preferences dialog field.
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
@@ -539,6 +543,7 @@ impl Default for Prefs {
             embroidery_custom_hoops: vec![],
             embroidery_hoop_overlay: true,
             embroidery_hoop_overlay_opacity: 1.0,
+            offer_share_after_export: true,
             embroidery_thread_charts: vec![],
             embroidery_templates: vec![],
             embroidery_default_properties: Default::default(),

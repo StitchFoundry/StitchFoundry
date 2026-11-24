@@ -130,6 +130,7 @@ pub const PREF_SPECS: &[PrefSpec] = &[
     p!("usePreciseCursors", "General", "Options", "Use Precise Cursors", bool),
     p!("embroideryHoopOverlay", "General", "Options", "Show Hoop Overlay", bool),
     p!("embroideryHoopOverlayOpacity", "General", "Options", "Hoop Overlay Opacity", num(0.1, 1.0, "")),
+    p!("offerShareAfterExport", "General", "MakerFoundry", "Offer to share after export", bool),
     p!("showToolTips", "General", "Options", "Show Tool Tips", bool),
     p!("antiAliasedArtwork", "General", "Options", "Anti-aliased Artwork", bool),
     p!("selectSameTintPercent", "General", "Options", "Select Same Tint %", bool),

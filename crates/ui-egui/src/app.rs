@@ -534,6 +534,7 @@ impl VectorcraftApp {
         embroidery::sewout::report_window(self, &ctx);
         embroidery::account::window(self, &ctx);
         embroidery::publish::window(self, &ctx);
+        embroidery::share_prompt::window(self, &ctx);
         embroidery::stitchshop::window(self, &ctx);
         embroidery::family::window(self, &ctx);
         if simple {

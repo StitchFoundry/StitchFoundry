@@ -16,6 +16,7 @@ pub mod publish;
 pub mod quick;
 pub mod sequence;
 pub mod sewout;
+pub mod share_prompt;
 pub mod stitch_list;
 pub mod stitchshop;
 pub mod styles;
@@ -198,6 +199,8 @@ pub struct EmbroideryUi {
     pub account: account::AccountState,
     /// Publish to MakerFoundry's window (PUB-01).
     pub publish: publish::PublishState,
+    /// The "Share it on MakerFoundry?" prompt after an export (add-on 37).
+    pub share: share_prompt::ShareState,
     pub stitchshop: stitchshop::StitchShopState,
     pub family: family::FamilyState,
     /// Get Embroidery Fonts' window (NEW-20).
@@ -470,6 +473,7 @@ impl Default for EmbroideryUi {
             sewout: Default::default(),
             account: Default::default(),
             publish: Default::default(),
+            share: Default::default(),
             stitchshop: Default::default(),
             family: Default::default(),
             font_library: Default::default(),
