@@ -11,7 +11,7 @@
 
 > **Last reviewed:** 2026-10-10 · **Last updated:** 2026-10-23 · **Change:** minor (OpenType SVG colour fonts draw and export as vector art; previously: COLR colour fonts (v0 and v1) draw and export as vector art; previously: G2: the Effect Gallery shipped (#2883): Effect › Effect Gallery… browses the Artistic, Brush Strokes, Distort, Sketch, Stylize and Texture filters, edits each filter's settings, builds an ordered stack (add, reorder, hide, remove) with a live canvas preview, and OK applies it as separate appearance effects in one undo step; remaining: filter thumbnails and a preview area inside the dialog; G2 estimate 4–6 → 1–2 h; Raster effects 82% → 85% (power-user view 49% → 52%), estimated, a modest move because the named missing dialog landed without thumbnails or an in-dialog preview; previously: colour emoji fonts with bitmap glyphs (`sbix`, `CBDT`) draw and export; headline numbers unchanged; previously:; Affinity import AF.5: master pages, tables, paragraph formats, shadows, glows, outlines, overlays and embedded documents; ruby (ふりがな) for live text: `type.ruby` sets or removes a reading over a byte range, above or below (right of the column in vertical type), aligned, sized and overhanging or squeezed; saved natively, laid out with line growth, drawn on the canvas and in SVG/PDF (outlines where ruby is present); headline numbers unchanged; previously:; 3D: original Standard, Diffuse, Top Left and Right lighting presets; command access, effective-setting recognition and preview/history; scores and estimates unchanged; Print: Japanese paper sizes in the Print dialog's Media list — JIS B4 257 × 364 mm, JIS B5 182 × 257 mm and JIS B6 128 × 182 mm beside the ISO B4/B5 (which keep their ISO 216 sizes), はがき, 往復はがき, 封筒 長形3号/長形4号/角形2号/角形3号 and 四六判; about 90 community PRs of 2026-10-19: Objects on Path, the Simplify slider, Pencil Edit Selected Paths in the middle of a path, Georgian, and more; Background Export progress dialog with Cancel, #2564; about 85 community PRs of 2026-10-18: Justification…, Word .docx placed as area type, CCITT Group 3 TIFF, Roman Hanging Punctuation, blend spines edited with the Anchor Point tool, shadows and glows in stack order, coloured 3D lights, a Dutch catalog completed; 3D lighting: one to ten colored lights, smooth colored Inflate, legacy white-light appearance preserved; surface batching and restored seam minimum; scores and estimates unchanged; about 145 community PRs of 2026-10-17: image-decode overflow guards, opaque floating panels, MCP export cancel and progress, editable Illustrator EPS import, scoped `doc_inspect`, Dutch, Danish and Indonesian, Simplified Chinese messages, screen-reader names; headline numbers unchanged; about 160 community PRs of 2026-10-15/16: PDF import crash fixes, Dimension tool, legacy `.ai` save, Intertwine, web pen input, Image Trace fixes, `.ai`/EPS/PDF import fidelity, Bulgarian, Greek, Swedish and Finnish catalogs; headline numbers unchanged) · **Target:** Adobe Illustrator 2026 (30.x)
 
-VectorCraft is a clean-room, open-source, pure-Rust reimplementation of the Adobe Illustrator workflow. It runs
+VectorCraft is a clean-room, open-source, pure-Rust vector illustration editor with layers, live effects, type, brushes, Pathfinder, export and print. It runs
 on macOS, Windows, Linux, FreeBSD and the web (WASM), and agents can drive all of it over MCP, the CLI and a JSON
 control channel. This page is the summary; the evidence is in [`docs/target-app-parity.md`](docs/target-app-parity.md)
 and the work list in [`docs/gaps.md`](docs/gaps.md).
@@ -29,7 +29,7 @@ blocking it ([Alpha gate](docs/roadmap.md#alpha-gate)).
 
 | | Value | Kind |
 |---|---|---|
-| **Feature breadth** (Illustrator's menu items, tools, effects, formats exist) | **~88%** | measured in part: menu items 348/375 wired (92.8%), tools 89/92, Illustrator effects 46/50, Photoshop effects 57/57, 3D 4/4 (initial types, no materials) |
+| **Feature breadth** (menu items, tools, effects, formats exist) | **~88%** | measured in part: menu items 348/375 wired (92.8%), tools 89/92, vector effects 46/50, raster effects 57/57, 3D 4/4 (initial types, no materials) |
 | **Feature depth** (weighted by use, scored by behaviour) | **~75%** | estimated |
 | **To beta** | **~170–270 h** one agent · ~50–80 h with 4–6 agents | estimated |
 | **To full parity** | **~360–590 h** one agent · ~95–165 h with 4–6 agents | estimated |
@@ -38,14 +38,14 @@ blocking it ([Alpha gate](docs/roadmap.md#alpha-gate)).
 
 | Audience | Ready % | Opus 5.5 agent hours to ~95% (one agent) | With 4–6 agents | Work that dominates |
 |---|---:|---:|---:|---|
-| **Full Illustrator** (ready for real work; decides the stage) | **~62%** (57–67%) | **~340–560 h** | ~95–160 h | the mainstream work below, plus 3D (50–85 h), raster effects (23–39 h), advanced type (20–28 h), generative AI (30–60 h), localization (50–85 h) and ecosystem |
+| **Full professional** (ready for real work; decides the stage) | **~62%** (57–67%) | **~340–560 h** | ~95–160 h | the mainstream work below, plus 3D (50–85 h), raster effects (23–39 h), advanced type (20–28 h), generative AI (30–60 h), localization (50–85 h) and ecosystem |
 | **Mainstream illustrator** | **~65%** (60–70%) | **~230–380 h** | ~65–110 h | the interaction-fidelity pass (60–90 h), hardening and QA (30–50 h), stability (20–35 h), performance budgets (15–25 h), `.ai` exchange (10–20 h), the remaining depth of the everyday areas |
 | **Essentials user** | **~75%** (70–80%) | **~60–105 h** | ~25–45 h | launch and stability on Windows (20–35 h), in-app help and onboarding (8–15 h), basic QA (10–15 h), Shape Builder regions (4–8 h), UI polish |
 
 Hours are Opus 5.5 agent wall-clock hours, calibrated from this repo's merged-PR timestamps (e.g. 0.7–1.2 h per
 Photoshop-style filter, ~0.8 h per medium feature); see [calibration](docs/target-app-parity.md#calibration).
-The installed Illustrator was **not** inspected: the clean-room rule in [`AGENTS.md`](AGENTS.md) forbids it, so
-everything is measured from our code against Illustrator's public documentation.
+No third-party application was inspected: the clean-room rule in [`AGENTS.md`](AGENTS.md) forbids it, so
+everything is measured from our code against public documentation.
 
 ## By dimension
 
