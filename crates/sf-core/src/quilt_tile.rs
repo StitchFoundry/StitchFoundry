@@ -262,7 +262,10 @@ pub fn add_spirals(line: &[Point], width: f64, height: f64) -> Vec<Point> {
                 let (head, tail) = (cur.get(..k - 3)?, cur.get(k + 4..)?);
                 let clear =
                     |q: &[Point]| piece.windows(2).skip(2).all(|s| q.windows(2).all(|t| segs_dist(s[0], s[1], t[0], t[1]) >= SPIRAL_CLEARANCE));
-                if inside && !self_touches(&piece) && clear(head) && clear(tail) {
+                // the piece with the stitch before and after it: a hairpin where the line joins the
+                // spiral is caught here (`clear` skips the piece's first segments)
+                let joined: Vec<Point> = cur.get(k - 4).into_iter().chain(piece.iter()).chain(cur.get(k + 4)).copied().collect();
+                if inside && !self_touches(&joined) && clear(head) && clear(tail) {
                     return Some(piece);
                 }
             }
@@ -347,6 +350,16 @@ mod tests {
             assert!(a.x.hypot(a.y) < 1e-9 && (z.x - w).hypot(z.y - h) < 1e-9);
             assert!(line.windows(2).all(|s| (s[1].x - s[0].x).hypot(s[1].y - s[0].y) <= MAX_STITCH));
             assert!(line.iter().all(|p| p.x >= 0.0 && p.y >= 0.0 && p.x <= w && p.y <= h));
+        }
+    }
+
+    #[test]
+    fn spirals_never_make_the_line_touch_itself_where_they_join_it() {
+        // a hairpin where the line ran into a spiral used to make the whole result touch, so the
+        // tile came back without spirals (about one seed in five at 6 x 6 in)
+        for seed in 1..=30 {
+            let (plain, _) = tile_line(152.4, 152.4, seed).expect("a tile");
+            assert!(!self_touches(&add_spirals(&plain, 152.4, 152.4)), "seed {seed}");
         }
     }
 
