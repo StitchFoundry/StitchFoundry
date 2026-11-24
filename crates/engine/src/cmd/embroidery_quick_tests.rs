@@ -118,3 +118,14 @@ fn the_shortcut_commands_turn_ninety_and_undo_each_other() {
     let spec = |id: &str| crate::cmd::command_specs().iter().find(|c| c.id == id).map(|c| c.shortcut);
     assert_eq!(spec("embroidery.quick.rotateRight"), Some(Some("Cmd+Alt+Right")));
 }
+
+#[test]
+fn size_reports_without_changing_anything() {
+    let mut s = design();
+    let before = s.execute("embroidery.quick.size", &json!({})).unwrap();
+    assert!(before["width"].as_f64().unwrap() > 0.0, "{before}");
+    assert!((before["widthIn"].as_f64().unwrap() * 25.4 - before["width"].as_f64().unwrap()).abs() < 1e-9);
+    let again = s.execute("embroidery.quick.size", &json!({})).unwrap();
+    assert_eq!(before, again);
+    assert!(s.doc().unwrap().selection.is_empty());
+}
