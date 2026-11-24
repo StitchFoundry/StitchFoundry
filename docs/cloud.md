@@ -123,6 +123,10 @@ The owner's prices (2026-10-18), the defaults; each is a setting:
   whole credits. With Claude Opus 5.5 at $4 a million input tokens and $20 a million output
   tokens, an Ask question costs about 5 to 15 credits and a Design from Prompt drawing about 50 to
   100 (50 cents to a dollar, against $20–30 for a digitizer).
+- Models offered: Claude Opus 5.5 ($4 / $20 a million input / output tokens), Claude Sonnet 5.5
+  ($2 / $10) and Claude Haiku 4.5, `claude-haiku-4-5-20251001` ($1 / $5), Anthropic's list prices
+  (platform.claude.com/docs/en/about-claude/pricing, read 2026-11-23). Every model is charged at
+  the same markup; any other model is refused.
 - Check My Sew-out: 3 checks a month free, then 10 credits a check (about what one costs).
 - The packs on sale, `SF_CLOUD_PACKS` (`id:credits:cents` apart by commas): `small:1000:1000`
   ($10 for 1,000), `medium:2750:2500` ($25 for 2,750), `large:6000:5000` ($50 for 6,000). Nothing
