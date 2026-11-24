@@ -416,6 +416,11 @@ fn tiled(mesh: Mesh, [cols, rows]: [u32; 2], step: [egui::Vec2; 2]) -> Mesh {
 /// Paints the stitch plan over the art.
 pub fn paint(app: &mut crate::VectorcraftApp, painter: &Painter, xf: &Xf) {
     let (hoop_on, hoop_alpha) = (app.session.prefs.embroidery_hoop_overlay, app.session.prefs.embroidery_hoop_overlay_opacity);
+    let tag = {
+        let prefs = &app.session.prefs;
+        let (rot, mirror) = prefs.my_machine_orientation.get(&prefs.my_machine).copied().unwrap_or((0, false));
+        orientation_tag(rot, mirror)
+    };
     let ui = &app.embroidery;
     if ui.stitches == StitchView::Off {
         return;
@@ -431,7 +436,7 @@ pub fn paint(app: &mut crate::VectorcraftApp, painter: &Painter, xf: &Xf) {
         {
             let mid = ab.rect.center();
             let c = vectorcraft_embroidery::sf_core::Point::new(mid.x / PT_PER_MM, mid.y / PT_PER_MM);
-            hoop_outline_at(painter, xf, hoop, c, true, hoop_alpha);
+            hoop_outline_at(painter, xf, hoop, c, true, hoop_alpha, &tag);
         }
         return;
     }
@@ -460,7 +465,7 @@ pub fn paint(app: &mut crate::VectorcraftApp, painter: &Painter, xf: &Xf) {
         && let Some(e) = st.doc.embroidery.as_deref()
         && let Some(hoop) = e.hoop.as_ref()
     {
-        hoop_outline(painter, xf, hoop, plan.pattern(), e.settings.hoop_offset.unwrap_or([0.0, 0.0]), hoop_alpha);
+        hoop_outline(painter, xf, hoop, plan.pattern(), e.settings.hoop_offset.unwrap_or([0.0, 0.0]), hoop_alpha, &tag);
     }
     let repeats = (app.embroidery.repeats, app.embroidery.repeat_gap);
     let cache = &mut app.embroidery.mesh;
@@ -813,7 +818,15 @@ fn decorations(plan: &StitchPlan, painter: &Painter, xf: &Xf, top: bool) {
 
 /// The hoop's sewing field (dashed, red where the design doesn't fit) round the
 /// design's centre, with centre marks and the hoop's name.
-fn hoop_outline(painter: &Painter, xf: &Xf, hoop: &vectorcraft_embroidery::sf_core::hoops::Hoop, pattern: &Pattern, [ox, oy]: [f64; 2], alpha: f32) {
+fn hoop_outline(
+    painter: &Painter,
+    xf: &Xf,
+    hoop: &vectorcraft_embroidery::sf_core::hoops::Hoop,
+    pattern: &Pattern,
+    [ox, oy]: [f64; 2],
+    alpha: f32,
+    tag: &str,
+) {
     let b = pattern.bounds();
     if b.is_empty() {
         return;
@@ -821,7 +834,15 @@ fn hoop_outline(painter: &Painter, xf: &Xf, hoop: &vectorcraft_embroidery::sf_co
     // the hoop's centre: the design's middle, less where the design sits in the hoop
     let c = b.center() - vectorcraft_embroidery::sf_core::Point::new(ox, oy);
     let fits = hoop.fits(&vectorcraft_embroidery::sf_core::geom::BBox::new(b.min - c, b.max - c));
-    hoop_outline_at(painter, xf, hoop, c, fits, alpha);
+    hoop_outline_at(painter, xf, hoop, c, fits, alpha, tag);
+}
+
+/// A short mark for how the hoop sits in the chosen machine (turn clockwise, then mirror), empty when it sits as drawn.
+fn orientation_tag(rotation: u16, mirror: bool) -> String {
+    match (rotation % 360, mirror) {
+        (0, false) => String::new(),
+        (r, m) => format!("  \u{21BB}{r}\u{b0}{}", if m { " \u{21C4}" } else { "" }),
+    }
 }
 
 /// The hoop's outline, centre marks and name round `c` (mm), blue when `fits`, else red.
@@ -832,6 +853,7 @@ fn hoop_outline_at(
     c: vectorcraft_embroidery::sf_core::Point,
     fits: bool,
     alpha: f32,
+    tag: &str,
 ) {
     let base = if fits { Color32::from_rgb(70, 110, 170) } else { Color32::from_rgb(210, 50, 50) };
     let color = base.gamma_multiply(alpha.clamp(0.1, 1.0));
@@ -845,11 +867,18 @@ fn hoop_outline_at(
         painter.line_segment([centre - d, centre + d], Stroke::new(1.0, color));
     }
     let top_left = xf.to_screen(pt(c + vectorcraft_embroidery::sf_core::Point::new(-hoop.width / 2.0, -hoop.height / 2.0)));
-    painter.text(top_left + egui::vec2(4.0, -4.0), egui::Align2::LEFT_BOTTOM, &hoop.name, egui::FontId::proportional(11.0), color);
+    painter.text(top_left + egui::vec2(4.0, -4.0), egui::Align2::LEFT_BOTTOM, format!("{}{tag}", hoop.name), egui::FontId::proportional(11.0), color);
 }
 
 #[cfg(test)]
 mod tests {
+    #[test]
+    fn orientation_tag_marks_only_a_turned_or_mirrored_hoop() {
+        assert_eq!(super::orientation_tag(0, false), "");
+        assert_eq!(super::orientation_tag(90, false), "  \u{21BB}90\u{b0}");
+        assert_eq!(super::orientation_tag(0, true), "  \u{21BB}0\u{b0} \u{21C4}");
+    }
+
     use super::*;
 
     #[test]
