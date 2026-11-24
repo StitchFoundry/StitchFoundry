@@ -115,7 +115,13 @@ fn stitch(img: &mut image::RgbaImage, a: (f64, f64), b: (f64, f64), half: f64, c
 }
 
 /// The pattern drawn at `ppmm` pixels a millimetre with `margin` mm round it.
-fn render(pattern: &sf_core::Pattern, ppmm: f64, margin: f64, background: [u8; 4], flat: bool) -> std::result::Result<image::RgbaImage, String> {
+pub(super) fn render(
+    pattern: &sf_core::Pattern,
+    ppmm: f64,
+    margin: f64,
+    background: [u8; 4],
+    flat: bool,
+) -> std::result::Result<image::RgbaImage, String> {
     render_frames(pattern, ppmm, margin, background, flat, usize::MAX, &mut |_| Ok(()))
 }
 

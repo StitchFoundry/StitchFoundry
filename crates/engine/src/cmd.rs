@@ -86,6 +86,7 @@ pub mod embroidery_repeat;
 pub mod embroidery_safe;
 pub mod embroidery_scatter;
 pub mod embroidery_sequence;
+pub mod embroidery_share;
 pub mod embroidery_sheet_setup;
 pub mod embroidery_simple;
 pub mod embroidery_spiro;
@@ -350,6 +351,7 @@ pub fn command_specs() -> &'static [CommandSpec] {
         v.extend(embroidery_visualizer::specs());
         v.extend(export_history::specs());
         v.extend(embroidery_image::specs());
+        v.extend(embroidery_share::specs());
         v.extend(embroidery_hoops::specs());
         v.extend(embroidery_quick::specs());
         v.extend(embroidery_recolor::specs());
