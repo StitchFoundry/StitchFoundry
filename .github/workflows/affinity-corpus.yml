@@ -5,6 +5,7 @@ on:
     branches: [main]
     paths: ["crates/**", "xtask/**", "Cargo.toml", "Cargo.lock", ".github/workflows/affinity-corpus.yml"]
   pull_request:
+    types: [opened, synchronize, reopened, ready_for_review]
     paths: ["crates/**", "xtask/**", "Cargo.toml", "Cargo.lock", ".github/workflows/affinity-corpus.yml"]
   workflow_dispatch:
 
@@ -18,7 +19,7 @@ concurrency:
 jobs:
   affinity3:
     # Upstream's CI: skipped in forks such as StitchFoundry.
-    if: github.repository == 'StitchFoundry/StitchFoundry'
+    if: github.repository == 'StitchFoundry/StitchFoundry' && (github.event_name != 'pull_request' || github.event.pull_request.draft == false)
     runs-on: ubuntu-latest
     timeout-minutes: 30
     env:
