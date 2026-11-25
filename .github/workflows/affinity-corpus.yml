@@ -6,7 +6,8 @@ on:
     paths: ["crates/**", "xtask/**", "Cargo.toml", "Cargo.lock", ".github/workflows/affinity-corpus.yml"]
   pull_request:
     types: [opened, synchronize, reopened, ready_for_review]
-    paths: ["crates/**", "xtask/**", "Cargo.toml", "Cargo.lock", ".github/workflows/affinity-corpus.yml"]
+    # CI cost (#267 part 2): code-only PRs no longer start this (it still runs on every push to main).
+    paths: [".github/workflows/affinity-corpus.yml"]
   workflow_dispatch:
 
 permissions:
