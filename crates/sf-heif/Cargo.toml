@@ -10,7 +10,7 @@ publish = false
 
 [dependencies]
 # Pure Rust, no unsafe. Pinned exactly: a young crate that parses untrusted files.
-heic-rs = { version = "=0.1.4", default-features = false, features = ["std"] }
+heic-rs = { version = "=0.1.5", default-features = false, features = ["std"] }
 
 # The tiles of a HEIC photo decode in parallel on native; wasm stays single-threaded.
 [target.'cfg(not(target_arch = "wasm32"))'.dependencies]
