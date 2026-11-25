@@ -7,6 +7,7 @@ on:
   push:
     branches: [main]
   pull_request:
+    types: [opened, synchronize, reopened, ready_for_review]
   workflow_dispatch:
 
 permissions:
@@ -27,16 +28,41 @@ env:
 jobs:
   ci:
     name: cargo xtask ci
+    # Drafts skip (a skipped job reports success to branch protection); ready_for_review starts the run.
+    if: github.event_name != 'pull_request' || github.event.pull_request.draft == false
     runs-on: ubuntu-latest
     timeout-minutes: 150
     steps:
       - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+      # Docs-only PRs (only *.md or progress/ changed) skip the heavy steps below. The job always starts, so the
+      # required check still reports. A failed diff fails this step: it never silently skips the checks.
+      - name: Detect docs-only change
+        id: scope
+        env:
+          EVENT: ${{ github.event_name }}
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+        run: |
+          set -euo pipefail
+          code=true
+          if [ "$EVENT" = pull_request ]; then
+            changed=$(git diff --name-only "$BASE_SHA"...HEAD)
+            if [ -n "$changed" ]; then
+              other=$(printf '%s\n' "$changed" | grep -cvE '(\.md$|^progress/)' || true)
+              if [ "$other" = 0 ]; then code=false; fi
+            fi
+          fi
+          echo "code=$code" >> "$GITHUB_OUTPUT"
+          echo "code changed: $code"
       - name: Free disk space
+        if: steps.scope.outputs.code == 'true'
         # The workspace's build outputs need more room than the runner leaves free.
         run: |
           sudo rm -rf /usr/share/dotnet /usr/local/lib/android /opt/ghc /opt/hostedtoolcache/CodeQL
           df -h /
       - name: Install build dependencies
+        if: steps.scope.outputs.code == 'true'
         run: |
           # Fallback mirror + retries: the Azure Ubuntu mirror had DNS outages (2026-11-11).
           # Ubuntu-host DNS outage 2026-11-11: try mirrors.kernel.org (not on ubuntu.com) first, then the Azure mirror.
@@ -48,15 +74,18 @@ jobs:
       # The toolchain the code is checked with locally. Each Rust release adds clippy lints, so
       # bump it on purpose and fix what the new lints flag in the same commit.
       - uses: dtolnay/rust-toolchain@master
+        if: steps.scope.outputs.code == 'true'
         with:
           toolchain: 1.97.0
           components: rustfmt, clippy
           targets: wasm32-unknown-unknown
       - uses: Swatinem/rust-cache@v2
+        if: steps.scope.outputs.code == 'true'
         with:
           key: ci
       - name: cargo xtask ci
+        if: steps.scope.outputs.code == 'true'
         run: cargo xtask ci
       - name: Disk left
-        if: always()
+        if: always() && steps.scope.outputs.code == 'true'
         run: df -h /
