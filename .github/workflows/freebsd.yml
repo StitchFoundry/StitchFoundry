@@ -14,13 +14,11 @@ on:
   pull_request:
     types: [opened, synchronize, reopened, ready_for_review]
     branches: [main]
+    # CI cost (#267 part 2): code-only PRs no longer start FreeBSD (it still runs on every push to main).
     paths:
       - ".github/workflows/freebsd.yml"
       - "packaging/freebsd/**"
       - "packaging/env.sh"
-      - "Cargo.toml"
-      - "Cargo.lock"
-      - "crates/**"
   workflow_dispatch:
 
 concurrency:
