@@ -7079,6 +7079,9 @@ swatch	Yellow Green	Gulgrön
 # Updates
 	Check for Updates	Sök efter uppdateringar
 	Check for Updates Automatically	Sök efter uppdateringar automatiskt
+	Stay Offline (No Update Checks)	Stanna offline (inga uppdateringskontroller)
+@msg	update checks are off: Stay Offline or Do Not Track is on	uppdateringskontroll är av: Stanna offline eller Do Not Track är på
+	update checks are off: Stay Offline or Do Not Track is on	uppdateringskontroll är av: Stanna offline eller Do Not Track är på
 	StitchFoundry {version} is out.	StitchFoundry {version} har kommit.
 	Not now	Inte nu
 @msg	StitchFoundry {version} is out: it's on the Home screen	StitchFoundry {version} har kommit: se startskärmen

@@ -7,6 +7,9 @@ pub fn checked(app: &VectorcraftApp, id: &str, p: &Value) -> Option<bool> {
     if id == "ui.checkForUpdates" && p.get("automatic").is_some() {
         return Some(app.ui.check_updates);
     }
+    if id == "ui.checkForUpdates" && p.get("offline").is_some() {
+        return Some(app.ui.stay_offline);
+    }
     if id == "ui.embroideryDensity" {
         return Some(app.embroidery.density_map);
     }

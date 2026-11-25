@@ -6752,6 +6752,9 @@ machine	Stop	停止
 # Updates
 	Check for Updates	アップデートを確認
 	Check for Updates Automatically	アップデートを自動的に確認
+	Stay Offline (No Update Checks)	オフラインのまま(更新の確認なし)
+@msg	update checks are off: Stay Offline or Do Not Track is on	更新の確認はオフです:「オフラインのまま」または Do Not Track が有効です
+	update checks are off: Stay Offline or Do Not Track is on	更新の確認はオフです:「オフラインのまま」または Do Not Track が有効です
 	StitchFoundry {version} is out.	StitchFoundry {version} が公開されました。
 	Not now	後で
 @msg	StitchFoundry {version} is out: it's on the Home screen	StitchFoundry {version} が公開されました：ホーム画面をご覧ください

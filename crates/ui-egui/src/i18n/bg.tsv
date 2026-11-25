@@ -7001,6 +7001,9 @@ machine	Stop	Спиране
 # Updates
 	Check for Updates	Проверка за актуализации
 	Check for Updates Automatically	Автоматична проверка за актуализации
+	Stay Offline (No Update Checks)	Без връзка (без проверка за актуализации)
+@msg	update checks are off: Stay Offline or Do Not Track is on	проверката за актуализации е изключена: включено е Без връзка или Do Not Track
+	update checks are off: Stay Offline or Do Not Track is on	проверката за актуализации е изключена: включено е Без връзка или Do Not Track
 	StitchFoundry {version} is out.	Излезе StitchFoundry {version}.
 	Not now	Не сега
 @msg	StitchFoundry {version} is out: it's on the Home screen	Излезе StitchFoundry {version}: вижте началния екран

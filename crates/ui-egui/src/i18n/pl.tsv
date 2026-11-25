@@ -6911,6 +6911,9 @@ machine	Stop	Zatrzymanie
 # Updates
 	Check for Updates	Sprawdź aktualizacje
 	Check for Updates Automatically	Sprawdzaj aktualizacje automatycznie
+	Stay Offline (No Update Checks)	Pozostań offline (bez sprawdzania aktualizacji)
+@msg	update checks are off: Stay Offline or Do Not Track is on	sprawdzanie aktualizacji jest wyłączone: włączone jest Pozostań offline lub Do Not Track
+	update checks are off: Stay Offline or Do Not Track is on	sprawdzanie aktualizacji jest wyłączone: włączone jest Pozostań offline lub Do Not Track
 	StitchFoundry {version} is out.	Wyszedł StitchFoundry {version}.
 	Not now	Nie teraz
 @msg	StitchFoundry {version} is out: it's on the Home screen	Wyszedł StitchFoundry {version}: zobacz ekran startowy

@@ -6676,6 +6676,9 @@ effect	Soft	Weich
 # Updates
 	Check for Updates	Nach Updates suchen
 	Check for Updates Automatically	Automatisch nach Updates suchen
+	Stay Offline (No Update Checks)	Offline bleiben (keine Update-Suche)
+@msg	update checks are off: Stay Offline or Do Not Track is on	Die Update-Suche ist aus: „Offline bleiben“ oder „Do Not Track“ ist aktiv
+	update checks are off: Stay Offline or Do Not Track is on	Die Update-Suche ist aus: „Offline bleiben“ oder „Do Not Track“ ist aktiv
 	StitchFoundry {version} is out.	StitchFoundry {version} ist erschienen.
 	Not now	Nicht jetzt
 @msg	StitchFoundry {version} is out: it's on the Home screen	StitchFoundry {version} ist erschienen: siehe Startbildschirm

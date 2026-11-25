@@ -97,6 +97,17 @@ fn now_secs() -> u64 {
     }
 }
 
+/// Whether the `DO_NOT_TRACK` environment variable asks for no tracking (`1` or `true`, the
+/// convention at consoledonottrack.com). Anything else, or unset, doesn't.
+fn dnt_set(value: Option<&str>) -> bool {
+    value.is_some_and(|v| matches!(v.trim().to_ascii_lowercase().as_str(), "1" | "true" | "yes"))
+}
+
+/// True when no check may run: Stay Offline is on, or Do Not Track is set.
+fn blocked(app: &VectorcraftApp) -> bool {
+    app.ui.stay_offline || dnt_set(std::env::var("DO_NOT_TRACK").ok().as_deref())
+}
+
 /// Starts a check in the background (desktop only: the web has no `http_get`).
 fn start(app: &mut VectorcraftApp) -> bool {
     let Some(get) = app.services.http_get.clone() else { return false };
@@ -129,7 +140,7 @@ pub fn poll(app: &mut VectorcraftApp, ctx: &egui::Context) {
     app.updates.frames = app.updates.frames.saturating_add(1);
     if !app.updates.tried && app.updates.frames > 2 {
         app.updates.tried = true;
-        if app.ui.check_updates && now_secs().saturating_sub(app.ui.update_checked_at) >= EVERY {
+        if app.ui.check_updates && !blocked(app) && now_secs().saturating_sub(app.ui.update_checked_at) >= EVERY {
             start(app);
         }
     }
@@ -174,6 +185,19 @@ pub fn run(app: &mut VectorcraftApp, p: &Value) -> Result<Value, String> {
         };
         app.ui.check_updates = on;
         return Ok(json!({ "automatic": on }));
+    }
+    if let Some(on) = p.get("offline") {
+        let on = match on {
+            Value::String(s) if s == "toggle" => !app.ui.stay_offline,
+            _ => on.as_bool().ok_or("`offline` is true, false or \"toggle\"")?,
+        };
+        app.ui.stay_offline = on;
+        return Ok(json!({ "offline": on }));
+    }
+    if blocked(app) {
+        let msg = tl!("update checks are off: Stay Offline or Do Not Track is on");
+        app.status(msg);
+        return Err(msg.into());
     }
     if app.updates.rx.is_some() {
         return Ok(json!({ "checking": true }));
@@ -243,6 +267,12 @@ mod tests {
     }
 
     #[test]
+    fn do_not_track_is_read_from_the_environment_value() {
+        assert!(dnt_set(Some("1")) && dnt_set(Some(" TRUE ")));
+        assert!(!dnt_set(Some("0")) && !dnt_set(Some("")) && !dnt_set(None));
+    }
+
+    #[test]
     fn the_check_runs_in_the_background_and_the_home_card_offers_the_download() {
         let services = crate::Services {
             http_get: Some(std::sync::Arc::new(|url: &str, _: u64| {
@@ -270,6 +300,21 @@ mod tests {
         assert!(!app.ui.check_updates);
         assert!(app.run("ui.checkForUpdates", json!({"automatic": "x"})).is_err());
         assert_eq!(app.run("ui.checkForUpdates", json!({"automatic": "toggle"})).unwrap()["automatic"], true);
+        // Stay Offline stops the check by hand with a message, and the daily one too
+        assert_eq!(app.run("ui.checkForUpdates", json!({"offline": true})).unwrap()["offline"], true);
+        assert!(app.ui.stay_offline);
+        app.updates.newer = None;
+        let err = app.run("ui.checkForUpdates", json!({})).unwrap_err();
+        assert!(err.contains("are off"), "{err}");
+        assert!(app.ui.status.contains("are off"), "{}", app.ui.status);
+        assert!(app.updates.rx.is_none(), "no request was started");
+        app.ui.update_checked_at = 0;
+        app.updates.tried = false;
+        app.updates.frames = 5;
+        poll(&mut app, &ctx);
+        assert!(app.updates.rx.is_none(), "the daily check stays quiet too");
+        assert!(app.run("ui.checkForUpdates", json!({"offline": "x"})).is_err());
+        assert_eq!(app.run("ui.checkForUpdates", json!({"offline": "toggle"})).unwrap()["offline"], false);
         // the web (no http_get) doesn't check
         let mut web = VectorcraftApp::new(vectorcraft_engine::Session::new(), Default::default());
         assert!(web.run("ui.checkForUpdates", json!({})).is_err());

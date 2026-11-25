@@ -7045,6 +7045,9 @@ machine	Stop	Megállás
 # Updates
 	Check for Updates	Frissítések keresése
 	Check for Updates Automatically	Frissítések automatikus keresése
+	Stay Offline (No Update Checks)	Maradjon offline (nincs frissítésellenőrzés)
+@msg	update checks are off: Stay Offline or Do Not Track is on	a frissítések keresése ki van kapcsolva: a Maradjon offline vagy a Do Not Track be van kapcsolva
+	update checks are off: Stay Offline or Do Not Track is on	a frissítések keresése ki van kapcsolva: a Maradjon offline vagy a Do Not Track be van kapcsolva
 	StitchFoundry {version} is out.	Megjelent a StitchFoundry {version}.
 	Not now	Most nem
 @msg	StitchFoundry {version} is out: it's on the Home screen	Megjelent a StitchFoundry {version}: lásd a kezdőképernyőt

@@ -7019,6 +7019,9 @@ machine	Stop	Στάση
 # Updates
 	Check for Updates	Έλεγχος για ενημερώσεις
 	Check for Updates Automatically	Αυτόματος έλεγχος για ενημερώσεις
+	Stay Offline (No Update Checks)	Παραμονή εκτός σύνδεσης (χωρίς έλεγχο ενημερώσεων)
+@msg	update checks are off: Stay Offline or Do Not Track is on	ο έλεγχος ενημερώσεων είναι ανενεργός: είναι ενεργό το Παραμονή εκτός σύνδεσης ή το Do Not Track
+	update checks are off: Stay Offline or Do Not Track is on	ο έλεγχος ενημερώσεων είναι ανενεργός: είναι ενεργό το Παραμονή εκτός σύνδεσης ή το Do Not Track
 	StitchFoundry {version} is out.	Κυκλοφόρησε το StitchFoundry {version}.
 	Not now	Όχι τώρα
 @msg	StitchFoundry {version} is out: it's on the Home screen	Κυκλοφόρησε το StitchFoundry {version}: δείτε την αρχική οθόνη

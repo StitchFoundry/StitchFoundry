@@ -605,7 +605,7 @@ pub const UI_COMMANDS: &[(&str, &str, &str, &str)] = &[
         "ui.checkForUpdates",
         "Check for Updates",
         "",
-        "{automatic?: bool|toggle} ask GitHub now for a newer StitchFoundry (desktop; a release candidate is offered only to one), shown on the Home screen with Download; with `automatic`, turn the once-a-day check on or off → {checking} or {automatic}",
+        "{automatic?: bool|toggle, offline?: bool|toggle} ask GitHub now for a newer StitchFoundry (desktop; a release candidate is offered only to one), shown on the Home screen with Download; with `automatic`, turn the once-a-day check on or off; with `offline`, never ask at all (also when the DO_NOT_TRACK environment variable is 1), and a check by hand says it is off → {checking}, {automatic} or {offline}",
     ),
     (
         "ui.viewer",

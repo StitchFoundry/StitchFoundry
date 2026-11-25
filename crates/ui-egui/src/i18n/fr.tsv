@@ -7084,6 +7084,9 @@ theme	Appearance	Apparence
 # Updates
 	Check for Updates	Rechercher des mises à jour
 	Check for Updates Automatically	Rechercher automatiquement des mises à jour
+	Stay Offline (No Update Checks)	Rester hors ligne (sans recherche de mises à jour)
+@msg	update checks are off: Stay Offline or Do Not Track is on	la recherche de mises à jour est désactivée : « Rester hors ligne » ou « Ne pas me suivre » est activé
+	update checks are off: Stay Offline or Do Not Track is on	la recherche de mises à jour est désactivée : « Rester hors ligne » ou « Ne pas me suivre » est activé
 	StitchFoundry {version} is out.	StitchFoundry {version} est sorti.
 	Not now	Pas maintenant
 @msg	StitchFoundry {version} is out: it's on the Home screen	StitchFoundry {version} est sorti : voir l’écran d’accueil

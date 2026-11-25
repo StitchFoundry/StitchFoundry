@@ -749,6 +749,7 @@ pub fn menu_tree_named(english_names: bool) -> Vec<(&'static str, Vec<Item>)> {
                 Sep,
                 c("Check for Updates", "ui.checkForUpdates"),
                 cp("Check for Updates Automatically", "ui.checkForUpdates", json!({ "automatic": "toggle" })),
+                cp("Stay Offline (No Update Checks)", "ui.checkForUpdates", json!({ "offline": "toggle" })),
                 c("About StitchFoundry", "help.about"),
             ],
         ),

@@ -6707,6 +6707,9 @@ machine	Stop	Остановка
 # Updates
 	Check for Updates	Проверить обновления
 	Check for Updates Automatically	Проверять обновления автоматически
+	Stay Offline (No Update Checks)	Не выходить в сеть (без проверки обновлений)
+@msg	update checks are off: Stay Offline or Do Not Track is on	проверка обновлений выключена: включён режим «Не выходить в сеть» или Do Not Track
+	update checks are off: Stay Offline or Do Not Track is on	проверка обновлений выключена: включён режим «Не выходить в сеть» или Do Not Track
 	StitchFoundry {version} is out.	Вышел StitchFoundry {version}.
 	Not now	Не сейчас
 @msg	StitchFoundry {version} is out: it's on the Home screen	Вышел StitchFoundry {version}: см. начальный экран

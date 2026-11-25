@@ -7025,6 +7025,9 @@ mark-style	Japanese	Japonesas
 # Updates
 	Check for Updates	Buscar actualizaciones
 	Check for Updates Automatically	Buscar actualizaciones automáticamente
+	Stay Offline (No Update Checks)	Permanecer sin conexión (sin buscar actualizaciones)
+@msg	update checks are off: Stay Offline or Do Not Track is on	la búsqueda de actualizaciones está desactivada: «Permanecer sin conexión» o «No rastrear» está activado
+	update checks are off: Stay Offline or Do Not Track is on	la búsqueda de actualizaciones está desactivada: «Permanecer sin conexión» o «No rastrear» está activado
 	StitchFoundry {version} is out.	Ya está StitchFoundry {version}.
 	Not now	Ahora no
 @msg	StitchFoundry {version} is out: it's on the Home screen	Ya está StitchFoundry {version}: lo verá en la pantalla de inicio
