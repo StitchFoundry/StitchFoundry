@@ -7073,6 +7073,9 @@ mark-style	Japanese	Japonské
 # Updates
 	Check for Updates	Vyhledat aktualizace
 	Check for Updates Automatically	Vyhledávat aktualizace automaticky
+	Stay Offline (No Update Checks)	Zůstat offline (bez kontroly aktualizací)
+@msg	update checks are off: Stay Offline or Do Not Track is on	kontrola aktualizací je vypnutá: je zapnuto Zůstat offline nebo Do Not Track
+	update checks are off: Stay Offline or Do Not Track is on	kontrola aktualizací je vypnutá: je zapnuto Zůstat offline nebo Do Not Track
 	StitchFoundry {version} is out.	Vyšel StitchFoundry {version}.
 	Not now	Teď ne
 @msg	StitchFoundry {version} is out: it's on the Home screen	Vyšel StitchFoundry {version}: najdete ho na úvodní obrazovce

@@ -6933,6 +6933,9 @@ swatch	Bright Violet	Kraftig violet
 # Updates
 	Check for Updates	Søg efter opdateringer
 	Check for Updates Automatically	Søg automatisk efter opdateringer
+	Stay Offline (No Update Checks)	Forbliv offline (ingen opdateringstjek)
+@msg	update checks are off: Stay Offline or Do Not Track is on	opdateringstjek er slået fra: Forbliv offline eller Do Not Track er slået til
+	update checks are off: Stay Offline or Do Not Track is on	opdateringstjek er slået fra: Forbliv offline eller Do Not Track er slået til
 	StitchFoundry {version} is out.	StitchFoundry {version} er ude.
 	Not now	Ikke nu
 @msg	StitchFoundry {version} is out: it's on the Home screen	StitchFoundry {version} er ude: se startskærmen

@@ -6933,6 +6933,9 @@ swatch	Bright Violet	Violet cerah
 # Updates
 	Check for Updates	Periksa Pembaruan
 	Check for Updates Automatically	Periksa Pembaruan Secara Otomatis
+	Stay Offline (No Update Checks)	Tetap luring (tanpa pemeriksaan pembaruan)
+@msg	update checks are off: Stay Offline or Do Not Track is on	pemeriksaan pembaruan nonaktif: Tetap luring atau Do Not Track aktif
+	update checks are off: Stay Offline or Do Not Track is on	pemeriksaan pembaruan nonaktif: Tetap luring atau Do Not Track aktif
 	StitchFoundry {version} is out.	StitchFoundry {version} sudah rilis.
 	Not now	Nanti saja
 @msg	StitchFoundry {version} is out: it's on the Home screen	StitchFoundry {version} sudah rilis: lihat layar Beranda

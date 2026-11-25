@@ -544,6 +544,8 @@ pub struct UiState {
     pub recent_files: Vec<String>,
     /// Help › Check for Updates Automatically: once a day, ask GitHub for a newer release (desktop).
     pub check_updates: bool,
+    /// Help › Stay Offline (No Update Checks): the program never asks the update server, by hand or by itself.
+    pub stay_offline: bool,
     /// When updates were last checked (seconds since 1970).
     pub update_checked_at: u64,
     /// The newer version the Home screen's notice was dismissed for (Not Now).
@@ -951,6 +953,7 @@ impl Default for UiState {
             workspace_changes: vec![],
             recent_files: vec![],
             check_updates: true,
+            stay_offline: false,
             update_checked_at: 0,
             update_skipped: String::new(),
             recent_fonts: vec![],

@@ -6977,6 +6977,9 @@ swatch	Bright Violet	Felviolet
 # Updates
 	Check for Updates	Zoeken naar updates
 	Check for Updates Automatically	Automatisch zoeken naar updates
+	Stay Offline (No Update Checks)	Offline blijven (geen updatecontrole)
+@msg	update checks are off: Stay Offline or Do Not Track is on	updatecontrole staat uit: Offline blijven of Do Not Track staat aan
+	update checks are off: Stay Offline or Do Not Track is on	updatecontrole staat uit: Offline blijven of Do Not Track staat aan
 	StitchFoundry {version} is out.	StitchFoundry {version} is uit.
 	Not now	Niet nu
 @msg	StitchFoundry {version} is out: it's on the Home screen	StitchFoundry {version} is uit: zie het startscherm

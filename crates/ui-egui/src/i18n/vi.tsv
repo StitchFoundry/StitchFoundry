@@ -6668,6 +6668,9 @@ machine	Stop	Dừng máy
 # Updates
 	Check for Updates	Kiểm tra cập nhật
 	Check for Updates Automatically	Tự động kiểm tra cập nhật
+	Stay Offline (No Update Checks)	Giữ ngoại tuyến (không kiểm tra cập nhật)
+@msg	update checks are off: Stay Offline or Do Not Track is on	kiểm tra cập nhật đang tắt: Giữ ngoại tuyến hoặc Do Not Track đang bật
+	update checks are off: Stay Offline or Do Not Track is on	kiểm tra cập nhật đang tắt: Giữ ngoại tuyến hoặc Do Not Track đang bật
 	StitchFoundry {version} is out.	StitchFoundry {version} đã ra mắt.
 	Not now	Để sau
 @msg	StitchFoundry {version} is out: it's on the Home screen	StitchFoundry {version} đã ra mắt: xem màn hình chính

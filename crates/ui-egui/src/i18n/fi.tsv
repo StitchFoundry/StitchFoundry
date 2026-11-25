@@ -7085,6 +7085,9 @@ swatch	Bright Violet	Kirkas violetti
 # Updates
 	Check for Updates	Tarkista päivitykset
 	Check for Updates Automatically	Tarkista päivitykset automaattisesti
+	Stay Offline (No Update Checks)	Pysy offline-tilassa (ei päivitystarkistuksia)
+@msg	update checks are off: Stay Offline or Do Not Track is on	päivitystarkistukset ovat pois: Pysy offline-tilassa tai Do Not Track on päällä
+	update checks are off: Stay Offline or Do Not Track is on	päivitystarkistukset ovat pois: Pysy offline-tilassa tai Do Not Track on päällä
 	StitchFoundry {version} is out.	StitchFoundry {version} on julkaistu.
 	Not now	Ei nyt
 @msg	StitchFoundry {version} is out: it's on the Home screen	StitchFoundry {version} on julkaistu: katso aloitusnäyttö

@@ -6892,6 +6892,9 @@ file-filter	StitchFoundry Template	StitchFoundry-ის შაბლონი
 # Updates
 	Check for Updates	განახლებების შემოწმება
 	Check for Updates Automatically	განახლებების ავტომატური შემოწმება
+	Stay Offline (No Update Checks)	დარჩი ოფლაინ რეჟიმში (განახლებების შემოწმების გარეშე)
+@msg	update checks are off: Stay Offline or Do Not Track is on	განახლებების შემოწმება გამორთულია: ჩართულია „დარჩი ოფლაინ რეჟიმში“ ან Do Not Track
+	update checks are off: Stay Offline or Do Not Track is on	განახლებების შემოწმება გამორთულია: ჩართულია „დარჩი ოფლაინ რეჟიმში“ ან Do Not Track
 	StitchFoundry {version} is out.	გამოვიდა StitchFoundry {version}.
 	Not now	ახლა არა
 @msg	StitchFoundry {version} is out: it's on the Home screen	გამოვიდა StitchFoundry {version}: იხილეთ მთავარი ეკრანი

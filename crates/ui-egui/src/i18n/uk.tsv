@@ -6691,6 +6691,9 @@ machine	Stop	Зупинка
 # Updates
 	Check for Updates	Перевірити оновлення
 	Check for Updates Automatically	Перевіряти оновлення автоматично
+	Stay Offline (No Update Checks)	Не виходити в мережу (без перевірки оновлень)
+@msg	update checks are off: Stay Offline or Do Not Track is on	перевірку оновлень вимкнено: увімкнено «Не виходити в мережу» або Do Not Track
+	update checks are off: Stay Offline or Do Not Track is on	перевірку оновлень вимкнено: увімкнено «Не виходити в мережу» або Do Not Track
 	StitchFoundry {version} is out.	Вийшов StitchFoundry {version}.
 	Not now	Не зараз
 @msg	StitchFoundry {version} is out: it's on the Home screen	Вийшов StitchFoundry {version}: див. початковий екран

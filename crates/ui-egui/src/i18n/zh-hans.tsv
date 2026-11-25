@@ -6893,6 +6893,9 @@ machine	Stop	停止
 # Updates
 	Check for Updates	检查更新
 	Check for Updates Automatically	自动检查更新
+	Stay Offline (No Update Checks)	保持离线(不检查更新)
+@msg	update checks are off: Stay Offline or Do Not Track is on	更新检查已关闭:“保持离线”或 Do Not Track 已开启
+	update checks are off: Stay Offline or Do Not Track is on	更新检查已关闭:“保持离线”或 Do Not Track 已开启
 	StitchFoundry {version} is out.	StitchFoundry {version} 已发布。
 	Not now	以后再说
 @msg	StitchFoundry {version} is out: it's on the Home screen	StitchFoundry {version} 已发布：请看主屏幕
