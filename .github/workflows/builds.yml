@@ -72,6 +72,7 @@ jobs:
           name: stitchfoundry-windows-x64
           path: dist/release/*
           if-no-files-found: error
+          retention-days: 7
 
   linux:
     name: Linux x86_64
@@ -130,6 +131,7 @@ jobs:
           name: stitchfoundry-linux-x86_64
           path: dist/release/*
           if-no-files-found: error
+          retention-days: 7
 
   macos:
     name: macOS universal (Apple silicon and Intel)
@@ -166,6 +168,7 @@ jobs:
           name: stitchfoundry-macos-universal
           path: dist/release/*
           if-no-files-found: error
+          retention-days: 7
 
   web:
     name: Web (wasm)
@@ -208,6 +211,7 @@ jobs:
           name: stitchfoundry-web
           path: dist/release/*
           if-no-files-found: error
+          retention-days: 7
 
   # A push to `builds` also puts the files on the "Latest build" release page (tag `latest-build`,
   # marked pre-release), so they can be downloaded without a GitHub account: the README links

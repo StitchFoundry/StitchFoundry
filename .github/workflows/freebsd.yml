@@ -12,14 +12,13 @@ on:
       - "Cargo.lock"
       - "crates/**"
   pull_request:
+    types: [opened, synchronize, reopened, ready_for_review]
     branches: [main]
+    # CI cost (#267 part 2): code-only PRs no longer start FreeBSD (it still runs on every push to main).
     paths:
       - ".github/workflows/freebsd.yml"
       - "packaging/freebsd/**"
       - "packaging/env.sh"
-      - "Cargo.toml"
-      - "Cargo.lock"
-      - "crates/**"
   workflow_dispatch:
 
 concurrency:
@@ -32,7 +31,7 @@ permissions:
 jobs:
   freebsd:
     # Upstream's CI: skipped in forks such as StitchFoundry.
-    if: github.repository == 'StitchFoundry/StitchFoundry'
+    if: github.repository == 'StitchFoundry/StitchFoundry' && (github.event_name != 'pull_request' || github.event.pull_request.draft == false)
     name: FreeBSD 14 (build + test)
     runs-on: ubuntu-latest
     timeout-minutes: 300
@@ -79,7 +78,7 @@ jobs:
     name: FreeBSD 14 (package)
     # The release build takes a while: only for PRs that touch FreeBSD packaging (or dependencies)
     # and on demand, not on every push to main.
-    if: github.repository == 'StitchFoundry/StitchFoundry' && (github.event_name != 'push')
+    if: github.repository == 'StitchFoundry/StitchFoundry' && (github.event_name == 'workflow_dispatch' || (github.event_name == 'pull_request' && github.event.pull_request.draft == false))
     runs-on: ubuntu-latest
     timeout-minutes: 150
     steps:

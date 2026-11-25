@@ -23,6 +23,11 @@ jobs:
       (github.event_name == 'issue_comment' && contains(github.event.comment.body, '@claude'))
     runs-on: ubuntu-latest
     timeout-minutes: 150
+    # CI cost (#267 part 3): one agent run per issue; extra nudges queue (at most one waiting) instead of piling up.
+    # At job level, so comments that do not mention @claude (job skipped) never take the slot.
+    concurrency:
+      group: claude-fix-${{ github.event.issue.number }}
+      cancel-in-progress: false
     permissions:
       contents: write
       pull-requests: write
