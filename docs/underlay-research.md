@@ -66,12 +66,12 @@ Everything above is a rule of thumb. Every source says to test-stitch on the rea
 ## What StitchFoundry does now
 
 - **Satin, automatic underlay** (`sf-core` `satin.rs` `underlay_passes`):
-  - under 1 mm, none;
+  - under 1.5 mm, none;
   - under 2.2 mm, a centre run;
-  - under 4.5 mm, an edge run;
-  - 4.5 mm and wider, an edge run then a zigzag.
+  - under 4 mm, an edge run;
+  - 4 mm and wider, an edge run then a zigzag.
 - **Settings:** inset 0.4 mm, run stitch length 2.5 mm, zigzag spacing 2 mm. This matches the
-  sources except the zigzag starts at 4.5 mm instead of 4 mm, and the stitch length doesn't shorten
+  sources (U2, #200) except the stitch length doesn't shorten
   for narrow columns.
 - **Fills:** an edge run and an open tatami at 90° (2.5 mm rows). This matches.
 - **Fabric presets** (`embroidery.applyFabric`): nine fabrics, each with satin/fill density, pull and
@@ -91,7 +91,7 @@ Everything above is a rule of thumb. Every source says to test-stitch on the rea
   - It applies the matching preset to what it makes, and is remembered as My Machine's usual
     fabric.
   - The steps list and printed worksheet say which stabiliser and whether to use topping.
-- **U2 · Satin widths as the sources give them:** the zigzag joins the edge run from 4 mm (not
+- **U2 (done, #200) · Satin widths as the sources give them:** the zigzag joins the edge run from 4 mm (not
   4.5); the centre run from 1.5 mm, nothing under 1.5 mm.
 - **U3 · Shorter underlay stitches on narrow columns:** the centre run and edge runs shorten
   towards 1.2–1.5 mm on columns under about 2.5 mm, so they follow curves and stay hidden. Pile
