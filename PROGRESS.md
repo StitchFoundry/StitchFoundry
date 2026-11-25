@@ -65,3 +65,5 @@
 - Fix #256: `quilt_tile::add_spirals` also checks where the line joins each spiral, so a hairpin there skips that spiral instead of making the tile lose all of them.
 - Issue 252 (design note): `docs/company-credits.md`, company-level credit spend for hosted StitchBench/StitchShop (wallet, roles, background caps, API, ledger migration, open questions). Docs only, nothing built, no price change.
 - 2026-11-24, issue 111 (add-on 37): "Share it on MakerFoundry?" prompt after the first embroidery export per project (`embroidery/share_prompt.rs`, pref `offerShareAfterExport`). Pre-filled draft, licence pick, analytics events wait for makerfoundry#129 and the analytics opt-in.
+- Issue 125 (last slice): `embroidery.quick.size` (read-only size in mm and inches, `fits`, `offers`); the Transform section asks for it when the panel opens, so the size shows before the first action; `docs/embroidery.md` Quick Transform section. Rest of phase 4 was already on main (#173, #227, #232).
+- 2026-11-25 nightly maintenance: none (queue run on #125).

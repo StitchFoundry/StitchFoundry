@@ -81,6 +81,11 @@ pub fn show(app: &mut VectorcraftApp, ui: &mut Ui) {
         });
     }
     ui.data_mut(|d| d.insert_temp(id.with("lock"), unlocked));
+    if call.is_none() && last.0.is_null() {
+        // Show the size before the first action; an empty design answers with an error, which is
+        // fine: keep an empty answer so this isn't asked again every frame.
+        last = Last(app.run("embroidery.quick.size", json!({})).unwrap_or_else(|_| json!({})));
+    }
     if let Some((cmd, params)) = call {
         match app.run(cmd, params) {
             Ok(r) => last = Last(r),
