@@ -69,3 +69,5 @@
 - 2026-11-25 nightly maintenance: none (queue run on #125).
 - 2026-11-25 nightly sweep: no reports to triage; main clippy clean; cargo audit: no vulnerabilities, wasmi 2.0.2 yanked (filed #262, 7 unmaintained notices).
 - Fix #257: the quilt tile touch check and spiral clearance look only at nearby segments (uniform grid, 4 mm cells), so a 1000 x 1000 mm tile takes about a second instead of 12; designs are unchanged.
+
+- 2026-11-26 issue #51 clean-room sweep slice 2: AGENTS.md screenshot line removed, launch-v1 and spec wording neutral, stray .dst files deleted (docs/files only; full `cargo xtask ci` left to PR CI).
