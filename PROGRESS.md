@@ -69,3 +69,5 @@
 - 2026-11-25 nightly maintenance: none (queue run on #125).
 - 2026-11-25 nightly sweep: no reports to triage; main clippy clean; cargo audit: no vulnerabilities, wasmi 2.0.2 yanked (filed #262, 7 unmaintained notices).
 - Fix #257: the quilt tile touch check and spiral clearance look only at nearby segments (uniform grid, 4 mm cells), so a 1000 x 1000 mm tile takes about a second instead of 12; designs are unchanged.
+- 2026-11-26 nightly sweep: no reports to triage; cargo audit: no vulnerabilities (7 unmaintained notices), wasmi 2.0.2 yanked (#262). Filed #274 (fidelity render has no work cap).
+- Fix #262: Cargo.lock moves wasmi (and wasmi_core, wasmi_collections, wasmi_ir) from the yanked 2.0.2 to 2.0.3 (`cargo audit -D yanked` passes).
