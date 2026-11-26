@@ -851,6 +851,28 @@ fn the_colour_count_is_previewed_with_its_threads_before_digitizing() {
     assert!(p.info["colors"].as_array().unwrap().iter().any(|c| c["background"] == true));
 }
 
+/// The Auto-Digitize panel's preset picker offers the names the engine takes, with its colour counts.
+#[test]
+fn auto_digitize_preset_picker_matches_the_engine() {
+    let mut app = app();
+    let img = image::RgbaImage::from_fn(40, 40, |x, _| if x < 20 { image::Rgba([200, 30, 30, 255]) } else { image::Rgba([255, 255, 255, 255]) });
+    let mut png = Vec::new();
+    img.write_to(&mut std::io::Cursor::new(&mut png), image::ImageFormat::Png).unwrap();
+    let placed = app.run("file.place", json!({"name": "flat.png", "dataBase64": vectorcraft_format::base64_encode(&png)})).unwrap();
+    let id = placed["ids"][0].as_u64().unwrap();
+    app.run("select.set", json!({"ids": [id]})).unwrap();
+    app.embroidery.digitize_preset = 2;
+    let ctx = egui::Context::default();
+    let _ = ctx.run_ui(egui::RawInput::default(), |ui| crate::embroidery::panel::auto_digitize_rows(&mut app, ui));
+    // the panel keeps the choice until the colour slider is moved
+    assert_eq!(app.embroidery.digitize_preset, 2);
+    for name in ["cartoon", "logo"] {
+        let r = app.run("embroidery.autoDigitize", json!({"preset": name, "removeBackground": true}));
+        assert!(r.is_ok(), "{name}: {r:?}");
+        app.run("history.undo", json!({})).ok();
+    }
+}
+
 mod ask_about_embroidery {
     use std::collections::VecDeque;
     use std::sync::{Arc, Mutex};
