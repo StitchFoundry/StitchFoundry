@@ -258,17 +258,17 @@ enum Pass {
     ZigzagBack,
 }
 
-/// The underlay passes for a column `width` mm wide. Automatic underlay (#118): under 1 mm
-/// none, 1 to 2.2 mm a centre run, 2.2 to 4.5 mm an edge run, wider an edge run plus
+/// The underlay passes for a column `width` mm wide. Automatic underlay (#118, #200 U2): under
+/// 1.5 mm none, 1.5 to 2.2 mm a centre run, 2.2 to 4 mm an edge run, from 4 mm an edge run plus
 /// zigzag. Lettering under 6 mm (`small: auto`) is forced to a centre run only.
 fn underlay_passes(params: &SatinParams, width: f64) -> Vec<Pass> {
     let u = &params.underlay;
     if u.auto {
-        if width < 1.0 {
+        if width < 1.5 {
             vec![]
         } else if width < 2.2 {
             vec![Pass::Center]
-        } else if width < 4.5 {
+        } else if width < 4.0 {
             vec![Pass::Edge]
         } else {
             vec![Pass::Edge, Pass::Zigzag]
@@ -583,10 +583,13 @@ mod tests {
         let p = SatinParams::default();
         assert!(p.underlay.auto);
         assert_eq!(underlay_passes(&p, 0.5), vec![]);
-        assert_eq!(underlay_passes(&p, 1.0), vec![Pass::Center]);
+        assert_eq!(underlay_passes(&p, 1.0), vec![]);
+        assert_eq!(underlay_passes(&p, 1.49), vec![]);
+        assert_eq!(underlay_passes(&p, 1.5), vec![Pass::Center]);
         assert_eq!(underlay_passes(&p, 2.1), vec![Pass::Center]);
         assert_eq!(underlay_passes(&p, 2.2), vec![Pass::Edge]);
-        assert_eq!(underlay_passes(&p, 4.4), vec![Pass::Edge]);
+        assert_eq!(underlay_passes(&p, 3.9), vec![Pass::Edge]);
+        assert_eq!(underlay_passes(&p, 4.0), vec![Pass::Edge, Pass::Zigzag]);
         assert_eq!(underlay_passes(&p, 4.5), vec![Pass::Edge, Pass::Zigzag]);
         assert_eq!(underlay_passes(&p, 12.0), vec![Pass::Edge, Pass::Zigzag]);
     }
