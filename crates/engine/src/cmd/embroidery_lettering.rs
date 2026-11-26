@@ -418,7 +418,7 @@ fn font_preview(s: &mut Session, p: &Value) -> Result<Value> {
     const CMD: &str = "embroidery.font.preview";
     let name = str_param(p, "font").ok_or_else(|| bad(CMD, "missing `font`"))?;
     let _ = ensure_fonts(s);
-    let font = loaded(s, name).ok_or_else(|| not_loaded(CMD, name))?;
+    let font = loaded(s, name).ok_or_else(|| not_loaded(s, name))?;
     let text = match p.get("text") {
         None | Some(Value::Null) => font.info.name.clone(),
         Some(v) => v.as_str().filter(|t| t.chars().count() <= 200).ok_or_else(|| bad(CMD, "`text` is up to 200 letters"))?.to_string(),
@@ -502,8 +502,19 @@ pub(super) fn loaded(s: &Session, name: &str) -> Option<Arc<EmbFont>> {
     s.embroidery_fonts.iter().find(|f| f.info.name.eq_ignore_ascii_case(name)).cloned()
 }
 
-pub(super) fn not_loaded(cmd: &str, name: &str) -> EngineError {
-    bad(cmd, format!("no embroidery font `{name}` is loaded (embroidery.font.load)"))
+/// The error for a font that isn't loaded, in plain words (it is shown to the user whole): with no
+/// font at all it says how to add one.
+pub(super) fn not_loaded(s: &Session, name: &str) -> EngineError {
+    EngineError::Other(not_loaded_text(s.embroidery_fonts.is_empty(), name))
+}
+
+fn not_loaded_text(none_loaded: bool, name: &str) -> String {
+    if none_loaded {
+        "No embroidery font is installed yet. Add one from Embroidery > Embroidery Fonts (or see the Embroidery help page), then try again."
+            .to_string()
+    } else {
+        format!("The embroidery font \"{name}\" isn't loaded. Pick one of the loaded fonts, or add it from Embroidery > Embroidery Fonts.")
+    }
 }
 
 /// `text`, when given: 1 to [`MAX_TEXT`] characters, not all blank.
@@ -1018,7 +1029,7 @@ fn puff(s: &mut Session, p: &Value) -> Result<Value> {
     for id in &ids {
         if let Some((l, mut spec)) = lettering_of(&s.doc()?.doc, &[*id]).filter(|(l, _)| l == id) {
             spec.puff = setting;
-            let font = loaded(s, &spec.font).ok_or_else(|| not_loaded(CMD, &spec.font))?;
+            let font = loaded(s, &spec.font).ok_or_else(|| not_loaded(s, &spec.font))?;
             letterings.push((l, spec, font));
         }
     }
@@ -1235,7 +1246,7 @@ fn lettering(s: &mut Session, p: &Value) -> Result<Value> {
     let text = text_param(p, SET)?.ok_or_else(|| bad(SET, "missing `text`"))?;
     let name = str_param(p, "font").ok_or_else(|| bad(SET, "missing `font`"))?;
     let mut warnings = ensure_fonts(s);
-    let font = loaded(s, name).ok_or_else(|| not_loaded(SET, name))?;
+    let font = loaded(s, name).ok_or_else(|| not_loaded(s, name))?;
     let size = ranged(p, "size", 1.0..=500.0, SET, "`size` is 1 to 500 mm")?.unwrap_or_else(|| own_size(&font));
     let leading = ranged(p, "leading", 0.2..=5.0, SET, "`leading` is 0.2 to 5")?.unwrap_or(1.0);
     let at = match p.get("at") {
@@ -1306,7 +1317,7 @@ fn edit_lettering(s: &mut Session, p: &Value) -> Result<Value> {
         spec.font = f.to_string();
     }
     let mut warnings = ensure_fonts(s);
-    let font = loaded(s, &spec.font).ok_or_else(|| not_loaded(EDIT, &spec.font))?;
+    let font = loaded(s, &spec.font).ok_or_else(|| not_loaded(s, &spec.font))?;
     spec.font = font.info.name.clone();
     if let Some(v) = ranged(p, "size", 1.0..=500.0, EDIT, "`size` is 1 to 500 mm")? {
         spec.size = v;
@@ -1402,7 +1413,7 @@ fn adjust_letter(s: &mut Session, p: &Value) -> Result<Value> {
     };
     // remembered font folders loaded if they weren't; a folder that fails shows when the font is missing
     let _ = ensure_fonts(s);
-    let font = loaded(s, &spec.font).ok_or_else(|| not_loaded(LETTER, &spec.font))?;
+    let font = loaded(s, &spec.font).ok_or_else(|| not_loaded(s, &spec.font))?;
     let count = font.layout(&spec.text).len();
     let index = match p.get("index") {
         None | Some(Value::Null) => {
@@ -1558,7 +1569,7 @@ fn team_lettering(s: &mut Session, p: &Value, cmd: &str) -> Result<(NodeId, Lett
     let ids = targets(s, p)?;
     let (id, spec) = lettering_of(&s.doc()?.doc, &ids).ok_or_else(|| bad(cmd, "select lettering set in an embroidery font"))?;
     let _ = ensure_fonts(s);
-    let font = loaded(s, &spec.font).ok_or_else(|| not_loaded(cmd, &spec.font))?;
+    let font = loaded(s, &spec.font).ok_or_else(|| not_loaded(s, &spec.font))?;
     Ok((id, spec, font))
 }
 
@@ -1695,7 +1706,7 @@ fn team_names_export(s: &mut Session, p: &Value) -> Result<Value> {
     let (id, spec) = lettering_of(&s.doc()?.doc, &ids).ok_or_else(|| bad(CMD, "select lettering set in an embroidery font"))?;
     // its font: one of the remembered folders' (what fails to load says so when the fonts are listed)
     let _ = ensure_fonts(s);
-    let font = loaded(s, &spec.font).ok_or_else(|| not_loaded(CMD, &spec.font))?;
+    let font = loaded(s, &spec.font).ok_or_else(|| not_loaded(s, &spec.font))?;
     // the format, as Export Machine File picks it
     let machine = s.doc()?.doc.embroidery.as_deref().and_then(|e| e.machine_file_format(&s.prefs.embroidery_machines));
     let key = str_param(p, "format").map(str::to_string).or(machine).unwrap_or_else(|| "dst".to_string());
@@ -1731,6 +1742,27 @@ fn team_names_export(s: &mut Session, p: &Value) -> Result<Value> {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    /// No font installed: plain words (no backticks, no command names) that say how to add one.
+    #[test]
+    fn a_missing_font_is_said_in_plain_words() {
+        let none = not_loaded_text(true, "none");
+        assert!(none.starts_with("No embroidery font is installed"), "{none}");
+        assert!(none.contains("Embroidery > Embroidery Fonts"), "{none}");
+        let some = not_loaded_text(false, "Script");
+        assert!(some.contains("\"Script\"") && some.contains("Embroidery > Embroidery Fonts"), "{some}");
+        for t in [&none, &some] {
+            assert!(!t.contains('`') && !t.contains("embroidery.") && !t.contains("invalid parameters"), "{t}");
+        }
+    }
+
+    #[test]
+    fn lettering_without_a_font_reports_how_to_add_one() {
+        let mut s = Session::default();
+        s.embroidery_fonts.clear();
+        let msg = not_loaded(&s, "none").to_string();
+        assert_eq!(msg, not_loaded_text(true, "none"));
+    }
 
     #[test]
     fn csv_tables_give_their_columns() {

@@ -373,7 +373,7 @@ fn monogram(s: &mut Session, p: &Value) -> Result<Value> {
     }
     let name = str_param(p, "font").ok_or_else(|| bad(CMD, "missing `font`"))?;
     let mut warnings = ensure_fonts(s);
-    let font = loaded(s, name).ok_or_else(|| not_loaded(CMD, name))?;
+    let font = loaded(s, name).ok_or_else(|| not_loaded(s, name))?;
     let size = ranged(p, "size", 1.0..=300.0, CMD, "`size` is 1 to 300 mm")?.unwrap_or_else(|| own_size(&font));
     let (classic, stacked) = match str_param(p, "style") {
         None | Some("classic") => (true, false),

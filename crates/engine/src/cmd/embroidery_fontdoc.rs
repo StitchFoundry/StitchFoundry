@@ -602,7 +602,7 @@ fn edit_font(s: &mut Session, p: &Value) -> Result<Value> {
     const CMD: &str = "embroidery.font.edit";
     let name = str_param(p, "name").ok_or_else(|| bad(CMD, "missing `name`"))?;
     let _ = ensure_fonts(s);
-    let font = loaded(s, name).ok_or_else(|| not_loaded(CMD, name))?;
+    let font = loaded(s, name).ok_or_else(|| not_loaded(s, name))?;
     let count = font_to_doc(s, &font);
     Ok(json!({ "glyphs": count }))
 }
@@ -614,7 +614,7 @@ fn open_font(s: &mut Session, p: &Value) -> Result<Value> {
     let font = match (pick("font"), pick("folder")) {
         (Some(name), _) => {
             let _ = ensure_fonts(s);
-            loaded(s, name).ok_or_else(|| not_loaded(CMD, name))?
+            loaded(s, name).ok_or_else(|| not_loaded(s, name))?
         }
         (None, Some(dir)) => {
             let (json, arts) = read_folder(dir)?;
@@ -702,7 +702,7 @@ fn merge_font(s: &mut Session, p: &Value) -> Result<Value> {
     let f = design(s, CMD)?;
     let name = str_param(p, "font").ok_or_else(|| bad(CMD, "missing `font`"))?;
     let _ = ensure_fonts(s);
-    let font = loaded(s, name).ok_or_else(|| not_loaded(CMD, name))?;
+    let font = loaded(s, name).ok_or_else(|| not_loaded(s, name))?;
     let only = glyph_names(p, CMD)?;
     let d = &s.doc()?.doc;
     let have: Vec<String> = d.artboards.iter().map(|a| a.name.clone()).collect();
