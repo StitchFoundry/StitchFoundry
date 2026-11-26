@@ -3702,6 +3702,15 @@ fn design_section(app: &mut VectorcraftApp, ui: &mut Ui, t: &Tokens) {
     {
         app.run("embroidery.settings", json!({ "chart": name })).ok();
     }
+    ui.label(
+        egui::RichText::new(format!(
+            "{} {}",
+            vectorcraft_embroidery::sf_core::thread_makers::NOTICE,
+            vectorcraft_embroidery::sf_core::thread_makers::SEW_ADVICE
+        ))
+        .small()
+        .weak(),
+    );
     if stitches > 0 && button(ui, tl!("Match Threads to Chart")).on_hover_text(tl!("Give every stitched object the chart's closest thread")).clicked()
     {
         app.run("embroidery.matchThreads", json!({ "all": true })).ok();

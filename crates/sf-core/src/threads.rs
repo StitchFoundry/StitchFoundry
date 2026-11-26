@@ -655,7 +655,9 @@ pub fn jef_chart() -> ThreadChart {
 
 /// All built-in thread charts.
 pub fn charts() -> Vec<ThreadChart> {
-    vec![generic_chart(), pec_chart(), jef_chart(), hus_chart()]
+    let mut v = vec![generic_chart(), pec_chart(), jef_chart(), hus_chart()];
+    v.extend(crate::thread_makers::charts());
+    v
 }
 
 /// Husqvarna Viking's HUS palette (index 0 first), from pyembroidery (MIT).
