@@ -73,3 +73,4 @@
 - Fix #262: Cargo.lock moves wasmi (and wasmi_core, wasmi_collections, wasmi_ir) from the yanked 2.0.2 to 2.0.3 (`cargo audit -D yanked` passes).
 - 2026-11-27 nightly sweep: no reports to triage; fix PR for #274; sweep test found writing `junk/` and `#zzzzzz/` folders into the source tree (filed #280); fmt, clippy, workspace tests green; cargo audit: no vulnerabilities (7 unmaintained).
 - Fix #274: fidelity rasters refuse pixels finer than 0.01 mm, discs are spaced at half the thread radius, and `render_like` stops after 200M pixel visits with an error.
+- Fix #278: lettering with no embroidery font loaded says so in plain words (no backticks or command names) and points to Embroidery > Embroidery Fonts; the Lettering section shows "Add an embroidery font to start lettering." instead of an empty list. Other-language strings for the old hint fall back to English until retranslated.

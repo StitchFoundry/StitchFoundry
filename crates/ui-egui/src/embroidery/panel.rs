@@ -471,7 +471,8 @@ pub(crate) fn lettering_body(app: &mut VectorcraftApp, ui: &mut Ui) {
         })
         .collect();
     if fonts.is_empty() {
-        ui.label(tl!("Load an embroidery font to set text with it."));
+        ui.label(tl!("Add an embroidery font to start lettering."));
+        ui.label(tl!("Use Get Embroidery Fonts, or load a font folder, above."));
         return;
     }
     if let Some((_, l)) = &selected

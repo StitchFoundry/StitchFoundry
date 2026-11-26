@@ -207,7 +207,7 @@ fn the_panel_sets_lettering_in_a_loaded_font() {
     let texts = painted_text_in(&mut app, crate::embroidery::panel::lettering_body, 600.0);
     // builds that embed the StitchFoundry fonts (STITCHFOUNDRY_FONTS_DIR) already have a font to set text with
     if vectorcraft_embroidery::fonts::BUNDLED_FONTS.is_empty() {
-        assert!(texts.iter().any(|t| t == "Load an embroidery font to set text with it."), "{texts:?}");
+        assert!(texts.iter().any(|t| t == "Add an embroidery font to start lettering."), "{texts:?}");
     }
     let json = r#"{"name": "Panel Font", "size": 10, "min_scale": 0.5, "max_scale": 2, "leading": 60, "horiz_adv_x": {"A": 40}}"#;
     let svg = r##"<svg xmlns="http://www.w3.org/2000/svg" xmlns:inkscape="http://www.inkscape.org/namespaces/inkscape" width="100mm" height="100mm" viewBox="0 0 100 100"><g inkscape:groupmode="layer" inkscape:label="GlyphLayer-A" id="l"><path d="M2 100 L20 80" fill="none" stroke="#000" stroke-dasharray="1 1"/></g></svg>"##;
