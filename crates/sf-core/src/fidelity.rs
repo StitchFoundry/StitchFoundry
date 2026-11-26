@@ -59,7 +59,7 @@ impl Raster {
         if rgba.len() != r.cells.len() * 4 {
             return Err("pixel data does not match the size".into());
         }
-        for (cell, px) in r.cells.iter_mut().zip(rgba.chunks_exact(4)) {
+        for (cell, px) in r.cells.iter_mut().zip(rgba.as_chunks::<4>().0) {
             if let [red, green, blue, alpha] = *px
                 && alpha >= 128
             {

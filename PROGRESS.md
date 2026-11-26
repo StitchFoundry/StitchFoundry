@@ -65,3 +65,5 @@
 - Fix #256: `quilt_tile::add_spirals` also checks where the line joins each spiral, so a hairpin there skips that spiral instead of making the tile lose all of them.
 - Issue 252 (design note): `docs/company-credits.md`, company-level credit spend for hosted StitchBench/StitchShop (wallet, roles, background caps, API, ledger migration, open questions). Docs only, nothing built, no price change.
 - 2026-11-24, issue 111 (add-on 37): "Share it on MakerFoundry?" prompt after the first embroidery export per project (`embroidery/share_prompt.rs`, pref `offerShareAfterExport`). Pre-filled draft, licence pick, analytics events wait for makerfoundry#129 and the analytics opt-in.
+- 2026-11-25 nightly sweep: no reports to triage; main clippy clean; cargo audit: no vulnerabilities, wasmi 2.0.2 yanked (filed #262, 7 unmaintained notices).
+- Fix #257: the quilt tile touch check and spiral clearance look only at nearby segments (uniform grid, 4 mm cells), so a 1000 x 1000 mm tile takes about a second instead of 12; designs are unchanged.

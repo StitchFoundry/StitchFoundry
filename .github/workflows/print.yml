@@ -1,6 +1,7 @@
 name: Desktop printing
 on:
   pull_request:
+    types: [opened, synchronize, reopened, ready_for_review]
     paths:
       - "Cargo.toml"
       - "Cargo.lock"
@@ -19,7 +20,7 @@ env:
 jobs:
   windows:
     # Upstream's CI: skipped in forks such as StitchFoundry.
-    if: github.repository == 'StitchFoundry/StitchFoundry'
+    if: github.repository == 'StitchFoundry/StitchFoundry' && (github.event_name != 'pull_request' || github.event.pull_request.draft == false)
     runs-on: windows-2022
     timeout-minutes: 90
     steps:

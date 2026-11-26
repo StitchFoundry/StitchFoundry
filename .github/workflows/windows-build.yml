@@ -50,3 +50,4 @@ jobs:
           name: stitchfoundry-windows-x64
           path: dist/release/*
           if-no-files-found: error
+          retention-days: 7
