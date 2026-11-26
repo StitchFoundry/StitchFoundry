@@ -43,6 +43,7 @@ pub mod scorecard;
 pub mod sequence;
 pub mod stamps;
 pub mod stats;
+pub mod thread_makers;
 pub mod threads;
 pub mod travel;
 pub mod underlay_presets;
