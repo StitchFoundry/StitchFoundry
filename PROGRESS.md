@@ -67,3 +67,5 @@
 - 2026-11-24, issue 111 (add-on 37): "Share it on MakerFoundry?" prompt after the first embroidery export per project (`embroidery/share_prompt.rs`, pref `offerShareAfterExport`). Pre-filled draft, licence pick, analytics events wait for makerfoundry#129 and the analytics opt-in.
 - Issue 125 (last slice): `embroidery.quick.size` (read-only size in mm and inches, `fits`, `offers`); the Transform section asks for it when the panel opens, so the size shows before the first action; `docs/embroidery.md` Quick Transform section. Rest of phase 4 was already on main (#173, #227, #232).
 - 2026-11-25 nightly maintenance: none (queue run on #125).
+- 2026-11-25 nightly sweep: no reports to triage; main clippy clean; cargo audit: no vulnerabilities, wasmi 2.0.2 yanked (filed #262, 7 unmaintained notices).
+- Fix #257: the quilt tile touch check and spiral clearance look only at nearby segments (uniform grid, 4 mm cells), so a 1000 x 1000 mm tile takes about a second instead of 12; designs are unchanged.

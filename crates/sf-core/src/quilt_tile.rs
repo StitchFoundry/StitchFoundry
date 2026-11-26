@@ -150,20 +150,80 @@ fn segs_dist(a: Point, b: Point, c: Point, d: Point) -> f64 {
     seg_dist(a, c, d).min(seg_dist(b, c, d)).min(seg_dist(c, a, b)).min(seg_dist(d, a, b))
 }
 
+/// Segment `i` of a line (`line[i]` to `line[i + 1]`).
+fn seg(line: &[Point], i: usize) -> Option<(Point, Point)> {
+    Some((*line.get(i)?, *line.get(i + 1)?))
+}
+
+/// A uniform grid over a line's segments, so a distance check only looks at nearby segments
+/// (issue #257: comparing every segment with every other took seconds on a 1 m tile).
+struct SegGrid {
+    x0: f64,
+    y0: f64,
+    cell: f64,
+    cols: usize,
+    rows: usize,
+    bins: Vec<Vec<usize>>,
+}
+
+/// Cells per side at most, so a line spread over a huge or broken area can't allocate without bound
+/// (the cells just get bigger).
+const GRID_MAX_SIDE: usize = 1024;
+
+impl SegGrid {
+    /// Bins every segment of `line` by its bounding box, with cells of about `cell` mm.
+    fn new(line: &[Point], cell: f64) -> Self {
+        let finite: Vec<Point> = line.iter().copied().filter(|p| p.x.is_finite() && p.y.is_finite()).collect();
+        let (x0, y0, x1, y1) =
+            finite.iter().fold((f64::MAX, f64::MAX, f64::MIN, f64::MIN), |(a, b, c, d), p| (a.min(p.x), b.min(p.y), c.max(p.x), d.max(p.y)));
+        let (x0, y0, x1, y1) = if finite.is_empty() { (0.0, 0.0, 0.0, 0.0) } else { (x0, y0, x1, y1) };
+        let span = (x1 - x0).max(y1 - y0).max(0.0);
+        let cell = cell.max(span / GRID_MAX_SIDE as f64).max(1e-6);
+        let cols = ((((x1 - x0) / cell).floor() as usize).saturating_add(1)).min(GRID_MAX_SIDE + 1);
+        let rows = ((((y1 - y0) / cell).floor() as usize).saturating_add(1)).min(GRID_MAX_SIDE + 1);
+        let mut g = SegGrid { x0, y0, cell, cols, rows, bins: vec![Vec::new(); cols * rows] };
+        for i in 0..line.len().saturating_sub(1) {
+            if let Some((a, b)) = seg(line, i) {
+                let (c0, c1, r0, r1) = g.range(a, b, 0.0);
+                for r in r0..=r1 {
+                    for c in c0..=c1 {
+                        if let Some(bin) = g.bins.get_mut(r * cols + c) {
+                            bin.push(i);
+                        }
+                    }
+                }
+            }
+        }
+        g
+    }
+
+    /// The cells (`c0..=c1`, `r0..=r1`) under segment `ab`'s bounding box grown by `pad`. A point
+    /// that isn't finite lands in the first or last cell (`as` saturates; NaN gives 0).
+    fn range(&self, a: Point, b: Point, pad: f64) -> (usize, usize, usize, usize) {
+        let cell_of = |v: f64, o: f64, n: usize| (((v - o) / self.cell).floor().max(0.0) as usize).min(n.saturating_sub(1));
+        let (lx, hx) = (a.x.min(b.x) - pad, a.x.max(b.x) + pad);
+        let (ly, hy) = (a.y.min(b.y) - pad, a.y.max(b.y) + pad);
+        (cell_of(lx, self.x0, self.cols), cell_of(hx, self.x0, self.cols), cell_of(ly, self.y0, self.rows), cell_of(hy, self.y0, self.rows))
+    }
+
+    /// Whether any segment `j` binned near `ab` (within `pad`) has `hit(j)` true.
+    fn any_near(&self, a: Point, b: Point, pad: f64, mut hit: impl FnMut(usize) -> bool) -> bool {
+        let (c0, c1, r0, r1) = self.range(a, b, pad);
+        (r0..=r1).any(|r| (c0..=c1).any(|c| self.bins.get(r * self.cols + c).is_some_and(|bin| bin.iter().any(|&j| hit(j)))))
+    }
+}
+
 /// Whether the line crosses or touches itself: two segments that aren't neighbours closer than
 /// [`CLEARANCE`].
 pub fn self_touches(line: &[Point]) -> bool {
-    let n = line.len().saturating_sub(1);
-    for i in 0..n {
-        for j in i + 2..n {
-            if let (Some(&a), Some(&b), Some(&c), Some(&d)) = (line.get(i), line.get(i + 1), line.get(j), line.get(j + 1))
-                && segs_dist(a, b, c, d) < CLEARANCE
-            {
-                return true;
-            }
-        }
+    if line.iter().any(|p| !p.x.is_finite() || !p.y.is_finite()) {
+        return true;
     }
-    false
+    let grid = SegGrid::new(line, 4.0);
+    (0..line.len().saturating_sub(1)).any(|i| {
+        let Some((a, b)) = seg(line, i) else { return false };
+        grid.any_near(a, b, CLEARANCE, |j| j > i + 1 && seg(line, j).is_some_and(|(c, d)| segs_dist(a, b, c, d) < CLEARANCE))
+    })
 }
 
 /// A tile's line for one seed (it may touch itself: see [`tile_line`]).
@@ -244,6 +304,7 @@ fn double_spiral(a: Point, b: Point, m: Point, u: Point, v: Point) -> Vec<Point>
 /// would touch anything are skipped.
 pub fn add_spirals(line: &[Point], width: f64, height: f64) -> Vec<Point> {
     let mut cur = line.to_vec();
+    let mut grid = SegGrid::new(&cur, 4.0);
     let mut k = SPIRAL_GAP;
     while k + SPIRAL_GAP < cur.len() {
         let placed = (|| {
@@ -258,14 +319,18 @@ pub fn add_spirals(line: &[Point], width: f64, height: f64) -> Vec<Point> {
                 let v = Point::new(-u.y * side, u.x * side);
                 let piece = double_spiral(a, b, m, u, v);
                 let inside = piece.iter().all(|t| t.x >= 1.0 && t.y >= 1.0 && t.x <= width - 1.0 && t.y <= height - 1.0);
-                // the stitches before `k - 3` and after `k + 3` are the rest of the line
-                let (head, tail) = (cur.get(..k - 3)?, cur.get(k + 4..)?);
-                let clear =
-                    |q: &[Point]| piece.windows(2).skip(2).all(|s| q.windows(2).all(|t| segs_dist(s[0], s[1], t[0], t[1]) >= SPIRAL_CLEARANCE));
+                // the stitches before `k - 3` and after `k + 3` are the rest of the line: segments
+                // up to `k - 5` and from `k + 4` on
+                let rest = |j: usize| j + 4 < k || j >= k + 4;
+                let clear = piece.windows(2).skip(2).all(|s| {
+                    !grid.any_near(s[0], s[1], SPIRAL_CLEARANCE, |j| {
+                        rest(j) && seg(&cur, j).is_some_and(|(c, d)| segs_dist(s[0], s[1], c, d) < SPIRAL_CLEARANCE)
+                    })
+                });
                 // the piece with the stitch before and after it: a hairpin where the line joins the
                 // spiral is caught here (`clear` skips the piece's first segments)
                 let joined: Vec<Point> = cur.get(k - 4).into_iter().chain(piece.iter()).chain(cur.get(k + 4)).copied().collect();
-                if inside && !self_touches(&joined) && clear(head) && clear(tail) {
+                if inside && !self_touches(&joined) && clear {
                     return Some(piece);
                 }
             }
@@ -281,6 +346,7 @@ pub fn add_spirals(line: &[Point], width: f64, height: f64) -> Vec<Point> {
                 next.extend(tail);
                 k = at + SPIRAL_GAP;
                 cur = next;
+                grid = SegGrid::new(&cur, 4.0);
             }
             None => k += 2,
         }
@@ -331,6 +397,49 @@ mod tests {
         }
         assert_eq!(tile_line(152.4, 152.4, 5), tile_line(152.4, 152.4, 5));
         assert!(tile_line(f64::NAN, 100.0, 1).is_none() && tile_line(10.0, 100.0, 1).is_none());
+    }
+
+    fn touches_brute(line: &[Point]) -> bool {
+        let n = line.len().saturating_sub(1);
+        (0..n).any(|i| (i + 2..n).any(|j| segs_dist(line[i], line[i + 1], line[j], line[j + 1]) < CLEARANCE))
+    }
+
+    #[test]
+    fn the_grid_touch_check_agrees_with_comparing_every_pair() {
+        let mut rng = Rng(3);
+        for round in 0..300 {
+            // random walks with steps up to 6 mm, some long jumps, in a small box so they often touch
+            let mut at = Point::new(0.0, 0.0);
+            let line: Vec<Point> = (0..40)
+                .map(|i| {
+                    let step = if i % 13 == 7 { 30.0 } else { 3.0 };
+                    at = Point::new((at.x + rng.unit() * step).clamp(-20.0, 20.0), (at.y + rng.unit() * step).clamp(-20.0, 20.0));
+                    at
+                })
+                .collect();
+            assert_eq!(self_touches(&line), touches_brute(&line), "round {round}");
+        }
+        for seed in 1..=3 {
+            let (line, _) = tile_line(152.4, 152.4, seed).expect("a tile");
+            assert!(!touches_brute(&line));
+            let mut bent = line.clone();
+            let k = bent.len() / 2;
+            bent[k] = bent[k + 40];
+            assert!(self_touches(&bent) && touches_brute(&bent));
+        }
+        assert!(self_touches(&[Point::new(0.0, 0.0), Point::new(f64::NAN, 1.0), Point::new(5.0, 5.0)]));
+        assert!(!self_touches(&[]) && !self_touches(&[Point::new(1.0, 1.0)]));
+    }
+
+    #[test]
+    fn the_largest_tile_is_quick() {
+        // issue #257: a 1000 x 1000 mm tile with spirals took about 12 s (release build) when every
+        // segment was compared with every other; with the grid it is well under a second there
+        let t = std::time::Instant::now();
+        let (line, _) = tile_line_spirals(MAX_SIDE, MAX_SIDE, 1).expect("a tile");
+        let limit = if cfg!(debug_assertions) { 30.0 } else { 3.0 };
+        assert!(t.elapsed().as_secs_f64() < limit, "{:?}", t.elapsed());
+        assert!(line.len() > 10_000 && !touches_brute(&line[..2000]));
     }
 
     #[test]
