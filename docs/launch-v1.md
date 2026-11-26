@@ -2,8 +2,8 @@
 
 Status: 2026-10-22. Where StitchFoundry stands against the launch checklist (lettering, formats,
 simulator, thread charts, hoops, fabrics, AI, appliqué and in-the-hoop, batch, estimator, web
-viewer, StitchShop, library) and against what Hatch, Embrilliance and mySewnet Embroidery offer,
-judged only from their public pages (never by running their software). The ranked work is in
+viewer, StitchShop, library) and against the feature set of professional digitizing software,
+judged only from public documentation (never by running other software). The ranked work is in
 [`gaps.md`](gaps.md); this page is the launch view of it.
 
 ## The checklist

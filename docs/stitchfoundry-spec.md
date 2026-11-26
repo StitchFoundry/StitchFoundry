@@ -123,11 +123,11 @@ in the repo, never crash (no `unwrap`/`expect`/`panic`, untrusted input everywhe
 everything is a command, layering, thin UI, Rust only, never break wasm, quality gates.
 Embroidery adds:
 
-- **Clean-room toward the reference suite.** Never install, run, automate, screenshot or
-  measure Wilcom (or any other commercial digitizing) software, and never compare our stitches
+- **Clean-room toward commercial digitizing software.** Never install, run, automate, screenshot or
+  measure any commercial digitizing software, and never compare our stitches
   against its output. Never read or copy anything from its installs: fonts, motifs, monograms,
   templates, sample designs, thread charts as shipped files, help text. Behaviour comes only
-  from public documentation (docs.wilcom.com online help, product pages, release notes),
+  from public documentation (vendors' online help, product pages, release notes),
   cited by URL, rewritten in our own words, and from files users own (used locally, never
   committed). Feature names may be paraphrased; the UI uses our own names.
 - **No GPL code.** Ink/Stitch (GPL) and Embroidermodder 2 are feature references only. MIT or
