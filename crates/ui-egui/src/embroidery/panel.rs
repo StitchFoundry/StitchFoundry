@@ -2126,11 +2126,24 @@ fn cutout_rows(app: &mut VectorcraftApp, ui: &mut Ui) {
     );
 }
 
+/// The `preset` names `embroidery.autoDigitize` takes, in the picker's order.
+const DIGITIZE_PRESET_IDS: [&str; 3] = ["none", "cartoon", "logo"];
+/// The thread colours each preset sets (as the engine's), `None` for no preset.
+const DIGITIZE_PRESET_COLORS: [Option<u32>; 3] = [None, Some(8), Some(4)];
+
 /// Auto-Digitize for a selected image: how many thread colours (seen at once in a preview with
 /// the threads they become), then trace and stitch, prepare it, or sew it as a photo.
 pub(crate) fn auto_digitize_rows(app: &mut VectorcraftApp, ui: &mut Ui) {
     ui.label(tl!("Turn the image into stitches: narrow parts become satin, the rest tatami fill."));
     ui.add_space(4.0);
+    // flat-colour artwork in one click: the preset sets the colour count (and the engine its cleanup)
+    let names = [tl!("None"), tl!("Cartoon"), tl!("Logo")];
+    if let Some(i) = pick(ui, tl!("Preset"), "digitize-preset", app.embroidery.digitize_preset, &names) {
+        app.embroidery.digitize_preset = i;
+        if let Some(n) = DIGITIZE_PRESET_COLORS.get(i).copied().flatten() {
+            app.embroidery.digitize_colors = n;
+        }
+    }
     ui.horizontal(|ui| {
         ui.label(tl!("Thread colors"));
         // the theme's widget fill matches the panel, which would hide the rail
@@ -2140,6 +2153,8 @@ pub(crate) fn auto_digitize_rows(app: &mut VectorcraftApp, ui: &mut Ui) {
         let mut n = app.embroidery.digitize_colors.clamp(2, 32);
         if ui.add(egui::Slider::new(&mut n, 2..=32).integer().trailing_fill(true)).changed() {
             app.embroidery.digitize_colors = n;
+            // a colour count of one's own is no longer the preset's
+            app.embroidery.digitize_preset = 0;
         }
     });
     if let Some(v) = check(ui, tl!("Remove background"), app.embroidery.digitize_background) {
@@ -2182,6 +2197,9 @@ pub(crate) fn auto_digitize_rows(app: &mut VectorcraftApp, ui: &mut Ui) {
     border_rows(app, ui);
     if button(ui, tl!("Auto-Digitize Image")).clicked() {
         let mut params = json!({ "colors": colors, "removeBackground": app.embroidery.digitize_background });
+        if let Some(name) = DIGITIZE_PRESET_IDS.get(app.embroidery.digitize_preset).copied().filter(|n| *n != "none") {
+            params["preset"] = json!(name);
+        }
         if app.embroidery.border_on {
             let [r, g, b] = app.embroidery.border_color;
             params["border"] = json!(app.embroidery.border_width);

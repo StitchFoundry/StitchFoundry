@@ -165,6 +165,8 @@ pub struct EmbroideryUi {
     /// Auto-Digitize: thread colours to trace with, and whether the background is dropped.
     pub digitize_colors: u32,
     pub digitize_background: bool,
+    /// Auto-Digitize's preset for flat-colour artwork: 0 none, 1 cartoon, 2 logo.
+    pub digitize_preset: usize,
     /// Auto-Digitize's border round the result (and Add Border's): on, its width (mm), its colour
     /// and whether it has a satin edge.
     pub border_on: bool,
@@ -395,6 +397,7 @@ impl Default for EmbroideryUi {
             widget: widget::WidgetState::default(),
             digitize_colors: 6,
             digitize_background: true,
+            digitize_preset: 0,
             border_on: false,
             border_width: 4.0,
             border_color: [255, 255, 255],
