@@ -1428,6 +1428,18 @@ panel uses the design's) each new colour becomes that chart's closest thread. It
 selection's stitched objects, or all of them when nothing is selected. Colorways keep several
 recolourings of one design side by side.
 
+## Quick Transform
+
+The Embroidery panel's Transform section has big buttons for 90° left and right, 45° left and right,
+180°, and flip horizontal and vertical (`embroidery.quick.rotate {degrees}`,
+`embroidery.quick.flip {axis}`; Cmd+Alt+Right / Left turn 90° right / left). They move the selection,
+or the whole design when nothing is selected, as one group, and put it back in the middle of the
+hoop. If it no longer fits, **Rotate Hoop** and **Fit** buttons appear. The size shows in mm and
+inches as soon as the panel opens (`embroidery.quick.size`, read-only); typing a new width or height
+runs `embroidery.quick.resize {width|height|percent, unit, lock}`, which makes the stitches again so
+density stays the same, and warns beyond about 20%. The aspect ratio is locked until the lock icon
+is clicked.
+
 ## Hoops
 
 The Embroidery panel's Design section picks the design's hoop from the standard ones (Brother,

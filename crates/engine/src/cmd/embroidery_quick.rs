@@ -46,6 +46,15 @@ pub fn specs() -> Vec<CommandSpec> {
             rotate_left
         ),
         cmd!(
+            "embroidery.quick.size",
+            "Quick Size",
+            [],
+            None,
+            "{} report the size of the design without changing anything → {width, height, widthIn, heightIn, fits, offers: [rotateHoop|fitToHoop]}",
+            has_doc,
+            size
+        ),
+        cmd!(
             "embroidery.quick.flip",
             "Quick Flip",
             [],
@@ -115,6 +124,11 @@ fn rotate(s: &mut Session, p: &Value) -> Result<Value> {
         p.get("degrees").and_then(Value::as_f64).filter(|d| d.is_finite()).ok_or_else(|| bad("embroidery.quick.rotate", "`degrees` is a number"))?;
     on_target(s, |s| s.execute("object.rotate", &json!({ "angle": deg })).map(drop))?;
     recentre(s)?;
+    Ok(report(s, json!({})))
+}
+
+/// The size and hoop fit as they are now; changes nothing.
+fn size(s: &mut Session, _: &Value) -> Result<Value> {
     Ok(report(s, json!({})))
 }
 
