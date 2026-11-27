@@ -855,7 +855,11 @@ fn the_colour_count_is_previewed_with_its_threads_before_digitizing() {
 #[test]
 fn auto_digitize_preset_picker_matches_the_engine() {
     let mut app = app();
-    let img = image::RgbaImage::from_fn(40, 40, |x, _| if x < 20 { image::Rgba([200, 30, 30, 255]) } else { image::Rgba([255, 255, 255, 255]) });
+    let img = image::RgbaImage::from_fn(120, 80, |x, y| match (x, y) {
+        (10..60, 10..70) => image::Rgba([200, 30, 30, 255]),
+        (60..110, 10..70) => image::Rgba([30, 30, 200, 255]),
+        _ => image::Rgba([255, 255, 255, 255]),
+    });
     let mut png = Vec::new();
     img.write_to(&mut std::io::Cursor::new(&mut png), image::ImageFormat::Png).unwrap();
     let placed = app.run("file.place", json!({"name": "flat.png", "dataBase64": vectorcraft_format::base64_encode(&png)})).unwrap();
@@ -863,13 +867,14 @@ fn auto_digitize_preset_picker_matches_the_engine() {
     app.run("select.set", json!({"ids": [id]})).unwrap();
     app.embroidery.digitize_preset = 2;
     let ctx = egui::Context::default();
-    let _ = ctx.run_ui(egui::RawInput::default(), |ui| crate::embroidery::panel::auto_digitize_rows(&mut app, ui));
+    ctx.run_ui(egui::RawInput::default(), |ui| crate::embroidery::panel::auto_digitize_rows(&mut app, ui)).textures_delta.clear();
     // the panel keeps the choice until the colour slider is moved
     assert_eq!(app.embroidery.digitize_preset, 2);
     for name in ["cartoon", "logo"] {
         let r = app.run("embroidery.autoDigitize", json!({"preset": name, "removeBackground": true}));
         assert!(r.is_ok(), "{name}: {r:?}");
-        app.run("history.undo", json!({})).ok();
+        app.run("edit.undo", json!({})).unwrap();
+        app.run("select.set", json!({"ids": [id]})).unwrap();
     }
 }
 

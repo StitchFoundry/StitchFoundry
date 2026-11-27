@@ -1664,7 +1664,7 @@ of them between letters.)
 
 ## Auto-Digitize
 
-**Presets for flat-colour art.** Through the command, `preset: cartoon` (8 colours, detail 70, noise 10, specks under 0.8 mm² dropped) or `preset: logo` (4 colours, detail 80, noise 24, specks under 2 mm² dropped) sets the trace for cartoons and logos in one go. Params you give alongside still win. A picker in the panel is not built yet.
+**Presets for flat-colour art.** Through the command, `preset: cartoon` (8 colours, detail 70, noise 10, specks under 0.8 mm² dropped) or `preset: logo` (4 colours, detail 80, noise 24, specks under 2 mm² dropped) sets the trace for cartoons and logos in one go. Params you give alongside still win. The Auto-Digitize panel has a **Preset** picker (None, Cartoon, Logo) that sets the colour count and sends the preset; moving the colour slider afterwards resets it to None.
 
 Select a placed image and choose **Embroidery › Create › Auto-Digitize Image** (or use the Embroidery panel
 when an image is selected). The panel's **Thread colors** slider (2 to 32) shows at once what that
