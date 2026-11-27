@@ -14,7 +14,7 @@ use serde_json::{Value, json};
 use super::DialogSpec;
 use crate::state::Dialog;
 use crate::theme::{self, Tokens};
-use crate::{FilePick, VectorcraftApp, io, widgets};
+use crate::{FilePick, VectorcraftApp, picks, widgets};
 
 /// The dialog kind of a script's report.
 pub const KIND: &str = "scriptCheck";
@@ -32,30 +32,46 @@ pub(super) const SPEC: DialogSpec = DialogSpec {
 };
 
 /// `ui.checkScript`: check the script at `path` (and the files it includes) or given as `data` or
-/// `dataBase64`, and show the report; without any of them, pick a `.jsx`, `.jsxinc` or `.jsxbin`
-/// file (the web opens File › Open's picker, and [`io::open_bytes`] shows the report).
+/// `dataBase64`, and show the report. Without any of them the dialog opens empty, with a Choose
+/// Script… button: no file dialog is shown until someone asks for it, so the command never holds
+/// the app waiting for an answer (a harness or an agent running it would hang on the picker).
 pub(crate) fn command(app: &mut VectorcraftApp, p: &Value) -> Result<Value, String> {
-    let mut params = p.clone();
     if ["path", "data", "dataBase64"].iter().all(|k| p.get(k).is_none()) {
-        if app.services.open_async.is_some() {
-            return io::open_dialog(app).map(|_| Value::Null);
-        }
-        let pick = FilePick { filters: vec![FilePick::filter("Scripts", vectorcraft_engine::cmd::scripts::EXTS)], ..Default::default() };
-        params = json!({ "path": crate::picks::open(app, &pick).ok_or("cancelled")? });
+        app.ui.dialog = Some(Dialog::new(KIND, json!({})));
+        return Ok(Value::Null);
     }
+    let r = check(app, p.clone())?;
+    app.ui.dialog = Some(Dialog::new(KIND, json!({ "report": r })));
+    Ok(r)
+}
+
+/// `script.check` of `params`, with the files a path includes.
+fn check(app: &mut VectorcraftApp, mut params: Value) -> Result<Value, String> {
     if params.get("path").is_some()
         && let Some(o) = params.as_object_mut()
     {
         o.entry("includes").or_insert(json!(true));
     }
-    let r = app.run("script.check", params)?;
-    app.ui.dialog = Some(Dialog::new(KIND, json!({ "report": r })));
-    Ok(r)
+    app.run("script.check", params)
+}
+
+/// The Choose Script… button: pick a `.jsx`, `.jsxinc` or `.jsxbin` file (the web opens File ›
+/// Open's picker, and `io::open_bytes` shows the report) and show its report in `d`.
+pub(crate) fn choose(app: &mut VectorcraftApp, d: &mut Dialog) -> Result<(), String> {
+    if let Some(f) = app.services.open_async.as_mut() {
+        f();
+        return Ok(());
+    }
+    let pick = FilePick { filters: vec![FilePick::filter("Scripts", vectorcraft_engine::cmd::scripts::EXTS)], ..Default::default() };
+    let Some(path) = picks::open(app, &pick) else { return Ok(()) };
+    let r = check(app, json!({ "path": path }))?;
+    d.fields.insert("report".into(), r);
+    Ok(())
 }
 
 /// Copy Report: the report as JSON on the clipboard. The dialog stays open.
 fn confirm(app: &mut VectorcraftApp, d: &Dialog) -> Result<Value, String> {
-    let report = d.fields.get("report").cloned().unwrap_or(Value::Null);
+    let Some(report) = d.fields.get("report").cloned() else { return Err(tl!("Nothing to copy: no script is checked yet").into()) };
     app.clipboard_out = Some(serde_json::to_string_pretty(&report).map_err(|e| e.to_string())?);
     if let Some(open) = app.ui.dialog.as_mut().filter(|open| open.kind == KIND) {
         open.fields.remove("discard");
@@ -143,8 +159,18 @@ fn lines(item: &Value) -> String {
     }
 }
 
-fn body(_: &mut VectorcraftApp, ui: &mut egui::Ui, d: &mut Dialog) -> bool {
-    let Some(r) = d.fields.get("report") else { return true };
+fn body(app: &mut VectorcraftApp, ui: &mut egui::Ui, d: &mut Dialog) -> bool {
+    let Some(r) = d.fields.get("report").cloned() else {
+        widgets::dim_label(ui, tl!("Choose a script to check. It is read, never run."));
+        ui.add_space(6.0);
+        if ui.button(tl!("Choose Script…")).clicked()
+            && let Err(e) = picks::in_dialog(app, d, choose)
+        {
+            app.status(e);
+        }
+        return false;
+    };
+    let r = &r;
     let t = Tokens::get(ui.ctx());
     ui.label(egui::RichText::new(r["name"].as_str().unwrap_or_default()).font(theme::semibold(12.5)).color(t.text_strong));
     ui.add_space(4.0);

@@ -128,7 +128,12 @@ fn file_open_of_a_script_checks_it_with_what_it_includes() {
         Some(picked.clone())
     }));
     app.ui.dialog = None;
+    // The command itself asks for nothing: the dialog opens empty, and its button asks.
     menus::run_ui_command(&mut app, "ui.checkScript", &json!({})).unwrap().unwrap();
+    assert!(asked.borrow().is_empty(), "no file dialog until Choose Script… is clicked");
+    let mut d = app.ui.dialog.take().unwrap();
+    crate::picks::in_dialog(&mut app, &mut d, dialogs::script_check::choose).unwrap();
+    app.ui.dialog = Some(d);
     assert_eq!(asked.borrow().as_slice(), [crate::FilePick::filters([("Scripts", &["jsx", "jsxinc", "jsxbin"][..])])]);
     assert_eq!(report(&app)["name"], "main.jsx");
     let _ = std::fs::remove_dir_all(dir);
@@ -158,25 +163,52 @@ fn a_script_opens_at_once_where_documents_open_off_the_ui_thread() {
     let _ = std::fs::remove_dir_all(dir);
 }
 
-/// Check Script… asks for its script off the UI thread, and acts on no document: the answer shows the
-/// report even when the document that was active closed meanwhile.
+/// Check Script… with no script opens its dialog at once, on an empty document and on one with
+/// content, shows no file dialog, stays responsive and cancels (#279). Choose Script… asks for the
+/// script off the UI thread and shows its report when it answers.
 #[test]
-fn check_script_asks_off_the_ui_thread_and_needs_no_document() {
+fn check_script_opens_without_a_file_dialog_and_cancels() {
+    let mut services = crate::Services { dialogs_are_sheets: false, ..Default::default() };
+    let (shown, _) = crate::tests_picks::off_the_ui_thread(&mut services);
+    let mut app = VectorcraftApp::new(Session::new(), services);
+    for content in [false, true] {
+        app.run("file.new", json!({"width": 100, "height": 80})).unwrap();
+        if content {
+            app.run("shape.rectangle", json!({"x": 10, "y": 10, "width": 40, "height": 20})).unwrap();
+        }
+        app.run("ui.checkScript", json!({})).unwrap();
+        assert_eq!(app.ui.dialog.as_ref().map(|d| d.kind.as_str()), Some(dialogs::script_check::KIND));
+        assert!(shown.requests().is_empty(), "no file dialog is shown by the command");
+        assert!(!app.file_dialog_open());
+        frame(&mut app);
+        // The app still answers, and Cancel closes the dialog.
+        assert!(app.run("prefs.get", json!({})).is_ok());
+        dialogs::cancel(&mut app);
+        assert!(app.ui.dialog.is_none());
+    }
+}
+
+#[test]
+fn choose_script_asks_off_the_ui_thread_and_needs_no_document() {
     let dir = std::env::temp_dir().join(format!("vc-ui-script-pick-{}", std::process::id()));
     std::fs::create_dir_all(&dir).unwrap();
     let path = dir.join("picked.jsx");
     std::fs::write(&path, "alert('picked');\n").unwrap();
     let mut services = crate::Services { dialogs_are_sheets: false, ..Default::default() };
+    services.read = Some(Box::new(|p: &str| std::fs::read(p).map_err(|e| e.to_string())));
     let (shown, _) = crate::tests_picks::off_the_ui_thread(&mut services);
     let mut app = VectorcraftApp::new(Session::new(), services);
     app.run("file.new", json!({"width": 100, "height": 80})).unwrap();
-    assert!(app.run("ui.checkScript", json!({})).is_err(), "nothing yet: the dialog is open");
+    app.run("ui.checkScript", json!({})).unwrap();
+    let mut d = app.ui.dialog.take().unwrap();
+    crate::picks::in_dialog(&mut app, &mut d, dialogs::script_check::choose).unwrap();
+    app.ui.dialog = Some(d);
     assert!(
         matches!(shown.requests().as_slice(), [crate::picks::PickRequest::Open(pick)] if pick.filters == crate::FilePick::filters([("Scripts", &["jsx", "jsxinc", "jsxbin"][..])]))
     );
-    app.run("file.close", json!({})).unwrap();
     shown.answer(&[&path.to_string_lossy()]);
     crate::picks::poll(&mut app, &egui::Context::default());
+    assert_eq!(app.ui.dialog.as_ref().map(|d| d.kind.clone()), Some("scriptCheck".into()), "{}", app.ui.status);
     assert_eq!(report(&app)["name"], "picked.jsx", "{}", app.ui.status);
     let _ = std::fs::remove_dir_all(dir);
 }
