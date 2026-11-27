@@ -317,6 +317,15 @@ pub fn specs() -> Vec<CommandSpec> {
             info
         ),
         cmd!(query
+            "embroidery.scorecard",
+            "Digitizer Scorecard",
+            [],
+            None,
+            "{} → the measured scorecard of the stitches: counts, short/long stitch shares, density hot spots, underlay, satin widths, sew time at 800 spm (see sf_core::scorecard)",
+            has_doc,
+            scorecard
+        ),
+        cmd!(query
             "embroidery.plan",
             "Stitch Plan",
             [],
@@ -3453,6 +3462,13 @@ fn cost(s: &mut Session, p: &Value) -> Result<Value> {
     let plan = s.embroidery_plan().ok_or_else(|| bad(CMD, "no document"))?;
     let stats = plan.stats.as_ref().ok_or_else(|| bad(CMD, "nothing is stitched yet: give objects a stitch type first"))?;
     Ok(cost_json(&model, &model.estimate(stats, quantity), quantity))
+}
+
+fn scorecard(s: &mut Session, _p: &Value) -> Result<Value> {
+    let plan = s.embroidery_plan().ok_or_else(|| bad("embroidery.scorecard", "no document"))?;
+    let limits = s.doc()?.doc.embroidery.as_deref().map(|e| e.checks.clone()).unwrap_or_default();
+    let facts = sf_core::scorecard::object_facts(&plan.design);
+    Ok(sf_core::scorecard::score(plan.pattern(), Some(&facts), &limits))
 }
 
 fn info(s: &mut Session, _p: &Value) -> Result<Value> {

@@ -263,6 +263,8 @@ fn convert_thread_beads_settings_info_and_sorting() {
     let plan = s.execute("embroidery.plan", &json!({"limit": 10})).unwrap();
     assert_eq!(plan["stitches"].as_array().unwrap().len(), 10);
     assert!(s.execute("embroidery.settings", &json!({"hoop": "nope"})).is_err());
+    let card = s.execute("embroidery.scorecard", &json!({})).unwrap();
+    assert_eq!(card["stitches"], info["stitches"]);
 }
 
 /// A placed image 100 × 60 mm: a black block on the left, a red one on the right, a grey ramp
