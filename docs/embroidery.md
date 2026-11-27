@@ -2154,7 +2154,10 @@ is worn and washed, or 12.1 mm on bags, towels and other items: **Sewn on clothi
 settings), objects with many stitches under 0.5 mm (the needle sews in one spot and can break the
 thread), satin narrower than 1 mm (it sinks into the fabric: sew it as a run), tatami fills with
 stitches under 4 mm (short fill stitches ripple after washing), tiny objects, lettering under
-about 5 mm, objects that make no stitches and a design larger than its hoop. Click a finding to
+about 5 mm, an outline (a closed run or satin column) sewn round a fill that sits 0.4 mm or more
+outside its edge (up to 2.5 mm: the fabric shows in the gap, so add pull compensation or move the
+outline in, and sew a test on scrap fabric), objects that make no stitches and a design larger than
+its hoop. Click a finding to
 select its objects and bring the spot into view. **Check settings** under the button sets each
 limit for this design; 0 turns a rule off.
 
@@ -2675,7 +2678,7 @@ tool list for all parameters):
 | `embroidery.redwork {ids?, kind?}` | sew line art as redwork: one line ending where it starts, the way between lines retraced along them (`kind`: `run`, `bean`, `backstitch`, `stemstitch`) |
 | `embroidery.reverse`, `embroidery.removeHoles {maxArea?}`, `embroidery.fillHoles` | sewing direction and holes |
 | `select.same.thread`, `select.same.stitchType` | select like objects |
-| `embroidery.check` | sewing problems (dense spots, long stitches, tiny objects, small lettering, hoop) |
+| `embroidery.check` | sewing problems (dense spots, long stitches, tiny objects, small lettering, outline gaps, hoop) |
 | `embroidery.stitches {id}`, `embroidery.stitches.edit {id, ops}` | an object's own stitches; move, delete and insert them |
 | `embroidery.freeze`, `embroidery.regenerate` | keep stitches as they are for editing; drop the edits |
 | `embroidery.stitches.split {id, at}` | split an object's stitches in two |
