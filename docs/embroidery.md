@@ -144,6 +144,17 @@ and gives the top stitches something to sit on.
 Knits and pile want the most (an edge run and a zigzag); light and see-through fabrics the
 least. Each one is switched in the Embroidery panel, and fabric presets choose them.
 
+**Underlay presets.** Instead of switching each one, pick a named **Underlay preset** on a fill or
+satin in the Embroidery panel; a one-line note under the picker says when to use it. A preset sets
+only which underlays are on (and a tatami's angle to 90 degrees); the inset, spacing and stitch
+length you set stay as they are. If your settings match no preset, the picker shows none selected.
+
+- Fills: *No underlay*, *Edge run*, *Tatami at 90 degrees*, *Edge run and tatami*.
+- Satins: *Automatic*, *Centre run*, *Edge run*, *Zigzag*, *Edge run and zigzag*.
+
+These are starting points: sew a test on a scrap of your fabric and stabiliser, and if the top
+stitches sink or the edge looks soft, move to the next preset with more support.
+
 **Compensation.** Thread pulls the fabric in across the stitches and pushes it out along them.
 So a satin sewn exactly as drawn comes out narrower and longer. **Pull compensation** widens
 satin and lengthens fill rows to make up for it; **push compensation** shortens satin at its
