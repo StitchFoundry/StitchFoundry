@@ -303,6 +303,12 @@ fn double_spiral(a: Point, b: Point, m: Point, u: Point, v: Point) -> Vec<Point>
 /// [`SPIRAL_CLEARANCE`] from the rest of the line and inside the tile. Stretches where a spiral
 /// would touch anything are skipped.
 pub fn add_spirals(line: &[Point], width: f64, height: f64) -> Vec<Point> {
+    place_spirals(line, width, height).0
+}
+
+/// [`add_spirals`] and how many spirals it placed.
+fn place_spirals(line: &[Point], width: f64, height: f64) -> (Vec<Point>, usize) {
+    let mut count = 0;
     let mut cur = line.to_vec();
     let mut grid = SegGrid::new(&cur, 4.0);
     let mut k = SPIRAL_GAP;
@@ -345,13 +351,14 @@ pub fn add_spirals(line: &[Point], width: f64, height: f64) -> Vec<Point> {
                 next.extend(piece);
                 next.extend(tail);
                 k = at + SPIRAL_GAP;
+                count += 1;
                 cur = next;
                 grid = SegGrid::new(&cur, 4.0);
             }
             None => k += 2,
         }
     }
-    cur
+    (cur, count)
 }
 
 /// Like [`tile_line`], with double spirals hung on the line. The seed's line is searched until the
@@ -470,6 +477,16 @@ mod tests {
             let (plain, _) = tile_line(152.4, 152.4, seed).expect("a tile");
             assert!(!self_touches(&add_spirals(&plain, 152.4, 152.4)), "seed {seed}");
         }
+    }
+
+    #[test]
+    fn spirals_are_many_not_a_few() {
+        let mut counts = Vec::new();
+        for seed in 1..=6 {
+            let (plain, _) = tile_line(152.4, 152.4, seed).expect("a tile");
+            counts.push(place_spirals(&plain, 152.4, 152.4).1);
+        }
+        assert!(counts.iter().all(|&c| c >= 6), "{counts:?}");
     }
 
     #[test]
