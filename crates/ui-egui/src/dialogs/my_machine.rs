@@ -137,6 +137,42 @@ fn orientation(app: &mut VectorcraftApp, ui: &mut egui::Ui, mine: &Value, t: &To
     {
         app.status(e);
     }
+    // the hoop as it sits in the machine: the design's top points where the arrow does
+    let shown = answer.unwrap_or(rotation);
+    hoop_preview(ui, shown, mirror, t);
+}
+
+/// Unit screen vector (x right, y down) the design's top points to when the hoop is turned `deg`
+/// clockwise in the machine; any other angle counts as 0.
+pub(crate) fn top_direction(deg: u64) -> egui::Vec2 {
+    match deg {
+        90 => egui::vec2(1.0, 0.0),
+        180 => egui::vec2(0.0, 1.0),
+        270 => egui::vec2(-1.0, 0.0),
+        _ => egui::vec2(0.0, -1.0),
+    }
+}
+
+/// A small picture of the hoop in the machine: an arrow marked TOP showing where the top of the
+/// design ends up, and "mirrored" when the letters read backwards.
+fn hoop_preview(ui: &mut egui::Ui, deg: u64, mirror: bool, t: &Tokens) {
+    let (rect, _) = ui.allocate_exact_size(egui::vec2(96.0, 96.0), egui::Sense::hover());
+    let p = ui.painter_at(rect);
+    let c = rect.center();
+    p.rect_stroke(rect.shrink(4.0), 8.0, egui::Stroke::new(2.0, t.text_dim), egui::StrokeKind::Inside);
+    let d = top_direction(deg);
+    let tip = c + d * 30.0;
+    p.arrow(c - d * 20.0, d * 50.0, egui::Stroke::new(2.0, t.text));
+    p.text(tip + d * 8.0, egui::Align2::CENTER_CENTER, "TOP", egui::FontId::proportional(11.0), t.text);
+    if mirror {
+        p.text(
+            rect.center_bottom() - egui::vec2(0.0, 10.0),
+            egui::Align2::CENTER_CENTER,
+            tl!("mirrored"),
+            egui::FontId::proportional(10.0),
+            t.text_dim,
+        );
+    }
 }
 
 /// `ui.myMachine`: opens the window.
@@ -547,5 +583,19 @@ pub fn machine_name(name: &str) -> &str {
         "Brother or Baby Lock multi-needle" => tl!("Brother or Baby Lock multi-needle"),
         "Commercial multi-needle (DST)" => tl!("Commercial multi-needle (DST)"),
         other => other,
+    }
+}
+
+#[cfg(test)]
+mod preview_tests {
+    use super::top_direction;
+
+    #[test]
+    fn the_top_points_the_way_the_hoop_is_turned() {
+        assert_eq!(top_direction(0), egui::vec2(0.0, -1.0));
+        assert_eq!(top_direction(90), egui::vec2(1.0, 0.0));
+        assert_eq!(top_direction(180), egui::vec2(0.0, 1.0));
+        assert_eq!(top_direction(270), egui::vec2(-1.0, 0.0));
+        assert_eq!(top_direction(45), egui::vec2(0.0, -1.0));
     }
 }
