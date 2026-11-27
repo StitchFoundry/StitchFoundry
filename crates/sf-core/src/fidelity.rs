@@ -22,6 +22,11 @@ use std::collections::BTreeMap;
 
 /// Most pixels a raster may hold (a bigger request is refused, not allocated).
 pub const MAX_PIXELS: usize = 4_000_000;
+/// Finest pixel a raster may have (mm): a thread is then 40 pixels wide.
+pub const MIN_MM_PER_PX: f64 = 0.01;
+/// Most pixel visits one [`Raster::render_like`] may make; past it the design is refused as
+/// too large to compare at that resolution instead of running for minutes.
+pub const MAX_RENDER_WORK: u64 = 200_000_000;
 /// Width of a drawn thread (mm).
 pub const THREAD_MM: f64 = 0.4;
 /// The worst-tile search cuts the raster into this many tiles per side.
@@ -40,7 +45,8 @@ pub struct Raster {
 }
 
 impl Raster {
-    /// An empty raster, refused when the size is zero, not finite or over [`MAX_PIXELS`].
+    /// An empty raster, refused when the size is zero, not finite or over [`MAX_PIXELS`], or
+    /// when a pixel is finer than [`MIN_MM_PER_PX`].
     pub fn blank(width: usize, height: usize, mm_per_px: f64, origin: Point) -> Result<Raster, String> {
         let n = width.checked_mul(height).ok_or("raster too large")?;
         if n == 0 || n > MAX_PIXELS {
@@ -48,6 +54,9 @@ impl Raster {
         }
         if !(mm_per_px.is_finite() && mm_per_px > 0.0 && origin.x.is_finite() && origin.y.is_finite()) {
             return Err("raster scale and origin must be finite".into());
+        }
+        if mm_per_px < MIN_MM_PER_PX {
+            return Err(format!("raster pixels must be at least {MIN_MM_PER_PX} mm, not {mm_per_px}"));
         }
         Ok(Raster { width, height, mm_per_px, origin, cells: vec![None; n] })
     }
@@ -72,10 +81,12 @@ impl Raster {
         Ok(r)
     }
 
-    /// Draws `pattern` onto an empty raster of the same size and scale as `self`.
+    /// Draws `pattern` onto an empty raster of the same size and scale as `self`; refused when it
+    /// would take more than [`MAX_RENDER_WORK`] pixel visits.
     pub fn render_like(&self, pattern: &Pattern) -> Result<Raster, String> {
         let mut out = Raster::blank(self.width, self.height, self.mm_per_px, self.origin)?;
         let radius = (THREAD_MM / 2.0).max(self.mm_per_px / 2.0);
+        let mut work = MAX_RENDER_WORK;
         for block in pattern.color_blocks() {
             let color = pattern.thread(block.thread).color;
             let mut needle: Option<Point> = None;
@@ -87,7 +98,7 @@ impl Raster {
                 match s.cmd {
                     Cmd::Stitch => {
                         let p = s.pos();
-                        out.line(needle.unwrap_or(p), p, radius, color);
+                        out.line(needle.unwrap_or(p), p, radius, color, &mut work)?;
                         needle = Some(p);
                     }
                     Cmd::Trim | Cmd::End => needle = None,
@@ -98,24 +109,30 @@ impl Raster {
         Ok(out)
     }
 
-    fn line(&mut self, a: Point, b: Point, radius: f64, color: Rgb) {
+    /// Discs along `a`–`b`, spaced at half a pixel or half the radius (whichever is longer), so
+    /// a thread many pixels wide is not repainted thousands of times per pixel of length.
+    fn line(&mut self, a: Point, b: Point, radius: f64, color: Rgb, work: &mut u64) -> Result<(), String> {
         let len = a.distance(b);
-        let steps = ((len / (self.mm_per_px / 2.0)).ceil() as usize).clamp(1, 200_000);
+        let step = (self.mm_per_px / 2.0).max(radius / 2.0);
+        let steps = ((len / step).ceil() as usize).clamp(1, 200_000);
         for i in 0..=steps {
             let t = i as f64 / steps as f64;
-            self.disc(Point::new(a.x + (b.x - a.x) * t, a.y + (b.y - a.y) * t), radius, color);
+            self.disc(Point::new(a.x + (b.x - a.x) * t, a.y + (b.y - a.y) * t), radius, color, work)?;
         }
+        Ok(())
     }
 
-    fn disc(&mut self, c: Point, radius: f64, color: Rgb) {
+    fn disc(&mut self, c: Point, radius: f64, color: Rgb, work: &mut u64) -> Result<(), String> {
         let px = (c.x - self.origin.x) / self.mm_per_px;
         let py = (c.y - self.origin.y) / self.mm_per_px;
         let r = radius / self.mm_per_px;
         if !(px.is_finite() && py.is_finite()) || px < -r || py < -r || px > self.width as f64 + r || py > self.height as f64 + r {
-            return;
+            return Ok(());
         }
         let (x0, x1) = ((px - r).floor().max(0.0) as usize, ((px + r).ceil().max(0.0) as usize).min(self.width.saturating_sub(1)));
         let (y0, y1) = ((py - r).floor().max(0.0) as usize, ((py + r).ceil().max(0.0) as usize).min(self.height.saturating_sub(1)));
+        let visits = (x1.saturating_sub(x0) as u64 + 1).saturating_mul(y1.saturating_sub(y0) as u64 + 1);
+        *work = work.checked_sub(visits).ok_or("design too large to compare at this resolution")?;
         for y in y0..=y1 {
             for x in x0..=x1 {
                 let (dx, dy) = (x as f64 + 0.5 - px, y as f64 + 0.5 - py);
@@ -126,6 +143,7 @@ impl Raster {
                 }
             }
         }
+        Ok(())
     }
 }
 
@@ -268,6 +286,7 @@ mod tests {
         assert!(Raster::blank(0, 5, 1.0, Point::new(0.0, 0.0)).is_err());
         assert!(Raster::blank(5000, 5000, 1.0, Point::new(0.0, 0.0)).is_err());
         assert!(Raster::blank(5, 5, f64::NAN, Point::new(0.0, 0.0)).is_err());
+        assert!(Raster::blank(5, 5, 0.0005, Point::new(0.0, 0.0)).is_err());
         let a = Raster::blank(10, 10, 1.0, Point::new(0.0, 0.0)).unwrap();
         let mut p = Pattern::new();
         p.stitch(Point::new(f64::NAN, 1.0));
@@ -275,5 +294,24 @@ mod tests {
         p.stitch(Point::new(1e300, 1e300));
         assert!(fidelity(&a, &p).unwrap()["score"].as_f64().is_some());
         assert_eq!(fidelity(&a, &Pattern::new()).unwrap()["score"].as_f64(), Some(1.0));
+    }
+
+    /// #274: the finest raster with a long stitch used to take seconds per stitch.
+    #[test]
+    fn fine_raster_and_long_stitches_finish_quickly_or_are_refused() {
+        let art = Raster::blank(2000, 2000, MIN_MM_PER_PX, Point::new(0.0, 0.0)).unwrap();
+        let mut p = Pattern::new();
+        p.stitch(Point::new(1.0, 1.0));
+        p.stitch(Point::new(19.0, 19.0));
+        let start = std::time::Instant::now();
+        assert!(art.render_like(&p).is_ok());
+        let mut many = Pattern::new();
+        for i in 0..20_000 {
+            let y = f64::from(i % 200) * 0.1;
+            many.stitch(Point::new(0.0, y));
+            many.stitch(Point::new(20.0, y));
+        }
+        assert!(art.render_like(&many).is_err());
+        assert!(start.elapsed() < std::time::Duration::from_secs(5), "{:?}", start.elapsed());
     }
 }
