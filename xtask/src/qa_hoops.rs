@@ -17,6 +17,9 @@ pub fn run_full(root: &Path) -> Result<(), String> {
     let mut g = cargo();
     g.args(["test", "-p", "vectorcraft-engine", "--test", "qa_hoops_golden"]);
     run(g, "cargo test -p vectorcraft-engine --test qa_hoops_golden")?;
+    let mut p = cargo();
+    p.args(["test", "-p", "vectorcraft-engine", "--test", "qa_hoops_persist"]);
+    run(p, "cargo test -p vectorcraft-engine --test qa_hoops_persist")?;
     let mut c = test_command();
     c.env("QA_HOOPS_FULL", "1").env("QA_REPORT", &report);
     run(c, "cargo test -p vectorcraft-engine --test qa_hoops (full matrix)")?;
@@ -24,7 +27,10 @@ pub fn run_full(root: &Path) -> Result<(), String> {
     Ok(())
 }
 
-/// The 3-hoop subset, no report (what `ci` runs).
+/// The 3-hoop subset and the persistence check, no report (what `ci` runs).
 pub fn fast() -> Result<(), String> {
-    run(test_command(), "cargo test -p vectorcraft-engine --test qa_hoops (3 hoops)")
+    run(test_command(), "cargo test -p vectorcraft-engine --test qa_hoops (3 hoops)")?;
+    let mut p = cargo();
+    p.args(["test", "-p", "vectorcraft-engine", "--test", "qa_hoops_persist"]);
+    run(p, "cargo test -p vectorcraft-engine --test qa_hoops_persist")
 }
