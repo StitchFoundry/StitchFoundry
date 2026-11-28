@@ -13,6 +13,17 @@ use crate::theme::Tokens;
 pub const ID: &str = "stitchList";
 
 const ROW_H: f32 = 18.0;
+/// Widths of the columns before the last one (`Object`, which takes the rest).
+const COLS: [f32; 5] = [40.0, 64.0, 56.0, 56.0, 50.0];
+
+/// Left x of each column (the six of them), starting at `left`.
+fn column_xs(left: f32) -> [f32; 6] {
+    let mut xs = [left + 2.0; 6];
+    for k in 1..6 {
+        xs[k] = xs[k - 1] + COLS[k - 1];
+    }
+    xs
+}
 
 fn function(c: Cmd) -> &'static str {
     match c {
@@ -38,14 +49,13 @@ pub fn show(app: &mut VectorcraftApp, ui: &mut Ui) {
     }
     let at = app.embroidery.player.active.then(|| (app.embroidery.player.pos as usize).min(recs.len()));
     // Header.
-    let cols = [44.0, 84.0, 64.0, 64.0, 52.0];
     let header = [tl!("#"), tl!("Function"), tl!("X (mm)"), tl!("Y (mm)"), tl!("Length")];
-    ui.horizontal(|ui| {
-        for (w, h) in cols.iter().zip(header) {
-            ui.add_sized(vec2(*w, ROW_H), egui::Label::new(egui::RichText::new(h).color(t.text_dim).size(11.5)));
-        }
-        ui.label(egui::RichText::new(tl!("Object")).color(t.text_dim).size(11.5));
-    });
+    // Painted at the same x positions as the rows (no item spacing), so the
+    // headers line up with their columns and "Length" is not pushed off the edge.
+    let (hrect, _) = ui.allocate_exact_size(vec2(ui.available_width(), ROW_H), Sense::hover());
+    for (x, h) in column_xs(hrect.left()).into_iter().zip(header.iter().chain([&tl!("Object")])) {
+        ui.painter().text(egui::pos2(x, hrect.center().y), egui::Align2::LEFT_CENTER, h, egui::FontId::proportional(11.5), t.text_dim);
+    }
     let mut clicked: Option<usize> = None;
     let mut scroll = egui::ScrollArea::vertical().auto_shrink([false, false]);
     if app.embroidery.player.playing
@@ -81,11 +91,8 @@ pub fn show(app: &mut VectorcraftApp, ui: &mut Ui) {
                 len.map_or_else(String::new, |l| format!("{l:.2}")),
                 name.map(|n| n.1).unwrap_or_default(),
             ];
-            let mut x = rect.left() + 2.0;
-            for (k, c) in cells.iter().enumerate() {
-                let w = cols.get(k).copied().unwrap_or(rect.right() - x);
+            for (x, c) in column_xs(rect.left()).into_iter().zip(cells.iter()) {
                 ui.painter().text(egui::pos2(x, rect.center().y), egui::Align2::LEFT_CENTER, c, egui::FontId::proportional(12.0), color);
-                x += w;
             }
             if resp.clicked() {
                 clicked = Some(i);
@@ -100,5 +107,18 @@ pub fn show(app: &mut VectorcraftApp, ui: &mut Ui) {
         if let Some(id) = plan.node_at_record(i) {
             app.run("select.set", json!({ "ids": [id.0] })).ok();
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn columns_fit_a_default_panel() {
+        let xs = column_xs(0.0);
+        assert!(xs.windows(2).all(|w| w[1] > w[0]));
+        // the Length column (and its header) ends well inside a 320 px panel
+        assert!(xs[5] < 300.0, "{xs:?}");
     }
 }
