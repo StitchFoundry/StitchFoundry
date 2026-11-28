@@ -20,6 +20,10 @@ Each source square measures half the hoop's smaller side (50 mm on a 100 × 100 
 
 None.
 
+## Persistence after reload
+
+`qa_hoops_persist` (run before the report is written, and in the `ci` fast step) saves a custom hoop in inches, edits it in mm, sets overlay show/opacity, My Machine and the last hoop, reloads the preferences into a fresh session and checks all of it came back.
+
 ## Golden files and overlay
 
 `cargo xtask qa-hoops` runs `qa_hoops_golden` first and stops if it fails, so this report is only written when these pass: the 30 mm square on the 100 × 100 mm hoop matches the stored DST, PES, JEF, EXP and VP3 files (`crates/engine/tests/golden/qa_hoops`; JEF's creation time is blanked), each reads back inside the field, and clicks hit and select the same object with the hoop overlay on or off.

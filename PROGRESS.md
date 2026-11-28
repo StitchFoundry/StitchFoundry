@@ -73,3 +73,5 @@
 - Fix #262: Cargo.lock moves wasmi (and wasmi_core, wasmi_collections, wasmi_ir) from the yanked 2.0.2 to 2.0.3 (`cargo audit -D yanked` passes).
 - 2026-11-27 nightly sweep: no reports to triage; fix PR for #274; sweep test found writing `junk/` and `#zzzzzz/` folders into the source tree (filed #280); fmt, clippy, workspace tests green; cargo audit: no vulnerabilities (7 unmaintained).
 - Fix #274: fidelity rasters refuse pixels finer than 0.01 mm, discs are spaced at half the thread radius, and `render_like` stops after 200M pixel visits with an error.
+- Issue 127 (slice 4): `qa_hoops_persist` (hoop and overlay settings survive a preferences reload) is now run by `cargo xtask qa-hoops` and the `ci` fast step, and listed in the report. Still to do: visual regression baselines, overlay paint order, resize/units/zoom checks.
+- 2026-11-28 nightly maintenance: none (queue run on #127).
