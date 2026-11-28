@@ -189,9 +189,15 @@ fn heavy(id: &str) -> bool {
     id.starts_with("document.serialize") || id.starts_with("document.export") || id == "document.open"
 }
 
+/// The names in the tests' working folder (the crate folder), to catch a command writing there.
+fn cwd_entries() -> std::collections::BTreeSet<String> {
+    std::fs::read_dir(".").map(|d| d.flatten().map(|e| e.file_name().to_string_lossy().to_string()).collect()).unwrap_or_default()
+}
+
 #[test]
 fn every_command_with_junk_params() {
     let path = safe_path();
+    let before = cwd_entries();
     let mut failures = vec![];
     let mut calls = 0usize;
     for fx in Fixture::ALL {
@@ -209,6 +215,9 @@ fn every_command_with_junk_params() {
         }
     }
     assert!(calls > 5_000, "only {calls} calls");
+    // Issue 280: junk folder params (`dir: "junk"`) once left `junk/patches-1.dst` here.
+    let new: Vec<_> = cwd_entries().difference(&before).cloned().collect();
+    assert!(new.is_empty(), "the sweep wrote into the crate folder: {new:?}");
     failures.sort();
     failures.dedup();
     assert!(
