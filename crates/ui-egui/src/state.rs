@@ -269,6 +269,11 @@ pub const ICON_PANEL_GROUPS: &[&[&str]] = &[
     &["transform", "align", "pathfinder"],
     &["character", "paragraph", "glyphs"],
     &["history", "actions", "info", "navigator"],
+    &["charStyles", "paraStyles", "openType", "tabs"],
+    &["blend", "separations", "flattenerPreview"],
+    &["imageTrace", "magicWand"],
+    &["docInfo", "attributes", "links"],
+    &["assetExport", "cssProperties", "svgInteractivity", "colorThemes"],
     &["variables"],
     &["embroidery", "stitchSequence", "stitchList", "embroideryStyles"],
 ];
@@ -1139,5 +1144,19 @@ mod tests {
         let d = Dialog::new("rectangle", serde_json::json!({"width": "1in", "height": 50}));
         assert_eq!(d.f64("width", 0.0), 72.0);
         assert_eq!(d.f64("height", 0.0), 50.0);
+    }
+}
+
+#[cfg(test)]
+mod icon_group_tests {
+    use super::{ICON_PANELS, ICON_PANEL_GROUPS};
+
+    /// A panel registered in `ICON_PANELS` but in no group opens from the Window menu and then
+    /// draws nothing (issue 284), so every registered panel needs a row.
+    #[test]
+    fn every_registered_icon_panel_is_in_a_group() {
+        for (id, label, _) in ICON_PANELS {
+            assert!(ICON_PANEL_GROUPS.iter().any(|g| g.contains(id)), "{label} ({id}) is in no ICON_PANEL_GROUPS row");
+        }
     }
 }
